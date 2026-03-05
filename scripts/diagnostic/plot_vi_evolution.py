@@ -11,7 +11,6 @@ from dataclasses import dataclass
 
 from jormi.utils import parallel_utils
 from jormi.ww_types import type_checks, array_checks
-# from jormi.ww_data import fit_data
 from jormi.ww_plots import plot_manager, annotate_axis
 from jormi.ww_fields.fields_3d import field_type, field_operators
 
@@ -182,45 +181,6 @@ class RenderDataSeries:
             edge_color=color,
         )
 
-    def _fit_linear_and_plot(
-        self,
-        *,
-        ax,
-        x_array: numpy.ndarray,
-        y_array: numpy.ndarray,
-    ) -> None:
-        return  ## TODO: update
-        # num_points = int(x_array.size)
-        # if num_points < 3:
-        #     return
-        # end_index = max(3, 3 * num_points // 4)
-        # ds = fit_data.DataSeries(
-        #     x_data_array=x_array[:end_index],
-        #     y_data_array=y_array[:end_index],
-        # )
-        # fit_summary = fit_data.fit_linear_model(ds)
-        # slope_stat = fit_summary.get_param("slope")
-        # intercept_stat = fit_summary.get_param("intercept")
-        # slope_value = float(slope_stat.value)
-        # intercept_value = float(intercept_stat.value)
-        # x0, x1 = float(x_array[0]), float(x_array[-1])
-        # y0 = intercept_value + slope_value * x0
-        # y1 = intercept_value + slope_value * x1
-        # ax.plot(
-        #     [x0, x1],
-        #     [y0, y1],
-        #     linestyle="--",
-        #     linewidth=1.5,
-        #     color=self.color,
-        #     alpha=0.9,
-        # )
-        # RenderDataSeries._annotate_fit(
-        #     ax=ax,
-        #     slope_stat=slope_stat,
-        #     intercept_stat=intercept_stat,
-        #     color=self.color,
-        # )
-
     def run(
         self,
         *,
@@ -246,11 +206,6 @@ class RenderDataSeries:
             ms=6,
             ls="-",
             lw=1.5,
-        )
-        self._fit_linear_and_plot(
-            ax=ax,
-            x_array=x_array,
-            y_array=y_array,
         )
         ax.set_xlabel("time")
         ax.set_ylabel(self.field_name)

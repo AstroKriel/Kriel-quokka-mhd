@@ -5,14 +5,18 @@
 ##
 
 import numpy
+
 from pathlib import Path
 from dataclasses import dataclass
+
 from jormi.ww_plots import plot_manager, add_color
 from jormi.ww_fields import cartesian_axes
 from jormi.ww_fields.fields_3d import field_type
 from jormi.ww_arrays import compute_array_stats
 from jormi.ww_types import type_checks, array_checks
+
 from ww_quokka_sims.sim_io import load_dataset
+
 import utils
 
 ##
@@ -103,8 +107,16 @@ class ComputePDFs:
         field_data: numpy.ndarray,
         num_bins: int,
     ) -> tuple[numpy.ndarray, numpy.ndarray]:
-        pdf = compute_array_stats.estimate_pdf(values=field_data.ravel(), num_bins=num_bins)
-        log10_densities = numpy.ma.log10(numpy.ma.masked_less_equal(pdf.densities, 0.0))
+        pdf = compute_array_stats.estimate_pdf(
+            values=field_data.ravel(),
+            num_bins=num_bins,
+        )
+        log10_densities = numpy.ma.log10(
+            numpy.ma.masked_less_equal(
+                x=pdf.densities,
+                value=0.0,
+            ),
+        )
         return (
             pdf.bin_centers,
             log10_densities,

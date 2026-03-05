@@ -82,12 +82,10 @@ class RenderComparisonPlot:
                 f"dir_1 ({self.label_dir_1}): x in [{x1_min}, {x1_max}]\n"
                 f"dir_2 ({self.label_dir_2}): x in [{x2_min}, {x2_max}]",
             )
-        x_array_common = x_array_1[in_bounds_mask_1]
-        y_array_1_common = y_array_1[in_bounds_mask_1]
         x_array_common, y_array_2_interp = interpolate_series.interpolate_1d(
             x_values=x_array_2,
             y_values=y_array_2,
-            x_interp=x_array_common,
+            x_interp=x_array_1[in_bounds_mask_1],
             kind="cubic",
         )
         if x_array_common.size == 0:
@@ -96,7 +94,8 @@ class RenderComparisonPlot:
                 f"dir_1 ({self.label_dir_1}): x in [{float(x_array_1[0])}, {float(x_array_1[-1])}]\n"
                 f"dir_2 ({self.label_dir_2}): x in [{x2_min}, {x2_max}]",
             )
-        y_array_1_common = y_array_1_common[: x_array_common.size]
+        y_array_1_common = y_array_1[in_bounds_mask_1]
+        y_array_1_common = y_array_1_common[:x_array_common.size]
         if not numpy.all(numpy.isfinite(y_array_1_common)):
             raise RuntimeError(
                 f"Non-finite values found in dir_1 ({self.label_dir_1}) on the comparison grid.",
@@ -105,7 +104,12 @@ class RenderComparisonPlot:
             raise RuntimeError(
                 f"Non-finite values found in interpolated dir_2 ({self.label_dir_2}) on the comparison grid.",
             )
-        zero_mask = numpy.isclose(y_array_1_common, 0.0, rtol=0.0, atol=0.0)
+        zero_mask = numpy.isclose(
+            a=y_array_1_common,
+            b=0.0,
+            rtol=0.0,
+            atol=0.0,
+        )
         if numpy.any(zero_mask):
             raise RuntimeError(
                 "Cannot compute fractional difference because dir_1 contains zeros on the comparison grid.\n"
@@ -184,11 +188,11 @@ class ScriptInterface:
         )
         if not dataset_dirs_1:
             raise RuntimeError(
-                f"No dataset directories resolved for dir_1: {self.dir_1} (tag={self.dataset_tag!r})"
+                f"No dataset directories resolved for dir_1: {self.dir_1} (tag={self.dataset_tag!r})",
             )
         if not dataset_dirs_2:
             raise RuntimeError(
-                f"No dataset directories resolved for dir_2: {self.dir_2} (tag={self.dataset_tag!r})"
+                f"No dataset directories resolved for dir_2: {self.dir_2} (tag={self.dataset_tag!r})",
             )
         label_dir_1 = self.dir_1.name
         label_dir_2 = self.dir_2.name

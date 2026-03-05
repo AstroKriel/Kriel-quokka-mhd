@@ -4,10 +4,10 @@
 ## === DEPENDENCIES
 ##
 
-import argparse
-from pathlib import Path
-
 import numpy
+import argparse
+
+from pathlib import Path
 
 from jormi.ww_types import type_checks
 from jormi.utils import list_utils

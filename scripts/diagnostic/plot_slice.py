@@ -14,7 +14,7 @@ from jormi.utils import parallel_utils
 from jormi.ww_types import type_checks
 from jormi.ww_io import io_manager, log_manager
 from jormi.ww_plots import plot_manager, plot_data, annotate_axis
-from jormi.ww_fields import _cartesian_coordinates
+from jormi.ww_fields import cartesian_axes
 from jormi.ww_fields.fields_3d import domain_type, field_type
 
 from ww_quokka_sims.sim_io import load_dataset
@@ -38,8 +38,8 @@ class WorkerArgs(NamedTuple):
     dataset_tag: str
     field_name: str
     field_loader: str
-    comps_to_plot: tuple[_cartesian_coordinates.CartesianAxis, ...]
-    axes_to_slice: tuple[_cartesian_coordinates.CartesianAxis, ...]
+    comps_to_plot: tuple[cartesian_axes.CartesianAxis_3D, ...]
+    axes_to_slice: tuple[cartesian_axes.CartesianAxis_3D, ...]
     cmap_name: str
     fig_dir: str
     index_width: int
@@ -86,52 +86,48 @@ class SlicedField:
 def _parse_axes(
     *,
     axes: tuple[str, ...] | list[str] | None,
-) -> tuple[_cartesian_coordinates.CartesianAxis, ...]:
-    default_axes = tuple(_cartesian_coordinates.DEFAULT_AXES_ORDER)
+) -> tuple[cartesian_axes.CartesianAxis_3D, ...]:
+    default_axes = tuple(cartesian_axes.DEFAULT_3D_AXES_ORDER)
     if axes is None:
         return default_axes
     lookup = {axis.value: axis for axis in default_axes}
-    parsed_axes: list[_cartesian_coordinates.CartesianAxis] = []
+    parsed_axes: list[cartesian_axes.CartesianAxis_3D] = []
     for axis_name in type_checks.as_tuple(param=axes):
         if axis_name not in lookup:
-            raise ValueError("Provide one or more axes (via -a/-c) from: x, y, z")
+            raise ValueError("Provide one or more axes (via -a/-c) from: x0, x1, x2")
         parsed_axes.append(lookup[axis_name])
     return tuple(parsed_axes)
 
 
 def _axis_to_index(
-    axis: _cartesian_coordinates.CartesianAxis,
+    axis: cartesian_axes.CartesianAxis_3D,
 ) -> int:
-    default_axes = tuple(_cartesian_coordinates.DEFAULT_AXES_ORDER)
-    try:
-        return default_axes.index(axis)
-    except ValueError as exc:
-        raise ValueError(f"Unrecognised axis: {axis!r}") from exc
+    return cartesian_axes.get_axis_index(axis)
 
 
 def get_slice_bounds(
     *,
     uniform_domain: domain_type.UniformDomain_3D,
-    axis_to_slice: _cartesian_coordinates.CartesianAxis,
+    axis_to_slice: cartesian_axes.CartesianAxis_3D,
 ) -> AxisBounds:
     (x_min, x_max), (y_min, y_max), (z_min, z_max) = uniform_domain.domain_bounds
-    if axis_to_slice == _cartesian_coordinates.CartesianAxis.Z:
+    if axis_to_slice == cartesian_axes.CartesianAxis_3D.X2:
         return ((x_min, x_max), (y_min, y_max))
-    if axis_to_slice == _cartesian_coordinates.CartesianAxis.Y:
+    if axis_to_slice == cartesian_axes.CartesianAxis_3D.X1:
         return ((x_min, x_max), (z_min, z_max))
-    if axis_to_slice == _cartesian_coordinates.CartesianAxis.X:
+    if axis_to_slice == cartesian_axes.CartesianAxis_3D.X0:
         return ((y_min, y_max), (z_min, z_max))
     raise ValueError("axis_to_slice must be one of: x, y, z")
 
 
 def get_slice_labels(
-    axis_to_slice: _cartesian_coordinates.CartesianAxis,
+    axis_to_slice: cartesian_axes.CartesianAxis_3D,
 ) -> tuple[str, str]:
-    if axis_to_slice == _cartesian_coordinates.CartesianAxis.Z:
+    if axis_to_slice == cartesian_axes.CartesianAxis_3D.X2:
         return ("x", "y")
-    if axis_to_slice == _cartesian_coordinates.CartesianAxis.Y:
+    if axis_to_slice == cartesian_axes.CartesianAxis_3D.X1:
         return ("x", "z")
-    if axis_to_slice == _cartesian_coordinates.CartesianAxis.X:
+    if axis_to_slice == cartesian_axes.CartesianAxis_3D.X0:
         return ("y", "z")
     raise ValueError("axis_to_slice must be one of: x, y, z")
 
@@ -139,20 +135,20 @@ def get_slice_labels(
 def slice_field(
     *,
     data_3d: numpy.ndarray,
-    axis_to_slice: _cartesian_coordinates.CartesianAxis,
+    axis_to_slice: cartesian_axes.CartesianAxis_3D,
     uniform_domain: domain_type.UniformDomain_3D,
 ) -> SlicedField:
     num_cells_x, num_cells_y, num_cells_z = data_3d.shape
     slice_index_x = num_cells_x // 2
     slice_index_y = num_cells_y // 2
     slice_index_z = num_cells_z // 2
-    if axis_to_slice == _cartesian_coordinates.CartesianAxis.Z:
+    if axis_to_slice == cartesian_axes.CartesianAxis_3D.X2:
         data_2d = data_3d[:, :, slice_index_z]
         label = r"$(x, y, z=L_z/2)$"
-    elif axis_to_slice == _cartesian_coordinates.CartesianAxis.Y:
+    elif axis_to_slice == cartesian_axes.CartesianAxis_3D.X1:
         data_2d = data_3d[:, slice_index_y, :]
         label = r"$(x, y=L_y/2, z)$"
-    elif axis_to_slice == _cartesian_coordinates.CartesianAxis.X:
+    elif axis_to_slice == cartesian_axes.CartesianAxis_3D.X0:
         data_2d = data_3d[slice_index_x, :, :]
         label = r"$(x=L_x/2, y, z)$"
     else:
@@ -177,8 +173,8 @@ def slice_field(
 class FieldPlotter:
     dataset_tag: str
     field_args: FieldArgs
-    comps_to_plot: tuple[_cartesian_coordinates.CartesianAxis, ...]
-    axes_to_slice: tuple[_cartesian_coordinates.CartesianAxis, ...]
+    comps_to_plot: tuple[cartesian_axes.CartesianAxis_3D, ...]
+    axes_to_slice: tuple[cartesian_axes.CartesianAxis_3D, ...]
 
     @staticmethod
     def plot_slice(
@@ -265,7 +261,7 @@ class FieldPlotter:
             return [
                 FieldComp(
                     data_3d=sarray_3d,
-                    label=field_name,
+                    label=field_type.get_label(field),
                 ),
             ]
         if isinstance(field, field_type.VectorField_3D):
@@ -280,7 +276,7 @@ class FieldPlotter:
             return [
                 FieldComp(
                     data_3d=varray_3d[_axis_to_index(comp_axis)],
-                    label=rf"$({field_name})_{{{comp_axis.value}}}$",
+                    label=field_type.get_vcomp_label(field, comp_axis),
                 ) for comp_axis in self.comps_to_plot
             ]
         raise ValueError(f"{field_name} is an unrecognised field type.")
@@ -364,8 +360,8 @@ def render_fields_in_serial(
     *,
     dataset_tag: str,
     fields_to_plot: tuple[str, ...],
-    comps_to_plot: tuple[_cartesian_coordinates.CartesianAxis, ...],
-    axes_to_slice: tuple[_cartesian_coordinates.CartesianAxis, ...],
+    comps_to_plot: tuple[cartesian_axes.CartesianAxis_3D, ...],
+    axes_to_slice: tuple[cartesian_axes.CartesianAxis_3D, ...],
     dataset_dirs: list[Path],
     fig_dir: Path,
     index_width: int,
@@ -419,8 +415,8 @@ def render_fields_in_parallel(
     *,
     dataset_tag: str,
     fields_to_plot: tuple[str, ...],
-    comps_to_plot: tuple[_cartesian_coordinates.CartesianAxis, ...],
-    axes_to_slice: tuple[_cartesian_coordinates.CartesianAxis, ...],
+    comps_to_plot: tuple[cartesian_axes.CartesianAxis_3D, ...],
+    axes_to_slice: tuple[cartesian_axes.CartesianAxis_3D, ...],
     dataset_dirs: list[Path],
     fig_dir: Path,
     index_width: int,

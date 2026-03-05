@@ -4,16 +4,20 @@
 ## === DEPENDENCIES
 ##
 
-import numpy
-import csv
 import re
+import csv
+import numpy
+
 from pathlib import Path
 from dataclasses import dataclass
+
 from jormi.ww_types import type_checks
 from jormi.ww_plots import plot_manager, add_color
-from jormi.ww_fields import _cartesian_coordinates
+from jormi.ww_fields import cartesian_axes
 from jormi.ww_fields.fields_3d import field_type, domain_type
+
 from ww_quokka_sims.sim_io import load_dataset
+
 import utils
 
 ##
@@ -25,7 +29,7 @@ import utils
 class CompProfile:
     sim_time: float
     comp_label: str
-    axis_labels: list[_cartesian_coordinates.AxisLike]
+    axis_labels: list[cartesian_axes.AxisLike_3D]
     x_array_by_axis: list[numpy.ndarray]
     y_array_by_axis: list[numpy.ndarray]
 
@@ -59,8 +63,8 @@ class ComputeCompProfiles:
         dataset_dirs: list[Path],
         field_name: str,
         field_loader: str,
-        comps_to_plot: tuple[_cartesian_coordinates.AxisLike, ...],
-        axes_to_slice: tuple[_cartesian_coordinates.AxisLike, ...],
+        comps_to_plot: tuple[cartesian_axes.AxisLike_3D, ...],
+        axes_to_slice: tuple[cartesian_axes.AxisLike_3D, ...],
     ):
         self.dataset_dirs = dataset_dirs
         self.field_name = field_name
@@ -72,30 +76,32 @@ class ComputeCompProfiles:
     def _compute_cell_centers(
         *,
         udomain_3d: domain_type.UniformDomain_3D,
-        axis_to_slice: _cartesian_coordinates.AxisLike,
+        axis_to_slice: cartesian_axes.AxisLike_3D,
     ) -> numpy.ndarray:
         (x_min, _), (y_min, _), (z_min, _) = udomain_3d.domain_bounds
         num_cells_x, num_cells_y, num_cells_z = udomain_3d.resolution
         cell_width_x, cell_width_y, cell_width_z = udomain_3d.cell_widths
-        if axis_to_slice == "x": return x_min + (numpy.arange(num_cells_x) + 0.5) * cell_width_x
-        if axis_to_slice == "y": return y_min + (numpy.arange(num_cells_y) + 0.5) * cell_width_y
-        if axis_to_slice == "z": return z_min + (numpy.arange(num_cells_z) + 0.5) * cell_width_z
-        raise ValueError("axis must be one of: x, y, z")
+        ax_idx = cartesian_axes.get_axis_index(axis_to_slice)
+        if ax_idx == 0: return x_min + (numpy.arange(num_cells_x) + 0.5) * cell_width_x
+        if ax_idx == 1: return y_min + (numpy.arange(num_cells_y) + 0.5) * cell_width_y
+        if ax_idx == 2: return z_min + (numpy.arange(num_cells_z) + 0.5) * cell_width_z
+        raise ValueError("axis must be one of: x0, x1, x2")
 
     @staticmethod
     def _extract_1d_midplane_profile(
         *,
         data_3d: numpy.ndarray,
-        axis_to_slice: _cartesian_coordinates.AxisLike,
+        axis_to_slice: cartesian_axes.AxisLike_3D,
     ) -> numpy.ndarray:
         num_cells_x, num_cells_y, num_cells_z = data_3d.shape
         slice_index_x = num_cells_x // 2
         slice_index_y = num_cells_y // 2
         slice_index_z = num_cells_z // 2
-        if axis_to_slice == "x": return data_3d[:, slice_index_y, slice_index_z]
-        if axis_to_slice == "y": return data_3d[slice_index_x, :, slice_index_z]
-        if axis_to_slice == "z": return data_3d[slice_index_x, slice_index_y, :]
-        raise ValueError("axis must be one of: x, y, z")
+        ax_idx = cartesian_axes.get_axis_index(axis_to_slice)
+        if ax_idx == 0: return data_3d[:, slice_index_y, slice_index_z]
+        if ax_idx == 1: return data_3d[slice_index_x, :, slice_index_z]
+        if ax_idx == 2: return data_3d[slice_index_x, slice_index_y, :]
+        raise ValueError("axis must be one of: x0, x1, x2")
 
     @staticmethod
     def _get_sim_time(
@@ -137,7 +143,7 @@ class ComputeCompProfiles:
             CompProfile(
                 sim_time=sim_time,
                 axis_labels=axis_labels,
-                comp_label=field.field_label,
+                comp_label=field_type.get_label(field),
                 x_array_by_axis=x_array_by_axis,
                 y_array_by_axis=y_array_by_axis,
             ),
@@ -159,7 +165,7 @@ class ComputeCompProfiles:
         axis_labels = list(self.axes_to_slice)
         comp_profiles: list[CompProfile] = []
         for comp_name in comp_names:
-            comp_label = rf"$(${self.field_name}$)_{{{comp_name}}}$"
+            comp_label = field_type.get_vcomp_label(field, comp_name)
             x_array_by_axis: list[numpy.ndarray] = []
             y_array_by_axis: list[numpy.ndarray] = []
             for axis_to_slice in axis_labels:
@@ -167,7 +173,7 @@ class ComputeCompProfiles:
                     udomain_3d=udomain_3d,
                     axis_to_slice=axis_to_slice,
                 )
-                comp_index = _cartesian_coordinates.get_axis_index(comp_name)
+                comp_index = cartesian_axes.get_axis_index(comp_name)
                 comp_data_3d = field.fdata.farray[comp_index]
                 comp_profile = ComputeCompProfiles._extract_1d_midplane_profile(
                     data_3d=comp_data_3d,
@@ -224,8 +230,8 @@ class RenderCompProfiles:
         *,
         dataset_dirs: list[Path],
         field_name: str,
-        comps_to_plot: tuple[_cartesian_coordinates.AxisLike, ...],
-        axes_to_slice: tuple[_cartesian_coordinates.AxisLike, ...],
+        comps_to_plot: tuple[cartesian_axes.AxisLike_3D, ...],
+        axes_to_slice: tuple[cartesian_axes.AxisLike_3D, ...],
         field_loader: str,
         cmap_name: str,
         fig_dir: Path,
@@ -263,7 +269,6 @@ class RenderCompProfiles:
                     t_str = f"{comp_profile.sim_time:.3f}"
                     for axis_index, axis_label in enumerate(comp_profile.axis_labels):
                         domain, values = comp_profile.get(axis_index=axis_index)
-                        # one file per (component, axis slice, time)
                         file_name = f"{comp_slug}_ax={axis_label}_t={t_str}.csv"
                         file_path = out_dir / file_name
                         with file_path.open("w", newline="") as fp:
@@ -277,7 +282,7 @@ class RenderCompProfiles:
         *,
         axs_grid,
         comp_labels: list[str],
-        axis_labels: list[_cartesian_coordinates.AxisLike],
+        axis_labels: list[cartesian_axes.AxisLike_3D],
     ) -> None:
         for row_index, comp_label in enumerate(comp_labels):
             for col_index, axis_label in enumerate(axis_labels):
@@ -325,7 +330,7 @@ class RenderCompProfiles:
             label=r"snapshot index",
             cmap=cmap,
             norm=norm,
-            side="right",
+            anchor_side="right",
             ax_percentage=0.05,
         )
 
@@ -389,8 +394,8 @@ class ScriptInterface:
         input_dir: Path,
         dataset_tag: str,
         fields_to_plot: list[str],
-        comps_to_plot: tuple[_cartesian_coordinates.AxisLike, ...] | list[_cartesian_coordinates.AxisLike] | None,
-        axes_to_slice: tuple[_cartesian_coordinates.AxisLike, ...] | list[_cartesian_coordinates.AxisLike] | None,
+        comps_to_plot: tuple[cartesian_axes.AxisLike_3D, ...] | list[cartesian_axes.AxisLike_3D] | None,
+        axes_to_slice: tuple[cartesian_axes.AxisLike_3D, ...] | list[cartesian_axes.AxisLike_3D] | None,
         save_profiles: bool,
     ):
         type_checks.ensure_nonempty_string(param=dataset_tag, param_name="dataset_tag")
@@ -398,13 +403,13 @@ class ScriptInterface:
         if not fields_to_plot or not set(fields_to_plot).issubset(valid_fields):
             raise ValueError(f"Provide fields via -f from: {sorted(valid_fields)}")
         if comps_to_plot is None:
-            comps_to_plot = _cartesian_coordinates.DEFAULT_AXES_ORDER
-        elif not set(comps_to_plot).issubset(set(_cartesian_coordinates.DEFAULT_AXES_ORDER)):
-            raise ValueError("Provide one or more components (via -c) from: x, y, z")
+            comps_to_plot = cartesian_axes.DEFAULT_3D_AXES_ORDER
+        elif not set(comps_to_plot).issubset(set(cartesian_axes.DEFAULT_3D_AXES_ORDER)):
+            raise ValueError("Provide one or more components (via -c) from: x0, x1, x2")
         if axes_to_slice is None:
-            axes_to_slice = _cartesian_coordinates.DEFAULT_AXES_ORDER
-        elif not set(axes_to_slice).issubset(set(_cartesian_coordinates.DEFAULT_AXES_ORDER)):
-            raise ValueError("Provide one or more axes (via -a) from: x, y, z")
+            axes_to_slice = cartesian_axes.DEFAULT_3D_AXES_ORDER
+        elif not set(axes_to_slice).issubset(set(cartesian_axes.DEFAULT_3D_AXES_ORDER)):
+            raise ValueError("Provide one or more axes (via -a) from: x0, x1, x2")
         self.input_dir = Path(input_dir)
         self.dataset_tag = dataset_tag
         self.fields_to_plot = type_checks.as_tuple(param=fields_to_plot)

@@ -5,8 +5,9 @@
 ##
 
 from pathlib import Path
+
 from ww_quokka_sims.sim_io import load_dataset
-from jormi.ww_io import log_manager
+
 import utils
 
 ##

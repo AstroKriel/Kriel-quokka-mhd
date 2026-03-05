@@ -8,9 +8,10 @@ import numpy
 from pathlib import Path
 from dataclasses import dataclass
 from jormi.ww_plots import plot_manager, add_color
-from jormi.ww_fields import field_types
-from jormi.ww_data import compute_stats
-from jormi.ww_types import type_manager, array_checks
+from jormi.ww_fields import cartesian_axes
+from jormi.ww_fields.fields_3d import field_type
+from jormi.ww_arrays import compute_array_stats
+from jormi.ww_types import type_checks, array_checks
 from ww_quokka_sims.sim_io import load_dataset
 import utils
 
@@ -30,13 +31,13 @@ class PDFData:
         self,
     ) -> None:
         ## container validation
-        type_manager.ensure_sequence(
+        type_checks.ensure_sequence(
             param=self.grouped_bin_centers,
             valid_seq_types=(list, tuple),
             param_name="grouped_bin_centers",
             seq_length=len(self.comp_labels),
         )
-        type_manager.ensure_sequence(
+        type_checks.ensure_sequence(
             param=self.grouped_densities,
             valid_seq_types=(list, tuple),
             param_name="grouped_densities",
@@ -87,7 +88,7 @@ class ComputePDFs:
         dataset_dirs: list[Path],
         field_name: str,
         field_loader: str,
-        comps_to_plot: tuple[field_types.AxisName, ...],
+        comps_to_plot: tuple[cartesian_axes.AxisLike_3D, ...],
         num_bins: int,
     ):
         self.dataset_dirs = dataset_dirs
@@ -102,7 +103,7 @@ class ComputePDFs:
         field_data: numpy.ndarray,
         num_bins: int,
     ) -> tuple[numpy.ndarray, numpy.ndarray]:
-        pdf = compute_stats.estimate_pdf(values=field_data.ravel(), num_bins=num_bins)
+        pdf = compute_array_stats.estimate_pdf(values=field_data.ravel(), num_bins=num_bins)
         log10_densities = numpy.ma.log10(numpy.ma.masked_less_equal(pdf.densities, 0.0))
         return (
             pdf.bin_centers,
@@ -112,10 +113,10 @@ class ComputePDFs:
     @staticmethod
     def _get_sim_time(
         *,
-        field: field_types.ScalarField | field_types.VectorField,
+        field: field_type.ScalarField_3D | field_type.VectorField_3D,
     ) -> float:
         sim_time = field.sim_time
-        type_manager.ensure_finite_float(
+        type_checks.ensure_finite_float(
             param=sim_time,
             param_name="sim_time",
             allow_none=False,
@@ -125,20 +126,20 @@ class ComputePDFs:
 
     def _compute_vfield_pdf(
         self,
-        field: field_types.VectorField,
+        field: field_type.VectorField_3D,
     ) -> PDFData:
         if len(self.comps_to_plot) == 0:
             raise ValueError(
                 f"Vector field `{self.field_name}` requires at least one component to plot; none provided.",
             )
-        field_types.ensure_vfield(field)
+        field_type.ensure_3d_vfield(field)
         sim_time = self._get_sim_time(field=field)
         comp_names = sorted(self.comps_to_plot)
-        comp_labels = [rf"$(${self.field_name}$)_{{{comp_name}}}$" for comp_name in comp_names]
+        comp_labels = [field_type.get_vcomp_label(field, comp_name) for comp_name in comp_names]
         grouped_bin_centers: list[numpy.ndarray] = []
         grouped_densities: list[numpy.ndarray] = []
         for comp_name in comp_names:
-            comp_data = field.data[field_types.AXIS_NAME_TO_INDEX_VALUE[comp_name]]
+            comp_data = field.fdata.farray[cartesian_axes.get_axis_index(comp_name)]
             bin_centers, densities = self._estimate_pdf(
                 field_data=comp_data,
                 num_bins=self.num_bins,
@@ -154,19 +155,19 @@ class ComputePDFs:
 
     def _compute_sfield_pdf(
         self,
-        field: field_types.ScalarField,
+        field: field_type.ScalarField_3D,
     ) -> PDFData:
-        field_types.ensure_sfield(field)
+        field_type.ensure_3d_sfield(field)
         sim_time = self._get_sim_time(field=field)
         bin_centers, densities = self._estimate_pdf(
-            field_data=field.data,
+            field_data=field.fdata.farray,
             num_bins=self.num_bins,
         )
         return PDFData(
             sim_time=sim_time,
             grouped_bin_centers=[bin_centers],
             grouped_densities=[densities],
-            comp_labels=[self.field_name],
+            comp_labels=[field_type.get_label(field)],
         )
 
     def run(
@@ -177,9 +178,9 @@ class ComputePDFs:
             with load_dataset.QuokkaDataset(dataset_dir=dataset_dir, verbose=False) as ds:
                 loader_fn = getattr(ds, self.field_loader)
                 field = loader_fn()
-            if isinstance(field, field_types.ScalarField):
+            if isinstance(field, field_type.ScalarField_3D):
                 pdf = self._compute_sfield_pdf(field=field)
-            elif isinstance(field, field_types.VectorField):
+            elif isinstance(field, field_type.VectorField_3D):
                 pdf = self._compute_vfield_pdf(field=field)
             else:
                 raise ValueError(f"{self.field_name} is an unrecognised field type.")
@@ -196,7 +197,7 @@ class RenderPDFs:
         dataset_dirs: list[Path],
         fig_dir: Path,
         field_name: str,
-        comps_to_plot: tuple[field_types.AxisName, ...],
+        comps_to_plot: tuple[cartesian_axes.AxisLike_3D, ...],
         cmap_name: str,
         field_loader: str,
         num_bins: int,
@@ -242,7 +243,7 @@ class RenderPDFs:
     ) -> None:
         cmap, norm = add_color.create_cmap(
             cmap_name=cmap_name,
-            cmin=0.25,
+            min_cmap_value=0.25,
             vmin=0,
             vmax=max(
                 0,
@@ -261,7 +262,7 @@ class RenderPDFs:
             label=r"snapshot index",
             cmap=cmap,
             norm=norm,
-            side="right",
+            anchor_side="right",
             ax_percentage=0.05,
         )
 
@@ -316,21 +317,21 @@ class ScriptInterface:
         input_dir: Path,
         dataset_tag: str,
         fields_to_plot: tuple[str, ...] | list[str] | None,
-        comps_to_plot: tuple[field_types.AxisName, ...] | list[field_types.AxisName] | None,
+        comps_to_plot: tuple[cartesian_axes.AxisLike_3D, ...] | list[cartesian_axes.AxisLike_3D] | None,
         num_bins: int = 15,
     ):
-        type_manager.ensure_nonempty_string(param=dataset_tag, param_name="dataset_tag")
+        type_checks.ensure_nonempty_string(param=dataset_tag, param_name="dataset_tag")
         valid_fields = set(utils.QUOKKA_FIELD_LOOKUP.keys())
         if not fields_to_plot or not set(fields_to_plot).issubset(valid_fields):
             raise ValueError(f"Provide fields via -f from: {sorted(valid_fields)}")
         if comps_to_plot is None:
-            comps_to_plot = field_types.AXES_NAMES
-        elif not set(comps_to_plot).issubset(set(field_types.AXES_NAMES)):
-            raise ValueError("Provide one or more components (via -c) from: x, y, z")
+            comps_to_plot = cartesian_axes.DEFAULT_3D_AXES_ORDER
+        elif not set(comps_to_plot).issubset(set(cartesian_axes.DEFAULT_3D_AXES_ORDER)):
+            raise ValueError("Provide one or more components (via -c) from: x0, x1, x2")
         self.input_dir = Path(input_dir)
         self.dataset_tag = dataset_tag
-        self.fields_to_plot = type_manager.as_tuple(param=fields_to_plot)
-        self.comps_to_plot = type_manager.as_tuple(param=comps_to_plot)
+        self.fields_to_plot = type_checks.as_tuple(param=fields_to_plot)
+        self.comps_to_plot = type_checks.as_tuple(param=comps_to_plot)
         self.num_bins = int(num_bins)
 
     def run(

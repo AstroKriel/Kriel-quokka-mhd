@@ -235,7 +235,7 @@ class RenderCompProfiles:
         field_loader: str,
         cmap_name: str,
         fig_dir: Path,
-        save_profiles: bool
+        save_profiles: bool,
     ):
         self.dataset_dirs = dataset_dirs
         self.fig_dir = Path(fig_dir)
@@ -248,34 +248,34 @@ class RenderCompProfiles:
 
     @staticmethod
     def _safe_slug(
-            text: str
-        ) -> str:
+        text: str,
+    ) -> str:
         text = text.strip()
         text = re.sub(r"\s+", "_", text)
         text = re.sub(r"[^A-Za-z0-9_\-\.]+", "", text)
         return text if text else "profile"
 
     def _save_comp_profiles_as_csvs(
-            self,
-            *,
-            comp_profiles_lookup: dict[str, list[CompProfile]],
-            out_dir: Path,
-        ) -> None:
-            out_dir = Path(out_dir)
-            out_dir.mkdir(parents=True, exist_ok=True)
-            for comp_label, comp_profiles in comp_profiles_lookup.items():
-                comp_slug = self._safe_slug(comp_label)
-                for comp_profile in comp_profiles:
-                    t_str = f"{comp_profile.sim_time:.3f}"
-                    for axis_index, axis_label in enumerate(comp_profile.axis_labels):
-                        domain, values = comp_profile.get(axis_index=axis_index)
-                        file_name = f"{comp_slug}_ax={axis_label}_t={t_str}.csv"
-                        file_path = out_dir / file_name
-                        with file_path.open("w", newline="") as fp:
-                            writer = csv.writer(fp)
-                            writer.writerow(["domain", "values"])
-                            for position, value in zip(domain, values, strict=False):
-                                writer.writerow([float(position), float(value)])
+        self,
+        *,
+        comp_profiles_lookup: dict[str, list[CompProfile]],
+        out_dir: Path,
+    ) -> None:
+        out_dir = Path(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        for comp_label, comp_profiles in comp_profiles_lookup.items():
+            comp_slug = self._safe_slug(comp_label)
+            for comp_profile in comp_profiles:
+                t_str = f"{comp_profile.sim_time:.3f}"
+                for axis_index, axis_label in enumerate(comp_profile.axis_labels):
+                    domain, values = comp_profile.get(axis_index=axis_index)
+                    file_name = f"{comp_slug}_ax={axis_label}_t={t_str}.csv"
+                    file_path = out_dir / file_name
+                    with file_path.open("w", newline="") as fp:
+                        writer = csv.writer(fp)
+                        writer.writerow(["domain", "values"])
+                        for position, value in zip(domain, values, strict=False):
+                            writer.writerow([float(position), float(value)])
 
     @staticmethod
     def _style_axs(
@@ -313,10 +313,12 @@ class RenderCompProfiles:
             cmap_name=self.cmap_name,
             min_cmap_value=0.25,
             vmin=0.0,
-            vmax=float(max(
-                0,
-                len(comp_profiles) - 1,
-            )),
+            vmax=float(
+                max(
+                    0,
+                    len(comp_profiles) - 1,
+                ),
+            ),
         )
         for time_index, comp_profile in enumerate(comp_profiles):
             color = cmap(norm(time_index))
@@ -437,7 +439,7 @@ class ScriptInterface:
                 axes_to_slice=self.axes_to_slice,
                 field_loader=field_meta["loader"],
                 cmap_name=field_meta["cmap"],
-                save_profiles=self.save_profiles
+                save_profiles=self.save_profiles,
             )
             render_comp_profiles.run()
 

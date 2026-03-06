@@ -461,7 +461,10 @@ class ScriptInterface:
         use_parallel: bool = True,
         animate_only: bool = False,
     ):
-        type_checks.ensure_nonempty_string(param=dataset_tag, param_name="dataset_tag")
+        type_checks.ensure_nonempty_string(
+            param=dataset_tag,
+            param_name="dataset_tag",
+        )
         valid_fields = set(utils.QUOKKA_FIELD_LOOKUP.keys())
         if not fields_to_plot or not set(fields_to_plot).issubset(valid_fields):
             raise ValueError(f"Provide one or more field to plot (via -f) from: {sorted(valid_fields)}")

@@ -61,20 +61,6 @@ class ComputeSpectra:
         self.field_name = field_name
         self.field_loader = field_loader
 
-    @staticmethod
-    def _get_sim_time(
-        *,
-        field: field_type.ScalarField_3D,
-    ) -> float:
-        sim_time = field.sim_time
-        type_checks.ensure_finite_float(
-            param=sim_time,
-            param_name="sim_time",
-            allow_none=False,
-        )
-        assert sim_time is not None
-        return float(sim_time)
-
     def run(
         self,
     ) -> list[SpectraData]:
@@ -88,7 +74,7 @@ class ComputeSpectra:
                     f"`{self.field_name}` is not a scalar field; "
                     "power spectra are only supported for scalar fields.",
                 )
-            sim_time = self._get_sim_time(field=field)
+            sim_time = utils.get_sim_time(field=field)
             spectrum = compute_spectra.compute_isotropic_power_spectrum_sfield(field)
             log10_spectrum = numpy.ma.log10(
                 numpy.ma.masked_less_equal(
@@ -152,19 +138,16 @@ class RenderSpectra:
     @staticmethod
     def _plot_series(
         *,
-        axs_grid,
+        ax,
         field_spectra: list[SpectraData],
         cmap_name: str,
     ) -> None:
-        ax = axs_grid[0][0]
         cmap, norm = add_color.create_cmap(
             cmap_name=cmap_name,
             min_cmap_value=0.25,
             vmin=0,
-            vmax=max(
-                0,
-                len(field_spectra) - 1,
-            ),
+            vmax=max(0,
+                     len(field_spectra) - 1),
         )
         for series_index, spectra_data in enumerate(field_spectra):
             color = cmap(norm(series_index))
@@ -174,7 +157,7 @@ class RenderSpectra:
                 color=color,
             )
         add_color.add_cbar_from_cmap(
-            ax=axs_grid[-1][-1],
+            ax=ax,
             label=r"snapshot index",
             cmap=cmap,
             norm=norm,
@@ -193,12 +176,9 @@ class RenderSpectra:
         field_spectra = compute.run()
         if not field_spectra:
             return
-        fig, axs_grid = utils.create_figure(
-            num_rows=1,
-            num_cols=1,
-            add_cbar_space=len(field_spectra) > 1,
-        )
-        ax = axs_grid[0][0]
+        fig, ax = plot_manager.create_figure()
+        if len(field_spectra) > 1:
+            fig.subplots_adjust(right=0.82)
         if len(field_spectra) == 1:
             self._plot_snapshot(
                 ax=ax,
@@ -207,7 +187,7 @@ class RenderSpectra:
             )
         else:
             self._plot_series(
-                axs_grid=axs_grid,
+                ax=ax,
                 field_spectra=field_spectra,
                 cmap_name=self.cmap_name,
             )
@@ -236,9 +216,7 @@ class ScriptInterface:
             param=dataset_tag,
             param_name="dataset_tag",
         )
-        valid_fields = set(utils.QUOKKA_FIELD_LOOKUP.keys())
-        if not fields_to_plot or not set(fields_to_plot).issubset(valid_fields):
-            raise ValueError(f"Provide fields via -f from: {sorted(valid_fields)}")
+        utils.validate_fields(fields_to_plot)
         self.input_dir = Path(input_dir)
         self.dataset_tag = dataset_tag
         self.fields_to_plot = type_checks.as_tuple(param=fields_to_plot)

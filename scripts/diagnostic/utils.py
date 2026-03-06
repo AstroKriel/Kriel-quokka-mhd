@@ -8,10 +8,12 @@ import numpy
 import argparse
 
 from pathlib import Path
+from matplotlib.figure import Figure as mpl_Figure
 
 from jormi.utils import list_utils
 from jormi.ww_types import type_checks
 from jormi.ww_plots import plot_manager
+from jormi.ww_fields.fields_3d import field_type
 
 ##
 ## === QUOKKA FIELDS
@@ -77,6 +79,27 @@ QUOKKA_FIELD_LOOKUP = {
 ##
 
 
+def get_sim_time(
+    field: field_type.ScalarField_3D | field_type.VectorField_3D,
+) -> float:
+    sim_time = field.sim_time
+    type_checks.ensure_finite_float(
+        param=sim_time,
+        param_name="sim_time",
+        allow_none=False,
+    )
+    assert sim_time is not None
+    return float(sim_time)
+
+
+def validate_fields(
+    fields_to_plot: list[str] | tuple[str, ...] | None,
+) -> None:
+    valid_fields = set(QUOKKA_FIELD_LOOKUP.keys())
+    if not fields_to_plot or not set(fields_to_plot).issubset(valid_fields):
+        raise ValueError(f"Provide fields via -f from: {sorted(valid_fields)}")
+
+
 def base_parser() -> argparse.ArgumentParser:
     """
         Shared parser arguments for diagnostic scripts.
@@ -124,15 +147,12 @@ def base_parser() -> argparse.ArgumentParser:
 
 
 def create_figure(
-    num_rows: int,
-    num_cols: int,
+    num_rows: int = 1,
+    num_cols: int = 1,
     add_cbar_space: bool = False,
-):
+) -> tuple[mpl_Figure, plot_manager.PlotAxesArray]:
     if (num_rows == 1) and (num_cols == 1):
-        fig, ax = plot_manager.create_figure(
-            share_x=False,
-            share_y=False,
-        )
+        fig, ax = plot_manager.create_figure()
         if add_cbar_space:
             fig.subplots_adjust(right=0.82)
         axs_grid = numpy.asarray([[ax]], dtype=object)
@@ -140,8 +160,6 @@ def create_figure(
     fig, axs_grid = plot_manager.create_figure(
         num_rows=num_rows,
         num_cols=num_cols,
-        share_x=False,
-        share_y=False,
         y_spacing=0.25,
         x_spacing=0.75 if add_cbar_space else 0.25,
     )

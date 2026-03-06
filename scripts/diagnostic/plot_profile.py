@@ -104,20 +104,6 @@ class ComputeCompProfiles:
         if ax_idx == 2: return data_3d[slice_index_x, slice_index_y, :]
         raise ValueError("axis must be one of: x0, x1, x2")
 
-    @staticmethod
-    def _get_sim_time(
-        *,
-        field: field_type.ScalarField_3D | field_type.VectorField_3D,
-    ) -> float:
-        sim_time = field.sim_time
-        type_checks.ensure_finite_float(
-            param=sim_time,
-            param_name="sim_time",
-            allow_none=False,
-        )
-        assert sim_time is not None
-        return float(sim_time)
-
     def _compute_scalar_profiles(
         self,
         *,
@@ -125,7 +111,7 @@ class ComputeCompProfiles:
         udomain_3d: domain_type.UniformDomain_3D,
     ) -> list[CompProfile]:
         field_type.ensure_3d_sfield(field)
-        sim_time = self._get_sim_time(field=field)
+        sim_time = utils.get_sim_time(field=field)
         axis_labels = list(self.axes_to_slice)
         x_array_by_axis: list[numpy.ndarray] = []
         y_array_by_axis: list[numpy.ndarray] = []
@@ -161,7 +147,7 @@ class ComputeCompProfiles:
                 f"Vector field `{self.field_name}` requires at least one component to plot; none provided.",
             )
         field_type.ensure_3d_vfield(field)
-        sim_time = self._get_sim_time(field=field)
+        sim_time = utils.get_sim_time(field=field)
         comp_names = sorted(self.comps_to_plot)
         axis_labels = list(self.axes_to_slice)
         comp_profiles: list[CompProfile] = []
@@ -256,7 +242,7 @@ class RenderCompProfiles:
         text = re.sub(r"[^A-Za-z0-9_\-\.]+", "", text)
         return text if text else "profile"
 
-    def _save_comp_profiles_as_csvs(
+    def _save_comp_profiles(
         self,
         *,
         comp_profiles_lookup: dict[str, list[CompProfile]],
@@ -314,11 +300,9 @@ class RenderCompProfiles:
             cmap_name=self.cmap_name,
             min_cmap_value=0.25,
             vmin=0.0,
-            vmax=float(
-                max(
-                    0,
-                    len(comp_profiles) - 1,
-                ),
+            vmax=max(
+                0,
+                len(comp_profiles) - 1,
             ),
         )
         for time_index, comp_profile in enumerate(comp_profiles):
@@ -372,7 +356,7 @@ class RenderCompProfiles:
                     comp_profiles=comp_profiles,
                 )
         if self.save_profiles:
-            self._save_comp_profiles_as_csvs(
+            self._save_comp_profiles(
                 comp_profiles_lookup=comp_profiles_lookup,
                 out_dir=self.fig_dir,
             )
@@ -401,10 +385,11 @@ class ScriptInterface:
         axes_to_slice: tuple[cartesian_axes.AxisLike_3D, ...] | list[cartesian_axes.AxisLike_3D] | None,
         save_profiles: bool,
     ):
-        type_checks.ensure_nonempty_string(param=dataset_tag, param_name="dataset_tag")
-        valid_fields = set(utils.QUOKKA_FIELD_LOOKUP.keys())
-        if not fields_to_plot or not set(fields_to_plot).issubset(valid_fields):
-            raise ValueError(f"Provide fields via -f from: {sorted(valid_fields)}")
+        type_checks.ensure_nonempty_string(
+            param=dataset_tag,
+            param_name="dataset_tag",
+        )
+        utils.validate_fields(fields_to_plot)
         if comps_to_plot is None:
             comps_to_plot = cartesian_axes.DEFAULT_3D_AXES_ORDER
         elif not set(comps_to_plot).issubset(set(cartesian_axes.DEFAULT_3D_AXES_ORDER)):

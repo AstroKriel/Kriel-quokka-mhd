@@ -195,7 +195,8 @@ class RenderSpectra:
             ax=ax,
             field_label=field_spectra[0].field_label,
         )
-        fig_path = self.fig_dir / f"{self.field_name}_spectra.png"
+        suffix = "spectrum" if len(field_spectra) == 1 else "spectra"
+        fig_path = self.fig_dir / f"{self.field_name}_{suffix}.png"
         plot_manager.save_figure(
             fig=fig,
             fig_path=fig_path,

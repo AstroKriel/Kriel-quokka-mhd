@@ -256,7 +256,7 @@ class RenderCompProfiles:
                 t_str = f"{comp_profile.sim_time:.3f}"
                 for axis_index, axis_label in enumerate(comp_profile.axis_labels):
                     domain, values = comp_profile.get(axis_index=axis_index)
-                    file_name = f"{comp_slug}_ax={axis_label}_t={t_str}.csv"
+                    file_name = f"{self.field_name}_comp={comp_slug}_along={axis_label}_t={t_str}.csv"
                     file_path = out_dir / file_name
                     with file_path.open("w", newline="") as fp:
                         writer = csv.writer(fp)

@@ -4,6 +4,7 @@
 ## === DEPENDENCIES
 ##
 
+import argparse
 import numpy
 
 from pathlib import Path
@@ -376,7 +377,10 @@ class ScriptInterface:
 
 
 def main():
-    user_args = utils.get_user_args()
+    user_args = argparse.ArgumentParser(
+        description="Plot PDFs of Quokka field components.",
+        parents=[utils.base_parser()],
+    ).parse_args()
     script_interface = ScriptInterface(
         input_dir=user_args.dir,
         dataset_tag=user_args.tag,

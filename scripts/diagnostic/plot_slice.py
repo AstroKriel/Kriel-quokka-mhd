@@ -4,6 +4,7 @@
 ## === DEPENDENCIES
 ##
 
+import argparse
 import numpy
 
 from typing import NamedTuple
@@ -547,7 +548,17 @@ class ScriptInterface:
 
 
 def main():
-    user_args = utils.get_user_args()
+    parser = argparse.ArgumentParser(
+        description="Plot midplane slices of Quokka field components.",
+        parents=[utils.base_parser()],
+    )
+    parser.add_argument(
+        "--animate-only",
+        action="store_true",
+        default=False,
+        help="Skip rendering and go straight to animation (default: False).",
+    )
+    user_args = parser.parse_args()
     script_interface = ScriptInterface(
         input_dir=user_args.dir,
         dataset_tag=user_args.tag,

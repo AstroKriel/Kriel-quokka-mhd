@@ -6,6 +6,7 @@
 
 import re
 import csv
+import argparse
 import numpy
 
 from pathlib import Path
@@ -450,7 +451,18 @@ class ScriptInterface:
 
 
 def main():
-    user_args = utils.get_user_args()
+    parser = argparse.ArgumentParser(
+        description="Plot midplane profiles of Quokka field components.",
+        parents=[utils.base_parser()],
+    )
+    parser.add_argument(
+        "--save",
+        "-s",
+        action="store_true",
+        default=False,
+        help="Save profiles as CSVs (default: False).",
+    )
+    user_args = parser.parse_args()
     script_interface = ScriptInterface(
         input_dir=user_args.dir,
         dataset_tag=user_args.tag,

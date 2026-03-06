@@ -4,6 +4,7 @@
 ## === DEPENDENCIES
 ##
 
+import argparse
 import numpy
 
 from pathlib import Path
@@ -160,8 +161,10 @@ class RenderSpectra:
             cmap_name=cmap_name,
             min_cmap_value=0.25,
             vmin=0,
-            vmax=max(0,
-                     len(field_spectra) - 1),
+            vmax=max(
+                0,
+                len(field_spectra) - 1,
+            ),
         )
         for series_index, spectra_data in enumerate(field_spectra):
             color = cmap(norm(series_index))
@@ -268,7 +271,10 @@ class ScriptInterface:
 
 
 def main():
-    user_args = utils.get_user_args()
+    user_args = argparse.ArgumentParser(
+        description="Plot power spectra of Quokka scalar fields.",
+        parents=[utils.base_parser()],
+    ).parse_args()
     script_interface = ScriptInterface(
         input_dir=user_args.dir,
         dataset_tag=user_args.tag,

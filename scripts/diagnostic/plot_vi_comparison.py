@@ -232,7 +232,7 @@ class ScriptInterface:
 ##
 
 
-def _get_user_args():
+def get_user_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--dir-1",
@@ -255,7 +255,11 @@ def _get_user_args():
         help=
         "Dataset tag used to identify output directories (e.g., `plt` -> plt00010, plt00020). Default: `plt`.",
     )
-    field_list = list_utils.as_string(elems=sorted(utils.QUOKKA_FIELD_LOOKUP.keys()))
+    field_list = list_utils.as_string(
+        elems=sorted(
+            utils.QUOKKA_FIELD_LOOKUP.keys(),
+        ),
+    )
     parser.add_argument(
         "--fields",
         "-f",
@@ -278,7 +282,7 @@ def _get_user_args():
 
 
 def main():
-    user_args = _get_user_args()
+    user_args = get_user_args()
     script_interface = ScriptInterface(
         dir_1=user_args.dir_1,
         dir_2=user_args.dir_2,

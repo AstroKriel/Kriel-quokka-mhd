@@ -300,7 +300,8 @@ class RenderPDFs:
             axs_grid=axs_grid,
             comp_labels=field_pdfs[0].comp_labels,
         )
-        fig_path = self.fig_dir / f"{self.field_name}_pdfs.png"
+        suffix = "pdf" if len(field_pdfs) == 1 else "pdfs"
+        fig_path = self.fig_dir / f"{self.field_name}_{suffix}.png"
         plot_manager.save_figure(
             fig=fig,
             fig_path=fig_path,

@@ -365,7 +365,9 @@ class RenderCompProfiles:
             comp_labels=comp_labels,
             axis_labels=axis_labels,
         )
-        fig_path = self.fig_dir / f"{self.field_name}_profiles.png"
+        num_snapshots = len(comp_profiles_lookup[comp_labels[0]])
+        suffix = "profile" if num_snapshots == 1 else "profiles"
+        fig_path = self.fig_dir / f"{self.field_name}_{suffix}.png"
         plot_manager.save_figure(
             fig=fig,
             fig_path=fig_path,

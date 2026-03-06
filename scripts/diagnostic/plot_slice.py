@@ -115,14 +115,16 @@ def get_slice_bounds(
         return ((x0_min, x0_max), (x1_min, x1_max))
     if axis_to_slice == cartesian_axes.CartesianAxis_3D.X1:
         return ((x0_min, x0_max), (x2_min, x2_max))
-    return ((x1_min, x1_max), (x2_min, x2_max))
+    return (
+        (x1_min, x1_max), (x2_min, x2_max))
 
 
 def get_slice_labels(
     axis_to_slice: cartesian_axes.CartesianAxis_3D,
 ) -> tuple[str, str]:
     axes_plane = [ax for ax in cartesian_axes.DEFAULT_3D_AXES_ORDER if ax != axis_to_slice]
-    return (axes_plane[0].axis_label, axes_plane[1].axis_label)
+    return (
+        utils.as_latex_label(axes_plane[0].axis_label), utils.as_latex_label(axes_plane[1].axis_label))
 
 
 def slice_field(

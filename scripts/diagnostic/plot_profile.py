@@ -276,7 +276,7 @@ class RenderCompProfiles:
                 ax = axs_grid[row_index][col_index]
                 if col_index == 0:
                     ax.set_ylabel(comp_label)
-                ax.set_xlabel(axis_label)
+                ax.set_xlabel(utils.as_latex_label(str(axis_label)))
 
     @staticmethod
     def _plot_comp_profile(

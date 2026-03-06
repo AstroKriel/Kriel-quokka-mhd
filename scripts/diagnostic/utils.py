@@ -93,6 +93,14 @@ def get_sim_time(
     return float(sim_time)
 
 
+def as_latex_label(
+    label: str,
+) -> str:
+    if "$" in label:
+        return label
+    return f"${label}$"
+
+
 def validate_fields(
     fields_to_plot: list[str] | tuple[str, ...] | None,
 ) -> None:

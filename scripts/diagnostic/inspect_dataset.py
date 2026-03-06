@@ -4,6 +4,8 @@
 ## === DEPENDENCIES
 ##
 
+import argparse
+
 from pathlib import Path
 
 from ww_quokka_sims.sim_io import load_dataset
@@ -30,9 +32,7 @@ class ScriptInterface:
     def _validate_inputs(
         self,
     ) -> None:
-        utils.ensure_looks_like_boxlib_dir(
-            dataset_dir=self.dataset_dir,
-        )
+        pass
 
     def run(
         self,
@@ -47,7 +47,10 @@ class ScriptInterface:
 
 
 def main():
-    user_args = utils.get_user_args()
+    user_args = argparse.ArgumentParser(
+        description="Inspect a Quokka dataset and list available field keys.",
+        parents=[utils.base_parser()],
+    ).parse_args()
     script_interface = ScriptInterface(
         dataset_dir=user_args.dir,
         dataset_tag=user_args.tag,

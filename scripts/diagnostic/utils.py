@@ -11,7 +11,6 @@ from pathlib import Path
 
 from jormi.utils import list_utils
 from jormi.ww_types import type_checks
-from jormi.ww_io import log_manager
 from jormi.ww_plots import plot_manager
 
 ##
@@ -22,67 +21,54 @@ QUOKKA_FIELD_LOOKUP = {
     "rho": {
         "loader": "load_3d_density_sfield",
         "cmap": "Greys",
-        "color": "black",
     },
     "vel": {
         "loader": "load_3d_velocity_vfield",
         "cmap": "Blues",
-        "color": "royalblue",
     },
     "mag": {
         "loader": "load_3d_magnetic_vfield",
         "cmap": "Oranges",
-        "color": "orangered",
     },
     "Etot": {
         "loader": "load_3d_total_energy_sfield",
         "cmap": "cividis",
-        "color": "black",
     },
     "Ekin": {
         "loader": "load_3d_kinetic_energy_sfield",
         "cmap": "magma",
-        "color": "royalblue",
     },
     "Ekin_div": {
         "loader": "load_3d_div_kinetic_energy_sfield",
         "cmap": "magma",
-        "color": "lightskyblue",
     },
     "Ekin_sol": {
         "loader": "load_3d_sol_kinetic_energy_sfield",
         "cmap": "magma",
-        "color": "cornflowerblue",
     },
     "Ekin_bulk": {
         "loader": "load_3d_bulk_kinetic_energy_sfield",
         "cmap": "magma",
-        "color": "dodgerblue",
     },
     "Emag": {
         "loader": "load_3d_magnetic_energy_sfield",
         "cmap": "plasma",
-        "color": "darkorchid",
     },
     "Eint": {
         "loader": "load_3d_internal_energy_sfield",
         "cmap": "magma",
-        "color": "violet",
     },
     "pressure": {
         "loader": "load_3d_pressure_sfield",
         "cmap": "Purples",
-        "color": "orchid",
     },
     "divb": {
         "loader": "load_3d_divb_sfield",
         "cmap": "bwr",
-        "color": "sandybrown",
     },
     "cur": {
         "loader": "load_current_density_sfield",
         "cmap": "cubehelix",
-        "color": "black",
     },
 }
 
@@ -91,67 +77,50 @@ QUOKKA_FIELD_LOOKUP = {
 ##
 
 
-def get_user_args():
-    parser = argparse.ArgumentParser(
-        description="Diagnostic plots to make of quantities in a Quokka (BoxLib) data-directory.",
-    )
+def base_parser() -> argparse.ArgumentParser:
+    """
+        Shared parser arguments for diagnostic scripts.
+        
+        Use as a parent:
+            parser = argparse.ArgumentParser(parents=[utils.base_parser()], description="...")
+    """
+    field_list = list_utils.as_string(elems=sorted(QUOKKA_FIELD_LOOKUP.keys()))
+    parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
         "--dir",
         "-d",
         type=lambda path: Path(path).expanduser().resolve(),
         default=None,
-        help="Optional path to a Quokka simulation or dataset directory.",
+        help="Path to a Quokka simulation or dataset directory.",
     )
     parser.add_argument(
         "--tag",
         "-t",
         default="plt",
-        help=
-        "Dataset tag used to identify output directories (e.g., `plt` -> plt00010, plt00020). Default: `plt`.",
+        help="Dataset tag (e.g. `plt` -> plt00010, plt00020). Default: `plt`.",
     )
-    field_list = list_utils.as_string(elems=sorted(QUOKKA_FIELD_LOOKUP.keys()))
     parser.add_argument(
         "--fields",
         "-f",
         nargs="+",
         default=None,
-        help=f"List of (vector and/or scalar) fields to plot. Options: {field_list}",
+        help=f"Fields to plot. Options: {field_list}",
     )
     parser.add_argument(
         "--comps",
         "-c",
         nargs="+",
         default=None,
-        help="Optional list of vector field components to show.",
+        help="Vector field components to show (x0, x1, x2).",
     )
     parser.add_argument(
         "--axes",
         "-a",
         nargs="+",
         default=None,
-        help="Optional list of axes to slice.",
+        help="Axes to slice along (x0, x1, x2).",
     )
-    parser.add_argument(
-        "--animate-only",
-        action="store_true",
-        default=False,
-        help="Skip straight to animation (default: False).",
-    )
-    parser.add_argument(
-        "--fit",
-        action="store_true",
-        default=False,
-        help="Perform the relevant fitting routine (default: False).",
-    )
-    parser.add_argument(
-        "--save",
-        "-s",
-        action="store_true",
-        default=False,
-        help="Save data (default: False).",
-    )
-    user_args = parser.parse_args()
-    return user_args
+    return parser
 
 
 def create_figure(
@@ -190,20 +159,6 @@ def looks_like_boxlib_dir(
     return has_header and has_level0
 
 
-def ensure_looks_like_boxlib_dir(
-    dataset_dir: Path,
-) -> None:
-    if not looks_like_boxlib_dir(dataset_dir=dataset_dir):
-        log_manager.log_error(
-            "Provided dataset does not appear to be a valid BoxLib-like plotfile.",
-            notes={
-                "Path": str(dataset_dir),
-                "Expected": "both a `Header` file and `Level_0` directory",
-            },
-        )
-        raise ValueError(f"Directory is not valid: {dataset_dir}")
-
-
 def get_latest_dataset_dirs(
     sim_dir: Path,
     dataset_tag: str,
@@ -234,7 +189,7 @@ def resolve_dataset_dirs(
     if max_elems is not None:
         dataset_dirs = list_utils.sample_list(
             elems=dataset_dirs,
-            max_elems=100,
+            max_elems=max_elems,
         )
     return dataset_dirs
 

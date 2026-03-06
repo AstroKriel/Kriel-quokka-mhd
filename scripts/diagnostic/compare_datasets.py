@@ -329,8 +329,10 @@ class ScriptInterface:
     ) -> None:
         type_checks.ensure_finite_int(param=self.preview_limit)
         assert self.preview_limit > 0
-        utils.ensure_looks_like_boxlib_dir(dataset_dir=self.dataset_dir_in)
-        utils.ensure_looks_like_boxlib_dir(dataset_dir=self.dataset_dir_ref)
+        if not utils.looks_like_boxlib_dir(self.dataset_dir_in):
+            raise ValueError(f"dir-IN does not look like a BoxLib directory: {self.dataset_dir_in}")
+        if not utils.looks_like_boxlib_dir(self.dataset_dir_ref):
+            raise ValueError(f"dir-REF does not look like a BoxLib directory: {self.dataset_dir_ref}")
 
     def run(
         self,

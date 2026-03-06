@@ -327,7 +327,7 @@ class ScriptInterface:
         if comps_to_plot is None:
             comps_to_plot = cartesian_axes.DEFAULT_3D_AXES_ORDER
         elif not set(comps_to_plot).issubset(set(cartesian_axes.DEFAULT_3D_AXES_ORDER)):
-            raise ValueError("Provide one or more components (via -c) from: x0, x1, x2")
+            raise ValueError("Provide one or more components (via -c) from: x_0, x_1, x_2")
         self.input_dir = Path(input_dir)
         self.dataset_tag = dataset_tag
         self.fields_to_plot = type_checks.as_tuple(param=fields_to_plot)

@@ -86,7 +86,7 @@ class ComputeCompProfiles:
         if ax_idx == 0: return x_min + (numpy.arange(num_cells_x) + 0.5) * cell_width_x
         if ax_idx == 1: return y_min + (numpy.arange(num_cells_y) + 0.5) * cell_width_y
         if ax_idx == 2: return z_min + (numpy.arange(num_cells_z) + 0.5) * cell_width_z
-        raise ValueError("axis must be one of: x0, x1, x2")
+        raise ValueError("axis must be one of: x_0, x_1, x_2")
 
     @staticmethod
     def _extract_1d_midplane_profile(
@@ -102,7 +102,7 @@ class ComputeCompProfiles:
         if ax_idx == 0: return data_3d[:, slice_index_y, slice_index_z]
         if ax_idx == 1: return data_3d[slice_index_x, :, slice_index_z]
         if ax_idx == 2: return data_3d[slice_index_x, slice_index_y, :]
-        raise ValueError("axis must be one of: x0, x1, x2")
+        raise ValueError("axis must be one of: x_0, x_1, x_2")
 
     def _compute_scalar_profiles(
         self,
@@ -393,11 +393,11 @@ class ScriptInterface:
         if comps_to_plot is None:
             comps_to_plot = cartesian_axes.DEFAULT_3D_AXES_ORDER
         elif not set(comps_to_plot).issubset(set(cartesian_axes.DEFAULT_3D_AXES_ORDER)):
-            raise ValueError("Provide one or more components (via -c) from: x0, x1, x2")
+            raise ValueError("Provide one or more components (via -c) from: x_0, x_1, x_2")
         if axes_to_slice is None:
             axes_to_slice = cartesian_axes.DEFAULT_3D_AXES_ORDER
         elif not set(axes_to_slice).issubset(set(cartesian_axes.DEFAULT_3D_AXES_ORDER)):
-            raise ValueError("Provide one or more axes (via -a) from: x0, x1, x2")
+            raise ValueError("Provide one or more axes (via -a) from: x_0, x_1, x_2")
         self.input_dir = Path(input_dir)
         self.dataset_tag = dataset_tag
         self.fields_to_plot = type_checks.as_tuple(param=fields_to_plot)

@@ -4,8 +4,8 @@
 ## === DEPENDENCIES
 ##
 
-import argparse
 import numpy
+import argparse
 
 from typing import NamedTuple
 from pathlib import Path
@@ -88,15 +88,14 @@ def _parse_axes(
     *,
     axes: tuple[str, ...] | list[str] | None,
 ) -> tuple[cartesian_axes.CartesianAxis_3D, ...]:
-    default_axes = tuple(cartesian_axes.DEFAULT_3D_AXES_ORDER)
     if axes is None:
-        return default_axes
-    lookup = {axis.value: axis for axis in default_axes}
+        return tuple(cartesian_axes.DEFAULT_3D_AXES_ORDER)
     parsed_axes: list[cartesian_axes.CartesianAxis_3D] = []
     for axis_name in type_checks.as_tuple(param=axes):
-        if axis_name not in lookup:
-            raise ValueError("Provide one or more axes (via -a/-c) from: x0, x1, x2")
-        parsed_axes.append(lookup[axis_name])
+        try:
+            parsed_axes.append(cartesian_axes.as_axis(axis=axis_name))
+        except (TypeError, ValueError):
+            raise ValueError("Provide one or more axes (via -a/-c) from: x_0, x_1, x_2")
     return tuple(parsed_axes)
 
 
@@ -111,26 +110,19 @@ def get_slice_bounds(
     uniform_domain: domain_type.UniformDomain_3D,
     axis_to_slice: cartesian_axes.CartesianAxis_3D,
 ) -> AxisBounds:
-    (x_min, x_max), (y_min, y_max), (z_min, z_max) = uniform_domain.domain_bounds
+    (x0_min, x0_max), (x1_min, x1_max), (x2_min, x2_max) = uniform_domain.domain_bounds
     if axis_to_slice == cartesian_axes.CartesianAxis_3D.X2:
-        return ((x_min, x_max), (y_min, y_max))
+        return ((x0_min, x0_max), (x1_min, x1_max))
     if axis_to_slice == cartesian_axes.CartesianAxis_3D.X1:
-        return ((x_min, x_max), (z_min, z_max))
-    if axis_to_slice == cartesian_axes.CartesianAxis_3D.X0:
-        return ((y_min, y_max), (z_min, z_max))
-    raise ValueError("axis_to_slice must be one of: x, y, z")
+        return ((x0_min, x0_max), (x2_min, x2_max))
+    return ((x1_min, x1_max), (x2_min, x2_max))
 
 
 def get_slice_labels(
     axis_to_slice: cartesian_axes.CartesianAxis_3D,
 ) -> tuple[str, str]:
-    if axis_to_slice == cartesian_axes.CartesianAxis_3D.X2:
-        return ("x", "y")
-    if axis_to_slice == cartesian_axes.CartesianAxis_3D.X1:
-        return ("x", "z")
-    if axis_to_slice == cartesian_axes.CartesianAxis_3D.X0:
-        return ("y", "z")
-    raise ValueError("axis_to_slice must be one of: x, y, z")
+    axes_plane = [ax for ax in cartesian_axes.DEFAULT_3D_AXES_ORDER if ax != axis_to_slice]
+    return (axes_plane[0].axis_label, axes_plane[1].axis_label)
 
 
 def slice_field(
@@ -139,21 +131,18 @@ def slice_field(
     axis_to_slice: cartesian_axes.CartesianAxis_3D,
     uniform_domain: domain_type.UniformDomain_3D,
 ) -> SlicedField:
-    num_cells_x, num_cells_y, num_cells_z = data_3d.shape
-    slice_index_x = num_cells_x // 2
-    slice_index_y = num_cells_y // 2
-    slice_index_z = num_cells_z // 2
+    num_cells_x0, num_cells_x1, num_cells_x2 = data_3d.shape
     if axis_to_slice == cartesian_axes.CartesianAxis_3D.X2:
-        data_2d = data_3d[:, :, slice_index_z]
-        label = r"$(x, y, z=L_z/2)$"
+        data_2d = data_3d[:, :, num_cells_x2 // 2]
     elif axis_to_slice == cartesian_axes.CartesianAxis_3D.X1:
-        data_2d = data_3d[:, slice_index_y, :]
-        label = r"$(x, y=L_y/2, z)$"
-    elif axis_to_slice == cartesian_axes.CartesianAxis_3D.X0:
-        data_2d = data_3d[slice_index_x, :, :]
-        label = r"$(x=L_x/2, y, z)$"
+        data_2d = data_3d[:, num_cells_x1 // 2, :]
     else:
-        raise ValueError("axis_to_slice must be one of: x, y, z")
+        data_2d = data_3d[num_cells_x0 // 2, :, :]
+    label_parts = [
+        rf"{ax.axis_label}=L_{ax.axis_index}/2" if ax == axis_to_slice else ax.axis_label
+        for ax in cartesian_axes.DEFAULT_3D_AXES_ORDER
+    ]
+    label = "$(" + ", ".join(label_parts) + ")$"
     axis_bounds = get_slice_bounds(
         uniform_domain=uniform_domain,
         axis_to_slice=axis_to_slice,

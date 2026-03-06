@@ -13,6 +13,7 @@ from matplotlib.figure import Figure as mpl_Figure
 from jormi.utils import list_utils
 from jormi.ww_types import type_checks
 from jormi.ww_plots import plot_manager
+from jormi.ww_fields import cartesian_axes
 from jormi.ww_fields.fields_3d import field_type
 
 ##
@@ -102,12 +103,13 @@ def validate_fields(
 
 def base_parser() -> argparse.ArgumentParser:
     """
-        Shared parser arguments for diagnostic scripts.
-        
-        Use as a parent:
-            parser = argparse.ArgumentParser(parents=[utils.base_parser()], description="...")
+    Shared parser arguments for diagnostic scripts.
+    
+    Use as a parent:
+        parser = argparse.ArgumentParser(parents=[utils.base_parser()], description="...")
     """
     field_list = list_utils.as_string(elems=sorted(QUOKKA_FIELD_LOOKUP.keys()))
+    axis_list = list_utils.as_string(elems=list(cartesian_axes.VALID_3D_AXIS_LABELS))
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
         "--dir",
@@ -134,14 +136,14 @@ def base_parser() -> argparse.ArgumentParser:
         "-c",
         nargs="+",
         default=None,
-        help="Vector field components to show (x0, x1, x2).",
+        help=f"Vector field components to show. Options: {axis_list}",
     )
     parser.add_argument(
         "--axes",
         "-a",
         nargs="+",
         default=None,
-        help="Axes to slice along (x0, x1, x2).",
+        help=f"Axes to slice along. Options: {axis_list}",
     )
     return parser
 

@@ -29,6 +29,10 @@ QUOKKA_FIELD_LOOKUP = {
         "loader": "load_3d_velocity_vfield",
         "cmap": "Blues",
     },
+    "vel_magn": {
+        "loader": "load_3d_velocity_magnitude_sfield",
+        "cmap": "Blues",
+    },
     "mag": {
         "loader": "load_3d_magnetic_vfield",
         "cmap": "Oranges",

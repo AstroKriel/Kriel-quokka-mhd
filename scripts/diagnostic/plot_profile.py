@@ -216,6 +216,7 @@ class RenderCompProfiles:
         self,
         *,
         dataset_dirs: list[Path],
+        dataset_tag: str,
         field_name: str,
         comps_to_plot: tuple[cartesian_axes.AxisLike_3D, ...],
         axes_to_slice: tuple[cartesian_axes.AxisLike_3D, ...],
@@ -225,6 +226,7 @@ class RenderCompProfiles:
         save_profiles: bool,
     ):
         self.dataset_dirs = dataset_dirs
+        self.dataset_tag = dataset_tag
         self.fig_dir = Path(fig_dir)
         self.field_name = field_name
         self.comps_to_plot = comps_to_plot
@@ -366,8 +368,11 @@ class RenderCompProfiles:
             axis_labels=axis_labels,
         )
         num_snapshots = len(comp_profiles_lookup[comp_labels[0]])
-        suffix = "profile" if num_snapshots == 1 else "profiles"
-        fig_path = self.fig_dir / f"{self.field_name}_{suffix}.png"
+        if num_snapshots == 1:
+            snapshot_index = utils.get_dataset_index_string(self.dataset_dirs[0], self.dataset_tag)
+            fig_path = self.fig_dir / f"{self.field_name}_profile_{snapshot_index}.png"
+        else:
+            fig_path = self.fig_dir / f"{self.field_name}_profiles.png"
         plot_manager.save_figure(
             fig=fig,
             fig_path=fig_path,
@@ -421,6 +426,7 @@ class ScriptInterface:
             field_meta = utils.QUOKKA_FIELD_LOOKUP[field_name]
             render_comp_profiles = RenderCompProfiles(
                 dataset_dirs=dataset_dirs,
+                dataset_tag=self.dataset_tag,
                 fig_dir=fig_dir,
                 field_name=field_name,
                 comps_to_plot=self.comps_to_plot,

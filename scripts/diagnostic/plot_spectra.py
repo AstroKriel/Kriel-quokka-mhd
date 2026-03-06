@@ -100,12 +100,14 @@ class RenderSpectra:
         self,
         *,
         dataset_dirs: list[Path],
+        dataset_tag: str,
         fig_dir: Path,
         field_name: str,
         field_loader: str,
         cmap_name: str,
     ):
         self.dataset_dirs = dataset_dirs
+        self.dataset_tag = dataset_tag
         self.fig_dir = Path(fig_dir)
         self.field_name = field_name
         self.field_loader = field_loader
@@ -195,8 +197,11 @@ class RenderSpectra:
             ax=ax,
             field_label=field_spectra[0].field_label,
         )
-        suffix = "spectrum" if len(field_spectra) == 1 else "spectra"
-        fig_path = self.fig_dir / f"{self.field_name}_{suffix}.png"
+        if len(field_spectra) == 1:
+            snapshot_index = utils.get_dataset_index_string(self.dataset_dirs[0], self.dataset_tag)
+            fig_path = self.fig_dir / f"{self.field_name}_spectrum_{snapshot_index}.png"
+        else:
+            fig_path = self.fig_dir / f"{self.field_name}_spectra.png"
         plot_manager.save_figure(
             fig=fig,
             fig_path=fig_path,
@@ -236,6 +241,7 @@ class ScriptInterface:
             field_meta = utils.QUOKKA_FIELD_LOOKUP[field_name]
             renderer = RenderSpectra(
                 dataset_dirs=dataset_dirs,
+                dataset_tag=self.dataset_tag,
                 fig_dir=fig_dir,
                 field_name=field_name,
                 field_loader=field_meta["loader"],

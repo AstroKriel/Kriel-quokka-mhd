@@ -138,11 +138,9 @@ class RenderDataSeries:
         *,
         fig_dir: Path,
         field_name: str,
-        color: str,
     ):
         self.fig_dir = Path(fig_dir)
         self.field_name = field_name
-        self.color = color
 
     @staticmethod
     def _annotate_fit(
@@ -202,7 +200,7 @@ class RenderDataSeries:
         ax.plot(
             x_array,
             y_array,
-            color=self.color,
+            color="black",
             marker="o",
             ms=6,
             ls="-",
@@ -232,9 +230,7 @@ class ScriptInterface:
             param=dataset_tag,
             param_name="dataset_tag",
         )
-        valid_fields = set(utils.QUOKKA_FIELD_LOOKUP.keys())
-        if (not fields_to_plot) or (not set(fields_to_plot).issubset(valid_fields)):
-            raise ValueError(f"Provide one or more fields to plot (via -f) from: {sorted(valid_fields)}")
+        utils.validate_fields(fields_to_plot)
         self.input_dir = Path(input_dir)
         self.dataset_tag = dataset_tag
         self.fields_to_plot = list(fields_to_plot)
@@ -246,12 +242,10 @@ class ScriptInterface:
         dataset_dirs = utils.resolve_dataset_dirs(
             input_dir=self.input_dir,
             dataset_tag=self.dataset_tag,
-            max_elems=100,
         )
         if not dataset_dirs:
             return
         fig_dir = Path(dataset_dirs[0]).parent
-        dataset_dirs = sorted(dataset_dirs)
         for field_name in self.fields_to_plot:
             field_meta = utils.QUOKKA_FIELD_LOOKUP[field_name]
             load_data_series = LoadDataSeries(
@@ -264,7 +258,6 @@ class ScriptInterface:
             render_data_series = RenderDataSeries(
                 fig_dir=fig_dir,
                 field_name=field_name,
-                color=field_meta["color"],
             )
             render_data_series.run(data_series=data_series)
 

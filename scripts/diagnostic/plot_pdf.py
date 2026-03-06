@@ -123,20 +123,6 @@ class ComputePDFs:
             log10_densities,
         )
 
-    @staticmethod
-    def _get_sim_time(
-        *,
-        field: field_type.ScalarField_3D | field_type.VectorField_3D,
-    ) -> float:
-        sim_time = field.sim_time
-        type_checks.ensure_finite_float(
-            param=sim_time,
-            param_name="sim_time",
-            allow_none=False,
-        )
-        assert sim_time is not None
-        return float(sim_time)
-
     def _compute_vfield_pdf(
         self,
         field: field_type.VectorField_3D,
@@ -146,7 +132,7 @@ class ComputePDFs:
                 f"Vector field `{self.field_name}` requires at least one component to plot; none provided.",
             )
         field_type.ensure_3d_vfield(field)
-        sim_time = self._get_sim_time(field=field)
+        sim_time = utils.get_sim_time(field=field)
         comp_names = sorted(self.comps_to_plot)
         comp_labels = [field_type.get_vcomp_label(field, comp_name) for comp_name in comp_names]
         grouped_bin_centers: list[numpy.ndarray] = []
@@ -171,7 +157,7 @@ class ComputePDFs:
         field: field_type.ScalarField_3D,
     ) -> PDFData:
         field_type.ensure_3d_sfield(field)
-        sim_time = self._get_sim_time(field=field)
+        sim_time = utils.get_sim_time(field=field)
         bin_centers, densities = self._estimate_pdf(
             field_data=field.fdata.farray,
             num_bins=self.num_bins,
@@ -333,10 +319,11 @@ class ScriptInterface:
         comps_to_plot: tuple[cartesian_axes.AxisLike_3D, ...] | list[cartesian_axes.AxisLike_3D] | None,
         num_bins: int = 15,
     ):
-        type_checks.ensure_nonempty_string(param=dataset_tag, param_name="dataset_tag")
-        valid_fields = set(utils.QUOKKA_FIELD_LOOKUP.keys())
-        if not fields_to_plot or not set(fields_to_plot).issubset(valid_fields):
-            raise ValueError(f"Provide fields via -f from: {sorted(valid_fields)}")
+        type_checks.ensure_nonempty_string(
+            param=dataset_tag,
+            param_name="dataset_tag",
+        )
+        utils.validate_fields(fields_to_plot)
         if comps_to_plot is None:
             comps_to_plot = cartesian_axes.DEFAULT_3D_AXES_ORDER
         elif not set(comps_to_plot).issubset(set(cartesian_axes.DEFAULT_3D_AXES_ORDER)):

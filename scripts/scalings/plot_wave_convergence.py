@@ -7,7 +7,11 @@ from matplotlib.ticker import NullLocator
 from jormi.ww_plots import manage_plots
 
 
-def _add_top_axis_resolution(ax, *, domain_length: float = 1.0) -> None:
+def _add_top_axis_resolution(
+    ax,
+    *,
+    domain_length: float = 1.0,
+) -> None:
     """
     Add a top x-axis labeling resolution N corresponding to the bottom-axis dx.
 
@@ -52,7 +56,7 @@ def main():
     df = df[(df["dx"] > 0) & (df["error"] > 0)]
 
     # --- scale by dx^-2 (i.e. plot error / dx^2 so 2nd-order becomes flat) ---
-    df["scaled_error"] = df["error"] / (df["dx"] ** 2)
+    df["scaled_error"] = df["error"] / (df["dx"]**2)
 
     # --- encodings ---
     emf_scheme_order = ["Q26", "B25", "FS18"]
@@ -104,7 +108,7 @@ def main():
 
         for (emf_scheme, ave_scheme, p), g in dft.groupby(
             ["emf_scheme", "ave_scheme", "interp_order"],
-            sort=False,
+                sort=False,
         ):
             emf_scheme = str(emf_scheme)
             ave_scheme = str(ave_scheme)
@@ -139,9 +143,7 @@ def main():
 
     # --- Split legends: colour (emf_scheme), marker (ave_scheme), linestyle (interp_order) ---
     legend_emf_scheme = [
-        Line2D([0], [0], color=color_map[s], lw=2.2, label=s)
-        for s in emf_scheme_order
-        if s in color_map
+        Line2D([0], [0], color=color_map[s], lw=2.2, label=s) for s in emf_scheme_order if s in color_map
     ]
     legend_ave_scheme = [
         Line2D([0], [0], color="black", marker=marker_map[s], linestyle="None", markersize=7, label=s)

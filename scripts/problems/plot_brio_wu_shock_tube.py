@@ -8,7 +8,7 @@ import numpy
 from pathlib import Path
 from matplotlib.patches import Rectangle
 from jormi.ww_plots import manage_plots
-from jormi.ww_types import check_positions
+from jormi.ww_types import box_positions
 
 ##
 ## === HELPER FUNCTIONS
@@ -74,7 +74,7 @@ def main():
     ax_inset = manage_plots.add_inset_axis(
         ax=axs[1, 1],
         bounds=(0.625, 0.35, 0.35, 0.525),
-        y_label_alignment=check_positions.Positions.Side.Left,
+        y_label_alignment=box_positions.Positions.Side.Left,
     )
     color_map = {
         "Q26": "cornflowerblue",

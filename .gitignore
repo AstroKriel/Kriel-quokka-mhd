@@ -1,6 +1,3 @@
-## data products
-sims/
-
 ## virtual environment directory
 venv/
 
@@ -8,32 +5,11 @@ venv/
 dist/
 **.egg-info/
 
-## extraneous MacOS files
+## ignore extraneous things
 .DS_Store
 __pycache__/
 
-## typical plot outputs
-**.png
-**.pdf
-**.svg
-**.mp4
-**.gif
-
-## typical data products
-**.csv
-**.dat
-**.json
-**.npy
-**.h5
-
-## tracked data products
-!datasets/**/*.csv
-
-## jupyter notebook (+ LSP) files
-.ipynb_checkpoints/
-.virtual_documents/
-
-## tag to exclude a directory from version control
+## tag that is used to ignore a directory
 *.gitignored/
 
 ## .

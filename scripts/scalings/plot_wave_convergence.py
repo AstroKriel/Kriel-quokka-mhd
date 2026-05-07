@@ -13,7 +13,7 @@ import numpy
 import pandas
 from matplotlib.ticker import NullLocator as mpl_NullLocator
 
-## personal (local)
+## personal
 from jormi.ww_io import manage_io
 from jormi.ww_plots import manage_plots
 

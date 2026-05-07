@@ -35,7 +35,7 @@ AVERAGING_SCHEME_MAP: dict[str, str] = {
 ## === EXTRACT SCALING DATA
 ##
 
-def extract_strong_scaling() -> None:
+def extract_strong_gpu_scaling() -> None:
     df = pandas.read_csv(ELIZABETH_DIR / "strong_scaling_all.csv")
     df = df[["num_gpus", "us_per_zone_update", "compute_scheme", "averaging_scheme"]].copy()
     df["compute_scheme"] = df["compute_scheme"].map(COMPUTE_SCHEME_MAP)
@@ -48,7 +48,7 @@ def extract_strong_scaling() -> None:
     )
 
 
-def extract_weak_scaling() -> None:
+def extract_weak_gpu_scaling() -> None:
     df = pandas.read_csv(ELIZABETH_DIR / "weak_scaling_all.csv")
     df = df[["num_gpus", "us_per_zone_update", "compute_scheme", "averaging_scheme"]].copy()
     df["compute_scheme"] = df["compute_scheme"].map(COMPUTE_SCHEME_MAP)
@@ -66,10 +66,10 @@ def extract_weak_scaling() -> None:
 ##
 
 def main() -> None:
-    manage_log.log_section(title="strong scaling")
-    extract_strong_scaling()
-    manage_log.log_section(title="weak scaling")
-    extract_weak_scaling()
+    manage_log.log_section(title="strong gpu scaling")
+    extract_strong_gpu_scaling()
+    manage_log.log_section(title="weak gpu scaling")
+    extract_weak_gpu_scaling()
 
 
 ##

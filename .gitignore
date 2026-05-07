@@ -29,4 +29,7 @@ __pycache__/
 .ipynb_checkpoints/
 .virtual_documents/
 
+## tag to exclude a directory from version control
+*.gitignored/
+
 ## .

@@ -158,7 +158,11 @@ def main():
     ax_inset.set_ylim(y1, y2)
     delta_x = x2 - x1
     delta_y = y2 - y1
-    ax_inset.tick_params(axis="both", which="both", labelsize=14)
+    ax_inset.tick_params(
+        axis="both",
+        which="both",
+        labelsize=14,
+    )
     rect = Rectangle(
         (x1, y1 - delta_y),
         delta_x,
@@ -196,6 +200,8 @@ def main():
 ##
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(
+        main(),
+    )
 
 ## } SCRIPT

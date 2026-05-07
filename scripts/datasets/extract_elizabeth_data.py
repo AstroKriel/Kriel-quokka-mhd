@@ -42,7 +42,7 @@ def extract_strong_scaling() -> None:
     df["averaging_scheme"] = df["averaging_scheme"].map(AVERAGING_SCHEME_MAP)
     df = df.sort_values(["compute_scheme", "averaging_scheme", "num_gpus"]).reset_index(drop=True)
     csv_io.save_dict_to_csv_file(
-        file_path=DATASETS_DIR / "scalings" / "strong_scaling.csv",
+        file_path=DATASETS_DIR / "scalings" / "strong_gpu_scaling.csv",
         input_dict=df.to_dict(orient="list"),
         overwrite=True,
     )
@@ -55,7 +55,7 @@ def extract_weak_scaling() -> None:
     df["averaging_scheme"] = df["averaging_scheme"].map(AVERAGING_SCHEME_MAP)
     df = df.sort_values(["compute_scheme", "averaging_scheme", "num_gpus"]).reset_index(drop=True)
     csv_io.save_dict_to_csv_file(
-        file_path=DATASETS_DIR / "scalings" / "weak_scaling.csv",
+        file_path=DATASETS_DIR / "scalings" / "weak_gpu_scaling.csv",
         input_dict=df.to_dict(orient="list"),
         overwrite=True,
     )

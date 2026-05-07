@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy
 import pandas
 
@@ -40,12 +42,26 @@ def _add_top_axis_resolution(
 
     # --- prevent minor ticks (and any bottom ticks) on the top axis ---
     top_ax.minorticks_off()
-    top_ax.xaxis.set_minor_locator(NullLocator())
-    top_ax.tick_params(axis="x", which="minor", top=False, bottom=False)
-    top_ax.tick_params(axis="x", which="major", top=True, bottom=False, direction="in")
+    top_ax.xaxis.set_minor_locator(
+        NullLocator(),
+    )
+    top_ax.tick_params(
+        axis="x",
+        which="minor",
+        top=False,
+        bottom=False,
+    )
+    top_ax.tick_params(
+        axis="x",
+        which="major",
+        top=True,
+        bottom=False,
+        direction="in",
+    )
 
 
 def main():
+    figures_dir = Path(__file__).parents[2] / "figures" / "scalings"
     df = pandas.read_csv("wave_convergence.csv")
 
     # --- types / clean ---
@@ -93,14 +109,33 @@ def main():
     }
 
     # Deterministic ordering
-    df["emf_scheme"] = pandas.Categorical(df["emf_scheme"], categories=emf_scheme_order, ordered=True)
-    df["ave_scheme"] = pandas.Categorical(df["ave_scheme"], categories=ave_scheme_order, ordered=True)
-    df["interp_order"] = pandas.Categorical(df["interp_order"], categories=interp_order_order, ordered=True)
+    df["emf_scheme"] = pandas.Categorical(
+        df["emf_scheme"],
+        categories=emf_scheme_order,
+        ordered=True,
+    )
+    df["ave_scheme"] = pandas.Categorical(
+        df["ave_scheme"],
+        categories=ave_scheme_order,
+        ordered=True,
+    )
+    df["interp_order"] = pandas.Categorical(
+        df["interp_order"],
+        categories=interp_order_order,
+        ordered=True,
+    )
     df = df.sort_values(["test", "emf_scheme", "ave_scheme", "interp_order", "dx"])
 
-    tests = list(df["test"].unique())
+    tests = list(
+        df["test"].unique(),
+    )
 
-    fig, axs = manage_plots.create_figure(num_rows=1, num_cols=2, share_x=True, share_y=True)
+    fig, axs = manage_plots.create_figure(
+        num_rows=1,
+        num_cols=2,
+        share_x=True,
+        share_y=True,
+    )
     axes = [axs[0, 0], axs[0, 1]]
 
     for ax, test in zip(axes, tests):
@@ -143,17 +178,34 @@ def main():
 
     # --- Split legends: colour (emf_scheme), marker (ave_scheme), linestyle (interp_order) ---
     legend_emf_scheme = [
-        Line2D([0], [0], color=color_map[s], lw=2.2, label=s) for s in emf_scheme_order if s in color_map
+        Line2D(
+            [0],
+            [0],
+            color=color_map[s],
+            lw=2.2,
+            label=s,
+        ) for s in emf_scheme_order if s in color_map
     ]
     legend_ave_scheme = [
-        Line2D([0], [0], color="black", marker=marker_map[s], linestyle="None", markersize=7, label=s)
-        for s in ave_scheme_order
-        if s in marker_map
+        Line2D(
+            [0],
+            [0],
+            color="black",
+            marker=marker_map[s],
+            linestyle="None",
+            markersize=7,
+            label=s,
+        ) for s in ave_scheme_order if s in marker_map
     ]
     legend_order = [
-        Line2D([0], [0], color="black", linestyle=linestyle_map[p], lw=2.2, label=f"p={p}")
-        for p in interp_order_order
-        if p in linestyle_map
+        Line2D(
+            [0],
+            [0],
+            color="black",
+            linestyle=linestyle_map[p],
+            lw=2.2,
+            label=f"p={p}",
+        ) for p in interp_order_order if p in linestyle_map
     ]
 
     # ax0 = axes[0]
@@ -163,7 +215,10 @@ def main():
     # ax0.add_artist(leg2)
     # ax0.legend(handles=legend_order, title="interp", frameon=False, loc="lower right")
 
-    manage_plots.save_figure(fig, "wave_convergence-2.pdf")
+    manage_plots.save_figure(
+        fig=fig,
+        fig_path=figures_dir / "wave_convergence.png",
+    )
 
 
 if __name__ == "__main__":

@@ -26,6 +26,9 @@ __pycache__/
 **.npy
 **.h5
 
+## tracked data products
+!datasets/**/*.csv
+
 ## jupyter notebook (+ LSP) files
 .ipynb_checkpoints/
 .virtual_documents/

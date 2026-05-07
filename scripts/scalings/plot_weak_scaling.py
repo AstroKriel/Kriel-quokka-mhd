@@ -22,7 +22,7 @@ def main() -> None:
     datasets_dir = Path(__file__).parents[2] / "datasets"
     figures_dir = Path(__file__).parents[2] / "figures" / "scalings"
     manage_io.create_directory(figures_dir)
-    df = pandas.read_csv(datasets_dir / "scalings" / "weak_scaling.csv")
+    df = pandas.read_csv(datasets_dir / "scalings" / "weak_gpu_scaling.csv")
     df["num_gpus"] = pandas.to_numeric(
         df["num_gpus"],
         errors="coerce",
@@ -93,7 +93,7 @@ def main() -> None:
     )
     manage_plots.save_figure(
         fig=fig,
-        fig_path=figures_dir / "weak_scaling.png",
+        fig_path=figures_dir / "weak_gpu_scaling.png",
     )
 
 

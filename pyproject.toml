@@ -5,10 +5,14 @@ description = "magnetising quokka code paper"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "jormi",
     "numpy>=2.3.2",
     "pandas>=3.0.0",
     "yt>=4.4.1",
 ]
+
+[tool.uv.sources]
+jormi = { path = "../../sindri/submodules/jormi", editable = true }
 
 [tool.pyright]
 include = ["scripts"]

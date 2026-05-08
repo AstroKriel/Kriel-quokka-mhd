@@ -12,4 +12,7 @@ __pycache__/
 ## tag that is used to ignore a directory
 *.gitignored/
 
+## sim output
+snapshots/
+
 ## .

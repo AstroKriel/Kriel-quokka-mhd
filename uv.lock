@@ -268,6 +268,19 @@ wheels = [
 ]
 
 [[package]]
+name = "imageio"
+version = "2.37.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "pillow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b1/84/93bcd1300216ea50811cee96873b84a1bebf8d0489ffaf7f2a3756bab866/imageio-2.37.3.tar.gz", hash = "sha256:bbb37efbfc4c400fcd534b367b91fcd66d5da639aaa138034431a1c5e0a41451", size = 389673, upload-time = "2026-03-09T11:31:12.573Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/49/fa/391e437a34e55095173dca5f24070d89cbc233ff85bf1c29c93248c6588d/imageio-2.37.3-py3-none-any.whl", hash = "sha256:46f5bb8522cd421c0f5ae104d8268f569d856b29eb1a13b92829d1970f32c9f0", size = 317646, upload-time = "2026-03-09T11:31:10.771Z" },
+]
+
+[[package]]
 name = "jormi"
 version = "0.1.0"
 source = { editable = "../../sindri/submodules/jormi" }
@@ -399,6 +412,7 @@ dependencies = [
     { name = "jormi" },
     { name = "numpy" },
     { name = "pandas" },
+    { name = "ww-quokka-sims" },
     { name = "yt" },
 ]
 
@@ -407,6 +421,7 @@ requires-dist = [
     { name = "jormi", editable = "../../sindri/submodules/jormi" },
     { name = "numpy", specifier = ">=2.3.2" },
     { name = "pandas", specifier = ">=3.0.0" },
+    { name = "ww-quokka-sims", editable = "../../sindri/submodules/ww-quokka-sims" },
     { name = "yt", specifier = ">=4.4.1" },
 ]
 
@@ -982,6 +997,31 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/2e/84/f48fdceb374e40427e490e754bb97a1d8211fcf705186a97fee46edaca14/unyt-3.0.4.tar.gz", hash = "sha256:17ea7013ef4004507fe193193e80b30645ec269b5b3f5fca80eda8f7cb961213", size = 1623051, upload-time = "2025-03-13T17:58:06.526Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ff/23/61563de0c91d8095409076b4d110862bdc6c1023102f4942b95ec5d5a26f/unyt-3.0.4-py3-none-any.whl", hash = "sha256:323564921b8744e900a5db7b8dc60e315b4d11f35f23203a513b14977252acdb", size = 129228, upload-time = "2025-03-13T17:58:04.959Z" },
+]
+
+[[package]]
+name = "ww-quokka-sims"
+version = "0.1.0"
+source = { editable = "../../sindri/submodules/ww-quokka-sims" }
+dependencies = [
+    { name = "imageio" },
+    { name = "jormi" },
+    { name = "numpy" },
+    { name = "yt" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "imageio", specifier = ">=2.37.0" },
+    { name = "jormi", editable = "../../sindri/submodules/jormi" },
+    { name = "numpy", specifier = ">=2.3.2" },
+    { name = "yt", specifier = ">=4.4.1" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "basedpyright", specifier = ">=1.39.3" },
+    { name = "pytest", specifier = ">=9.0.2" },
 ]
 
 [[package]]

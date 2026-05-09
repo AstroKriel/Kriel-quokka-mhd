@@ -1,18 +1,15 @@
-## virtual environment directory
-venv/
+## ignore extraneous artefacts
+.DS_Store
+__pycache__/
 
 ## build artifacts and metadata
 dist/
 **.egg-info/
 
-## ignore extraneous things
-.DS_Store
-__pycache__/
-
-## tag that is used to ignore a directory
+## tag to indicate a directory should be ignored
 *.gitignored/
 
-## sim output
+## sim outputs
 snapshots/
 plots/
 

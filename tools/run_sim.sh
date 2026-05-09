@@ -59,7 +59,7 @@ if compgen -G "snapshots/plt_*" > /dev/null 2>&1; then
     exit 1
 fi
 
-SEP="$(printf '-%.0s' {1..50})"  # 50 chars of "-"
+SEP="$(printf -- '-%.0s' {1..50})"  # 50 chars of "-"
 
 {
     echo "${SEP}"

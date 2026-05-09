@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-    echo "usage: $(basename "$0") --sim-dir <path>" >&2
+    echo "usage: $(basename "$0") --sim-dir <path> [--slice] [--profile]" >&2
     exit 1
 }
 
@@ -11,11 +11,15 @@ usage() {
 ##
 
 SIM_DIR=""
+PLOT_SLICE=0
+PLOT_PROFILE=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --sim-dir) SIM_DIR="$2"; shift 2 ;;
-        *)         usage ;;
+        --sim-dir)  SIM_DIR="$2"; shift 2 ;;
+        --slice)    PLOT_SLICE=1; shift ;;
+        --profile)  PLOT_PROFILE=1; shift ;;
+        *)          usage ;;
     esac
 done
 
@@ -49,12 +53,21 @@ PLOTS_DIR="${SIM_DIR}/plots"
 SCALAR_FIELDS=(E_kin E_mag rho pressure)
 VECTOR_FIELDS=(mag vel)
 
-uv run --project "${REPO_ROOT}" quokka-plot-slice \
-    --input-dir "${SNAPSHOTS_DIR}" \
-    --out-dir "${PLOTS_DIR}/slices" \
-    --fields "${SCALAR_FIELDS[@]}" "${VECTOR_FIELDS[@]}"
-
 uv run --project "${REPO_ROOT}" quokka-plot-vi-evolution \
     --input-dir "${SNAPSHOTS_DIR}" \
     --out-dir "${PLOTS_DIR}/vi-evolution" \
     --fields "${SCALAR_FIELDS[@]}"
+
+if [[ "${PLOT_SLICE}" -eq 1 ]]; then
+    uv run --project "${REPO_ROOT}" quokka-plot-slice \
+        --input-dir "${SNAPSHOTS_DIR}" \
+        --out-dir "${PLOTS_DIR}/slices" \
+        --fields "${SCALAR_FIELDS[@]}" "${VECTOR_FIELDS[@]}"
+fi
+
+if [[ "${PLOT_PROFILE}" -eq 1 ]]; then
+    uv run --project "${REPO_ROOT}" quokka-plot-profile \
+        --input-dir "${SNAPSHOTS_DIR}" \
+        --out-dir "${PLOTS_DIR}/profiles" \
+        --fields "${SCALAR_FIELDS[@]}" "${VECTOR_FIELDS[@]}"
+fi

@@ -2,10 +2,6 @@
 .DS_Store
 __pycache__/
 
-## build artifacts and metadata
-dist/
-**.egg-info/
-
 ## tag to indicate a directory should be ignored
 *.gitignored/
 

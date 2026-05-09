@@ -63,10 +63,10 @@ SEP="$(printf '-%.0s' {1..50})"  # 50 chars of "-"
 
 {
     echo "${SEP}"
-    echo "exe:        ${EXE_PATH}"
-    echo "params:     ${PARAMS_FILE}"
-    echo "num_procs:  ${NUM_PROCS}"
-    echo "started:    $(date)"
+    echo "executable:  ${EXE_PATH}"
+    echo "param. file: ${PARAMS_FILE}"
+    echo "num. procs.: ${NUM_PROCS}"
+    echo "started:     $(date)"
     echo "${SEP}"
     time mpirun -n "${NUM_PROCS}" "${EXE_PATH}" "${PARAMS_FILE}" || true  # flush log before exit (even if it crashes)
     echo "${SEP}"

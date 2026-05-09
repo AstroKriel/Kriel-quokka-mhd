@@ -59,14 +59,14 @@ uv run --project "${REPO_ROOT}" quokka-plot-vi-evolution \
     --fields "${SCALAR_FIELDS[@]}"
 
 if [[ "${PLOT_SLICE}" -eq 1 ]]; then
-    uv run --project "${REPO_ROOT}" quokka-plot-slice \
+    uv run --project "${REPO_ROOT}" quokka-plot-slices \
         --input-dir "${SNAPSHOTS_DIR}" \
         --out-dir "${PLOTS_DIR}/slices" \
         --fields "${SCALAR_FIELDS[@]}" "${VECTOR_FIELDS[@]}"
 fi
 
 if [[ "${PLOT_PROFILE}" -eq 1 ]]; then
-    uv run --project "${REPO_ROOT}" quokka-plot-profile \
+    uv run --project "${REPO_ROOT}" quokka-plot-profiles \
         --input-dir "${SNAPSHOTS_DIR}" \
         --out-dir "${PLOTS_DIR}/profiles" \
         --fields "${SCALAR_FIELDS[@]}" "${VECTOR_FIELDS[@]}"

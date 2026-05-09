@@ -17,7 +17,7 @@ do_reflux = 0
 do_subcycle = 0
 
 plotfile_interval = 500
-plotfile_prefix = "snapshots/plt_"
+plotfile_prefix = "snapshots/plt"
 checkpoint_interval = -1
 cfl = 0.3
 max_timesteps = 10000

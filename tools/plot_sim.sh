@@ -56,5 +56,5 @@ uv run --project "${REPO_ROOT}" quokka-plot-slice \
 
 uv run --project "${REPO_ROOT}" quokka-plot-vi-evolution \
     --input-dir "${SNAPSHOTS_DIR}" \
-    --out-dir "${PLOTS_DIR}/evolution" \
+    --out-dir "${PLOTS_DIR}/vi-evolution" \
     --fields "${SCALAR_FIELDS[@]}"

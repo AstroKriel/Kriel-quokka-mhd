@@ -1,0 +1,3 @@
+[submodule "paper"]
+	path = paper
+	url = git@github.com:AstroKriel/Kriel_quokka_mhd_paper.git

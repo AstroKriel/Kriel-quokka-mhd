@@ -77,23 +77,23 @@ def main():
         y_label_alignment=box_positions.Positions.Side.Left,
     )
     color_map = {
-        "Q26": "cornflowerblue",
-        "B25": "orangered",
-        "FS18": "forestgreen",
+        "q26": "cornflowerblue",
+        "b25": "orangered",
+        "fs18": "forestgreen",
     }
     marker_map = {
-        "LD04": "o",
-        "B25": "D",
+        "ld04": "o",
+        "b25": "D",
     }
     zorder_map = {
-        "Q26": 1,
-        "B25": 2,
-        "FS18": 3,
+        "q26": 1,
+        "b25": 2,
+        "fs18": 3,
     }
-    base_dir = Path("/Users/necoturb/Documents/Projects/quokka/build/sims/bwst")
-    for emf_scheme in ["FS18", "B25", "Q26"]:
-        for ave_scheme in ["LD04", "B25"]:
-            scheme_name = f"{emf_scheme}_{ave_scheme}"
+    base_dir = Path(__file__).parents[3] / "datasets/problems/brio-wu-shock-tube"
+    for emf_scheme in ["fs18", "b25", "q26"]:
+        for ave_scheme in ["ld04", "b25"]:
+            scheme_name = f"{emf_scheme}-{ave_scheme}"
             data_dir = base_dir / scheme_name
             plot_args = dict(
                 color=color_map[emf_scheme],
@@ -190,7 +190,7 @@ def main():
         ax.yaxis.set_label_position("right")
     manage_plots.save_figure(
         fig=fig,
-        fig_path=base_dir / "bw-profiles-bg.png",
+        fig_path=Path(__file__).parents[3] / "figures/brio-wu-shock-tube/bw-profiles.png",
         dpi=300,
     )
 

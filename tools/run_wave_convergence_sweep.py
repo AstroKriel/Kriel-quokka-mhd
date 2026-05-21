@@ -4,10 +4,10 @@ Phase 3 wave convergence sweep driver.
 
 Materialises 54 sim directories and submits SLURM jobs on lanzelot.
 54 = 3 waves x 18 scheme combos (3 EMF x 2 avg x 3 recon), grid-aligned only.
+Each job uses 16 MPI ranks and sweeps nx from 16 to 2048.
 
 Oblique orientations are excluded: Richardson only refines nx, so oblique modes
-(which have wave components in y and z) saturate at the fixed ny=nz=8 error
-floor and never converge.
+saturate at the fixed ny=nz=8 error floor and never converge.
 
 Usage:
     python run_wave_convergence_sweep.py           # submit all 54 jobs
@@ -74,6 +74,7 @@ def make_toml(angle, mx, my, mz, emf_scheme, avg_scheme, recon):
         f"setup.num_modes_y = {my}\n"
         f"setup.num_modes_z = {mz}\n"
         f"setup.angle_between_k_b0 = {angle}\n"
+        "setup.nx_max = 2048\n"
     )
 
 
@@ -84,15 +85,15 @@ def make_job_script(sim_dir, exec_path, toml_path, job_name):
         "#SBATCH --partition=roundtable\n"
         "#SBATCH --nodelist=lanzelot\n"
         "#SBATCH --nodes=1\n"
-        "#SBATCH --ntasks=1\n"
+        "#SBATCH --ntasks=16\n"
         "#SBATCH --cpus-per-task=1\n"
-        "#SBATCH --mem=4G\n"
-        "#SBATCH --time=01:00:00\n"
+        "#SBATCH --mem=8G\n"
+        "#SBATCH --time=02:00:00\n"
         f"#SBATCH --output={sim_dir}/slurm-%j.out\n"
         f"#SBATCH --error={sim_dir}/slurm-%j.err\n"
         "\n"
         f"cd {sim_dir}\n"
-        f"mpirun -np 1 {exec_path} {toml_path} > stdout.log 2> stderr.log\n"
+        f"mpirun -np 16 {exec_path} {toml_path} > stdout.log 2> stderr.log\n"
     )
 
 

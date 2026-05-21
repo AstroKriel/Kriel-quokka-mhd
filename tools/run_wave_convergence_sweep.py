@@ -2,11 +2,15 @@
 """
 Phase 3 wave convergence sweep driver.
 
-Materialises 108 sim directories and submits SLURM jobs on lanzelot.
-108 = 3 waves x 2 orientations x 18 scheme combos (3 EMF x 2 avg x 3 recon).
+Materialises 54 sim directories and submits SLURM jobs on lanzelot.
+54 = 3 waves x 18 scheme combos (3 EMF x 2 avg x 3 recon), grid-aligned only.
+
+Oblique orientations are excluded: Richardson only refines nx, so oblique modes
+(which have wave components in y and z) saturate at the fixed ny=nz=8 error
+floor and never converge.
 
 Usage:
-    python run_wave_convergence_sweep.py           # submit all 108 jobs
+    python run_wave_convergence_sweep.py           # submit all 54 jobs
     python run_wave_convergence_sweep.py --dry-run # print paths only, no sbatch
 """
 
@@ -26,7 +30,6 @@ WAVES = [
 
 ORIENTATIONS = [
     ("grid-aligned", 1, 0, 0),
-    ("oblique",      1, 1, 1),
 ]
 
 EMF_SCHEMES = [

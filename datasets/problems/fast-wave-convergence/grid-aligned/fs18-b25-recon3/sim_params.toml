@@ -1,0 +1,26 @@
+geometry.prob_lo = [0.0, 0.0, 0.0]
+geometry.prob_hi = [1.0, 1.0, 1.0]
+geometry.is_periodic = [1, 1, 1]
+
+amr.v = 0
+amr.max_level = 0
+
+do_reflux = 0
+do_subcycle = 0
+do_tracers = 1
+plotfile_interval = -1
+
+cfl = 0.3
+
+hydro.rk_integrator_order = 2
+hydro.reconstruction_order = 3
+hydro.use_dual_energy = 0
+
+mhd.reconstruction_order = 3
+mhd.emf_compute_scheme = "FelkerStone2017"
+mhd.emf_averaging_scheme = "Balsara2025"
+
+setup.num_modes_x = 1
+setup.num_modes_y = 0
+setup.num_modes_z = 0
+setup.angle_between_k_b0 = 90.0

@@ -90,7 +90,7 @@ def main():
         "b25": 2,
         "fs18": 3,
     }
-    base_dir = Path(__file__).parents[3] / "datasets/problems/brio-wu-shock-tube"
+    base_dir = Path(__file__).parents[3] / "datasets/problems/brio-wu-shock-tube/ncells=128"
     for emf_scheme in ["fs18", "b25", "q26"]:
         for ave_scheme in ["ld04", "b25"]:
             scheme_name = f"{emf_scheme}-{ave_scheme}"

@@ -4,11 +4,11 @@
 ## === DEPENDENCIES
 ##
 
-import numpy
 from pathlib import Path
 from matplotlib.patches import Rectangle
 from jormi.ww_plots import manage_plots
 from jormi.ww_types import box_positions
+from ww_quokka_sims.sim_io.profile_models import ScalarProfile, VectorProfile
 
 ##
 ## === HELPER FUNCTIONS
@@ -34,30 +34,6 @@ def plot_profile(
         linestyle="",
         zorder=zorder,
     )
-
-
-def load_and_plot_profile(
-    file_path,
-    ax,
-    color,
-    marker,
-    zorder,
-):
-    domain, values = numpy.loadtxt(
-        file_path,
-        delimiter=",",
-        skiprows=1,
-        unpack=True,
-    )
-    plot_profile(
-        domain=domain,
-        values=values,
-        ax=ax,
-        color=color,
-        marker=marker,
-        zorder=zorder,
-    )
-    return domain, values
 
 
 ##
@@ -90,7 +66,7 @@ def main():
         "b25": 2,
         "fs18": 3,
     }
-    base_dir = Path(__file__).parents[3] / "datasets/problems/brio-wu-shock-tube/ncells=128"
+    base_dir = Path(__file__).parents[3] / "datasets/problems/brio-wu-shock-tube/ncells=512"
     for emf_scheme in ["fs18", "b25", "q26"]:
         for ave_scheme in ["ld04", "b25"]:
             scheme_name = f"{emf_scheme}-{ave_scheme}"
@@ -100,27 +76,42 @@ def main():
                 marker=marker_map[ave_scheme],
                 zorder=zorder_map[emf_scheme],
             )
-            domain, density_values = load_and_plot_profile(
-                file_path=data_dir / "rho_t=0.100.csv",
+            rho_profile = ScalarProfile.load_from_file(data_dir / "rho_t=0.100.json")
+            pressure_profile = ScalarProfile.load_from_file(data_dir / "pressure_t=0.100.json")
+            vel_profile = VectorProfile.load_from_file(data_dir / "vel_t=0.100.json")
+            mag_profile = VectorProfile.load_from_file(data_dir / "mag_t=0.100.json")
+            density_values = rho_profile.field_value
+            pressure_values = pressure_profile.field_value
+            by_values = mag_profile.components["x_1"].field_value
+            plot_profile(
+                domain=rho_profile.position,
+                values=density_values,
                 ax=axs[0, 0],
                 **plot_args,
             )
-            _, pressure_values = load_and_plot_profile(
-                file_path=data_dir / "p_t=0.100.csv",
+            plot_profile(
+                domain=pressure_profile.position,
+                values=pressure_values,
                 ax=axs[0, 1],
                 **plot_args,
             )
-            _, by_values = load_and_plot_profile(
-                file_path=data_dir / "mag_Y_t=0.100.csv",
+            plot_profile(
+                domain=rho_profile.position,
+                values=pressure_values / density_values,
+                ax=axs[1, 0],
+                **plot_args,
+            )
+            plot_profile(
+                domain=mag_profile.components["x_1"].position,
+                values=by_values,
                 ax=axs[1, 1],
                 **plot_args,
             )
             ax_inset.plot(
-                domain,
+                mag_profile.components["x_1"].position,
                 by_values,
                 marker=marker_map[ave_scheme],
                 color=color_map[emf_scheme],
-                # markeredgecolor="black",
                 markerfacecolor="none",
                 markersize=4,
                 markeredgewidth=0.75,
@@ -128,18 +119,14 @@ def main():
                 zorder=zorder_map[emf_scheme],
             )
             plot_profile(
-                domain=domain,
-                values=pressure_values / density_values,
-                ax=axs[1, 0],
-                **plot_args,
-            )
-            load_and_plot_profile(
-                file_path=data_dir / "vel_X_t=0.100.csv",
+                domain=vel_profile.components["x_0"].position,
+                values=vel_profile.components["x_0"].field_value,
                 ax=axs[2, 0],
                 **plot_args,
             )
-            load_and_plot_profile(
-                file_path=data_dir / "vel_Y_t=0.100.csv",
+            plot_profile(
+                domain=vel_profile.components["x_1"].position,
+                values=vel_profile.components["x_1"].field_value,
                 ax=axs[2, 1],
                 **plot_args,
             )

@@ -21,9 +21,9 @@ from jormi.ww_plots import manage_plots
 
 def main() -> None:
     datasets_dir = Path(__file__).parents[2] / "datasets"
-    figures_dir = Path(__file__).parents[2] / "figures" / "scalings"
+    figures_dir = Path(__file__).parents[2] / "figures" / "performance"
     manage_io.create_directory(figures_dir)
-    df = pandas.read_csv(datasets_dir / "scalings" / "strong_gpu_scaling.csv")
+    df = pandas.read_csv(datasets_dir / "performance" / "strong_gpu_scaling.csv")
     df["num_gpus"] = pandas.to_numeric(
         df["num_gpus"],
         errors="coerce",

@@ -18,6 +18,7 @@ from jormi.ww_plots import manage_plots
 ## === PROGRAM MAIN
 ##
 
+
 def main() -> None:
     datasets_dir = Path(__file__).parents[2] / "datasets"
     figures_dir = Path(__file__).parents[2] / "figures" / "scalings"
@@ -65,8 +66,8 @@ def main() -> None:
     df = df.sort_values(["compute_scheme", "averaging_scheme", "num_gpus"])
     fig, ax = manage_plots.create_figure()
     for (compute, avg), group in df.groupby(
-        by=["compute_scheme", "averaging_scheme"],
-        sort=False,
+            by=["compute_scheme", "averaging_scheme"],
+            sort=False,
     ):
         compute = str(compute)
         avg = str(avg)

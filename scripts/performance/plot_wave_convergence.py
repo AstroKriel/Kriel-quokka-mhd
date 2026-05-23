@@ -184,8 +184,8 @@ def style_axes(
 
 
 def main() -> None:
-    datasets_dir = Path(__file__).parents[2] / "datasets" / "scalings" / "wave-convergence"
-    figures_dir = Path(__file__).parents[2] / "figures" / "scalings" / "wave-convergence"
+    datasets_dir = Path(__file__).parents[2] / "datasets" / "performance" / "wave-convergence"
+    figures_dir = Path(__file__).parents[2] / "figures" / "performance" / "wave-convergence"
     manage_io.create_directory(figures_dir)
     df = load_data(datasets_dir=datasets_dir)
     tests = list(df["test"].unique())

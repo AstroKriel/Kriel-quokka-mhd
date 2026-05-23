@@ -110,7 +110,7 @@ def load_data(
     df["interp_order"] = pandas.to_numeric(df["interp_order"], errors="coerce")
     df = df.dropna(subset=["dx", "error", "test", "emf_scheme", "ave_scheme", "interp_order"])
     df = df[(df["dx"] > 0) & (df["error"] > 0)]
-    df["scaled_error"] = df["error"] / (df["dx"] ** 2)
+    df["scaled_error"] = df["error"] / (df["dx"]**2)
     df["emf_scheme"] = pandas.Categorical(
         df["emf_scheme"],
         categories=EMF_SCHEME_ORDER,
@@ -136,8 +136,8 @@ def plot_convergence(
     df_test: pandas.DataFrame,
 ) -> None:
     for (emf_scheme, ave_scheme, p), group in df_test.groupby(
-        by=["emf_scheme", "ave_scheme", "interp_order"],
-        sort=False,
+            by=["emf_scheme", "ave_scheme", "interp_order"],
+            sort=False,
     ):
         emf_scheme = str(emf_scheme)
         ave_scheme = str(ave_scheme)

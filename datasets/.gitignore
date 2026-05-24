@@ -1,3 +1,5 @@
-*.png
-*.svg
 plots/
+*.svg
+*.png
+*.mp4
+*.pdf

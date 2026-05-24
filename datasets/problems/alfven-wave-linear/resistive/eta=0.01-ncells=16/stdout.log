@@ -1,0 +1,360 @@
+Initializing AMReX (26.05-45-g5e5a411f935e)...
+MPI initialized with 1 MPI processes
+MPI initialized with thread support level 0
+AMReX (26.05-45-g5e5a411f935e) initialized
+Alfven wave (resistive): omega_0=6.283185307 gamma=0.197392088 omega_real=6.280083914 Rm=31.83098862 phi=0.03142109655 rad
+
+[Warning] [Performance] The grid blocking factor (8) is too small for reasonable performance. It should be 32 (or greater) when running on GPUs, and 16 (or greater) when running on CPUs.
+
+[Warning] [Performance] The maximum grid size (16) is too small for reasonable performance. It should be 128 (or greater) when running on GPUs, and 64 (or greater) when running on CPUs.
+
+Coarse STEP 1 at t = 0 (0%) starts ...
+
+Coarse STEP 2 at t = 0.0132582429 (1.32582429%) starts ...
+
+Coarse STEP 3 at t = 0.0265164858 (2.65164858%) starts ...
+
+Coarse STEP 4 at t = 0.03977472864 (3.977472864%) starts ...
+
+Coarse STEP 5 at t = 0.05303297149 (5.303297149%) starts ...
+
+Coarse STEP 6 at t = 0.06629121442 (6.629121442%) starts ...
+
+Coarse STEP 7 at t = 0.07954945749 (7.954945749%) starts ...
+
+Coarse STEP 8 at t = 0.09280770049 (9.280770049%) starts ...
+
+Coarse STEP 9 at t = 0.1060659435 (10.60659435%) starts ...
+
+Coarse STEP 10 at t = 0.1193241865 (11.93241865%) starts ...
+
+Coarse STEP 11 at t = 0.1325824296 (13.25824296%) starts ...
+
+Coarse STEP 12 at t = 0.1458406728 (14.58406728%) starts ...
+
+Coarse STEP 13 at t = 0.1590989159 (15.90989159%) starts ...
+
+Coarse STEP 14 at t = 0.172357159 (17.2357159%) starts ...
+
+Coarse STEP 15 at t = 0.1856154021 (18.56154021%) starts ...
+
+Coarse STEP 16 at t = 0.1988736454 (19.88736454%) starts ...
+
+Coarse STEP 17 at t = 0.2121318887 (21.21318887%) starts ...
+
+Coarse STEP 18 at t = 0.2253901319 (22.53901319%) starts ...
+
+Coarse STEP 19 at t = 0.2386483752 (23.86483752%) starts ...
+
+Coarse STEP 20 at t = 0.2519066185 (25.19066185%) starts ...
+
+Coarse STEP 21 at t = 0.2651648619 (26.51648619%) starts ...
+
+Coarse STEP 22 at t = 0.2784231053 (27.84231053%) starts ...
+
+Coarse STEP 23 at t = 0.2916813486 (29.16813486%) starts ...
+
+Coarse STEP 24 at t = 0.304939592 (30.4939592%) starts ...
+
+Coarse STEP 25 at t = 0.3181978354 (31.81978354%) starts ...
+
+Coarse STEP 26 at t = 0.331456079 (33.1456079%) starts ...
+
+Coarse STEP 27 at t = 0.3447143224 (34.47143224%) starts ...
+
+Coarse STEP 28 at t = 0.3579725658 (35.79725658%) starts ...
+
+Coarse STEP 29 at t = 0.3712308093 (37.12308093%) starts ...
+
+Coarse STEP 30 at t = 0.3844890529 (38.44890529%) starts ...
+
+Coarse STEP 31 at t = 0.3977472965 (39.77472965%) starts ...
+
+Coarse STEP 32 at t = 0.41100554 (41.100554%) starts ...
+
+Coarse STEP 33 at t = 0.4242637835 (42.42637835%) starts ...
+
+Coarse STEP 34 at t = 0.4375220271 (43.75220271%) starts ...
+
+Coarse STEP 35 at t = 0.4507802708 (45.07802708%) starts ...
+
+Coarse STEP 36 at t = 0.4640385144 (46.40385144%) starts ...
+
+Coarse STEP 37 at t = 0.477296758 (47.7296758%) starts ...
+
+Coarse STEP 38 at t = 0.4905550016 (49.05550016%) starts ...
+
+Coarse STEP 39 at t = 0.5038132453 (50.38132453%) starts ...
+
+Coarse STEP 40 at t = 0.5170714891 (51.70714891%) starts ...
+
+Coarse STEP 41 at t = 0.5303297329 (53.03297329%) starts ...
+
+Coarse STEP 42 at t = 0.5435879766 (54.35879766%) starts ...
+
+Coarse STEP 43 at t = 0.5568462203 (55.68462203%) starts ...
+
+Coarse STEP 44 at t = 0.5701044642 (57.01044642%) starts ...
+
+Coarse STEP 45 at t = 0.5833627081 (58.33627081%) starts ...
+
+Coarse STEP 46 at t = 0.5966209519 (59.66209519%) starts ...
+
+Coarse STEP 47 at t = 0.6098791958 (60.98791958%) starts ...
+
+Coarse STEP 48 at t = 0.6231374396 (62.31374396%) starts ...
+
+Coarse STEP 49 at t = 0.6363956836 (63.63956836%) starts ...
+
+Coarse STEP 50 at t = 0.6496539276 (64.96539276%) starts ...
+
+Coarse STEP 51 at t = 0.6629121716 (66.29121716%) starts ...
+
+Coarse STEP 52 at t = 0.6761704155 (67.61704155%) starts ...
+
+Coarse STEP 53 at t = 0.6894286596 (68.94286596%) starts ...
+
+Coarse STEP 54 at t = 0.7026869037 (70.26869037%) starts ...
+
+Coarse STEP 55 at t = 0.7159451478 (71.59451478%) starts ...
+
+Coarse STEP 56 at t = 0.7292033919 (72.92033919%) starts ...
+
+Coarse STEP 57 at t = 0.742461636 (74.2461636%) starts ...
+
+Coarse STEP 58 at t = 0.7557198801 (75.57198801%) starts ...
+
+Coarse STEP 59 at t = 0.7689781244 (76.89781244%) starts ...
+
+Coarse STEP 60 at t = 0.7822363686 (78.22363686%) starts ...
+
+Coarse STEP 61 at t = 0.7954946127 (79.54946127%) starts ...
+
+Coarse STEP 62 at t = 0.8087528569 (80.87528569%) starts ...
+
+Coarse STEP 63 at t = 0.8220111012 (82.20111012%) starts ...
+
+Coarse STEP 64 at t = 0.8352693455 (83.52693455%) starts ...
+
+Coarse STEP 65 at t = 0.8485275898 (84.85275898%) starts ...
+
+Coarse STEP 66 at t = 0.861785834 (86.1785834%) starts ...
+
+Coarse STEP 67 at t = 0.8750440783 (87.50440783%) starts ...
+
+Coarse STEP 68 at t = 0.8883023227 (88.83023227%) starts ...
+
+Coarse STEP 69 at t = 0.9015605671 (90.15605671%) starts ...
+
+Coarse STEP 70 at t = 0.9148188114 (91.48188114%) starts ...
+
+Coarse STEP 71 at t = 0.9280770558 (92.80770558%) starts ...
+
+Coarse STEP 72 at t = 0.9413353001 (94.13353001%) starts ...
+
+Coarse STEP 73 at t = 0.9545935447 (95.45935447%) starts ...
+
+Coarse STEP 74 at t = 0.9678517891 (96.78517891%) starts ...
+
+Coarse STEP 75 at t = 0.9811100335 (98.11100335%) starts ...
+
+Coarse STEP 76 at t = 0.9943682779 (99.43682779%) starts ...
+
+Simulation ended at t = 1 (100%)
+
+Initial gas+radiation energy = 1.4
+Final gas+radiation energy = 1.4
+	absolute conservation error = -1.554312234e-14
+	relative conservation error = -1.110223025e-14
+
+
+avg. num. of radiation subcycles = 0
+
+Initial gasDensity = 1
+	absolute conservation error = 4.440892099e-16
+	relative conservation error = 4.440892099e-16
+
+Initial x-GasMomentum = 0
+	absolute conservation error = -1.002839426e-28
+
+Initial y-GasMomentum = 0
+	absolute conservation error = 0
+
+Initial z-GasMomentum = 1.588186776e-22
+	absolute conservation error = 5.345654709e-23
+	relative conservation error = 0.3365885417
+
+Initial gasEnergy = 1.4
+	absolute conservation error = -1.554312234e-14
+	relative conservation error = -1.110223025e-14
+
+Initial gasInternalEnergy = 0.9
+	absolute conservation error = 9.325873407e-15
+	relative conservation error = 1.036208156e-14
+
+Performance figure-of-merit: 6.016532355 μs/zone-update [0.1662086965 Mupdates/s]
+Zone-updates on level 0: 77824
+
+
+Component Errors:
+======================================================================
+Component                      Absolute Error      Relative Error
+----------------------------------------------------------------------
+gasDensity                         7.9886e-13          7.9886e-13
+x-GasMomentum                      8.0504e-13                 N/A
+y-GasMomentum                      0.0000e+00                 N/A
+z-GasMomentum                      4.1640e-09          7.9217e-03
+gasEnergy                          1.2053e-12          8.6096e-13
+gasInternalEnergy                  1.1986e-12          1.3317e-12
+x-BField                           0.0000e+00          0.0000e+00
+y-BField                           0.0000e+00                 N/A
+z-BField                           4.1824e-09          8.0034e-03
+----------------------------------------------------------------------
+======================================================================
+
+Relative RMS L1 error norm = 3.039586405e-09
+
+Error norm = 3.039586405e-09
+test passed
+elapsed time: 0.470535377 seconds.
+
+
+TinyProfiler total time across processes [min...avg...max]: 0.4706 ... 0.4706 ... 0.4706
+
+--------------------------------------------------------------------------------------------------
+Name                                               NCalls  Excl. Min  Excl. Avg  Excl. Max   Max %
+--------------------------------------------------------------------------------------------------
+QuokkaSimulation::computeHydroFluxes()                152     0.2039     0.2039     0.2039  43.33%
+HyperbolicSystem::ReconstructStatesPPM(Arrays)       9576    0.08863    0.08863    0.08863  18.83%
+HyperbolicSystem::ReconstructStatesPPM(MultiFabs)     912    0.06747    0.06747    0.06747  14.34%
+QuokkaSimulation::computeFOHydroFluxes()               76    0.04519    0.04519    0.04519   9.60%
+MHDSystem::ComputeEMF_FelkerStone2017()               228    0.02745    0.02745    0.02745   5.83%
+QuokkaSimulation::advanceHydroAtLevel()                76    0.01099    0.01099    0.01099   2.34%
+amrex::Copy()                                         922   0.005495   0.005495   0.005495   1.17%
+FillBoundary_nowait()                                 612   0.004148   0.004148   0.004148   0.88%
+MHDSystem::EMFAverage_LondrilloDelZanna2004()         684   0.001953   0.001953   0.001953   0.41%
+AMRSimulation::evolve()                                 1   0.001922   0.001922   0.001922   0.41%
+FabArray::Saxpy()                                    1372   0.001814   0.001814   0.001814   0.39%
+FabArray::setVal()                                   1146    0.00177    0.00177    0.00177   0.38%
+QuokkaSimulation::computeMaxSignalLocal()              76   0.001689   0.001689   0.001689   0.36%
+HydroSystem::PredictStep()                            152   0.001524   0.001524   0.001524   0.32%
+MHDSystem::ReconstructTo()                           9576   0.001254   0.001254   0.001254   0.27%
+REG::HydroSolver                                       76  0.0007906  0.0007906  0.0007906   0.17%
+QuokkaSimulation::advanceSingleTimestepAtLevel()       76  0.0001817  0.0001817  0.0001817   0.04%
+AMRSimulation::setInitialConditions()                   1  0.0001734  0.0001734  0.0001734   0.04%
+AMRSimulation::fillBoundaryConditions()               612  0.0001245  0.0001245  0.0001245   0.03%
+AMRSimulation::computeTimestepAtLevel()                76  0.0001218  0.0001218  0.0001218   0.03%
+FabArray::FillBoundary()                              612  0.0001202  0.0001202  0.0001202   0.03%
+AMRSimulation::timeStepWithSubcycling()                76  6.229e-05  6.229e-05  6.229e-05   0.01%
+AMRSimulation::computeTimestep()                       76  3.144e-05  3.144e-05  3.144e-05   0.01%
+Other                                                2624   0.003201   0.003201   0.003201   0.68%
+--------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------
+Name                                               NCalls  Incl. Min  Incl. Avg  Incl. Max   Max %
+--------------------------------------------------------------------------------------------------
+AMRSimulation::evolve()                                 1     0.4684     0.4684     0.4684  99.53%
+AMRSimulation::timeStepWithSubcycling()                76     0.4644     0.4644     0.4644  98.68%
+QuokkaSimulation::advanceSingleTimestepAtLevel()       76     0.4643     0.4643     0.4643  98.67%
+REG::HydroSolver                                       76     0.4641     0.4641     0.4641  98.63%
+QuokkaSimulation::advanceHydroAtLevel()                76     0.4578     0.4578     0.4578  97.29%
+QuokkaSimulation::computeHydroFluxes()                152     0.2714     0.2714     0.2714  57.67%
+MHDSystem::ComputeEMF_FelkerStone2017()               228     0.1201     0.1201     0.1201  25.52%
+MHDSystem::ReconstructTo()                           9576    0.08988    0.08988    0.08988  19.10%
+HyperbolicSystem::ReconstructStatesPPM(Arrays)       9576    0.08863    0.08863    0.08863  18.83%
+HyperbolicSystem::ReconstructStatesPPM(MultiFabs)     912    0.06747    0.06747    0.06747  14.34%
+QuokkaSimulation::computeFOHydroFluxes()               76    0.04519    0.04519    0.04519   9.60%
+amrex::Copy()                                         922   0.005495   0.005495   0.005495   1.17%
+AMRSimulation::fillBoundaryConditions()               612   0.004628   0.004628   0.004628   0.98%
+FabArray::FillBoundary()                              612   0.004503   0.004503   0.004503   0.96%
+FillBoundary_nowait()                                 612   0.004327   0.004327   0.004327   0.92%
+AMRSimulation::computeTimestep()                       76   0.001973   0.001973   0.001973   0.42%
+MHDSystem::EMFAverage_LondrilloDelZanna2004()         684   0.001953   0.001953   0.001953   0.41%
+AMRSimulation::computeTimestepAtLevel()                76   0.001941   0.001941   0.001941   0.41%
+FabArray::Saxpy()                                    1372   0.001814   0.001814   0.001814   0.39%
+FabArray::setVal()                                   1146    0.00177    0.00177    0.00177   0.38%
+QuokkaSimulation::computeMaxSignalLocal()              76   0.001689   0.001689   0.001689   0.36%
+HydroSystem::PredictStep()                            152   0.001524   0.001524   0.001524   0.32%
+AMRSimulation::setInitialConditions()                   1   0.001432   0.001432   0.001432   0.30%
+Other                                                2624   0.004416   0.004416   0.004416   0.94%
+--------------------------------------------------------------------------------------------------
+
+
+
+BEGIN REGION HydroSolver
+
+--------------------------------------------------------------------------------------------------
+Name                                               NCalls  Excl. Min  Excl. Avg  Excl. Max   Max %
+--------------------------------------------------------------------------------------------------
+QuokkaSimulation::computeHydroFluxes()                152     0.2039     0.2039     0.2039  43.33%
+HyperbolicSystem::ReconstructStatesPPM(Arrays)       9576    0.08863    0.08863    0.08863  18.83%
+HyperbolicSystem::ReconstructStatesPPM(MultiFabs)     912    0.06747    0.06747    0.06747  14.34%
+QuokkaSimulation::computeFOHydroFluxes()               76    0.04519    0.04519    0.04519   9.60%
+MHDSystem::ComputeEMF_FelkerStone2017()               228    0.02745    0.02745    0.02745   5.83%
+QuokkaSimulation::advanceHydroAtLevel()                76    0.01099    0.01099    0.01099   2.34%
+amrex::Copy()                                         912   0.005489   0.005489   0.005489   1.17%
+FillBoundary_nowait()                                 608   0.004041   0.004041   0.004041   0.86%
+MHDSystem::EMFAverage_LondrilloDelZanna2004()         684   0.001953   0.001953   0.001953   0.41%
+FabArray::Saxpy()                                    1368   0.001811   0.001811   0.001811   0.38%
+FabArray::setVal()                                   1140   0.001698   0.001698   0.001698   0.36%
+MHDSystem::ReconstructTo()                           9576   0.001254   0.001254   0.001254   0.27%
+REG::HydroSolver                                       76  0.0007906  0.0007906  0.0007906   0.17%
+AMRSimulation::fillBoundaryConditions()               608  0.0001162  0.0001162  0.0001162   0.02%
+FabArray::FillBoundary()                              608  0.0001012  0.0001012  0.0001012   0.02%
+Other                                                2356   0.003224   0.003224   0.003224   0.69%
+--------------------------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------------------------
+Name                                               NCalls  Incl. Min  Incl. Avg  Incl. Max   Max %
+--------------------------------------------------------------------------------------------------
+REG::HydroSolver                                       76     0.4641     0.4641     0.4641  98.63%
+QuokkaSimulation::advanceHydroAtLevel()                76     0.4578     0.4578     0.4578  97.29%
+QuokkaSimulation::computeHydroFluxes()                152     0.2714     0.2714     0.2714  57.67%
+MHDSystem::ComputeEMF_FelkerStone2017()               228     0.1201     0.1201     0.1201  25.52%
+MHDSystem::ReconstructTo()                           9576    0.08988    0.08988    0.08988  19.10%
+HyperbolicSystem::ReconstructStatesPPM(Arrays)       9576    0.08863    0.08863    0.08863  18.83%
+HyperbolicSystem::ReconstructStatesPPM(MultiFabs)     912    0.06747    0.06747    0.06747  14.34%
+QuokkaSimulation::computeFOHydroFluxes()               76    0.04519    0.04519    0.04519   9.60%
+amrex::Copy()                                         912   0.005489   0.005489   0.005489   1.17%
+AMRSimulation::fillBoundaryConditions()               608   0.004409   0.004409   0.004409   0.94%
+FabArray::FillBoundary()                              608   0.004292   0.004292   0.004292   0.91%
+FillBoundary_nowait()                                 608   0.004137   0.004137   0.004137   0.88%
+MHDSystem::EMFAverage_LondrilloDelZanna2004()         684   0.001953   0.001953   0.001953   0.41%
+FabArray::Saxpy()                                    1368   0.001811   0.001811   0.001811   0.38%
+FabArray::setVal()                                   1140   0.001698   0.001698   0.001698   0.36%
+Other                                                2356   0.003224   0.003224   0.003224   0.69%
+--------------------------------------------------------------------------------------------------
+
+END REGION HydroSolver
+Async Memory Usage:
+----------------------------------------------------------------
+Name                                     Nalloc  AvgMem   MaxMem
+----------------------------------------------------------------
+MHDSystem::ComputeEMF_FelkerStone2017()   18468  87 KiB  367 KiB
+----------------------------------------------------------------
+
+Pinned Memory Usage:
+---------------------------------------------------------
+Name                             Nalloc  AvgMem    MaxMem
+---------------------------------------------------------
+The_Pinned_Arena::Initialize()        1  25   B  8192 KiB
+AMRSimulation::readParameters()       2   0   B   256   B
+---------------------------------------------------------
+
+Cpu Memory Usage:
+--------------------------------------------------------------------
+Name                                      Nalloc    AvgMem    MaxMem
+--------------------------------------------------------------------
+QuokkaSimulation::computeHydroFluxes()      3952  1335 KiB  2199 KiB
+QuokkaSimulation::computeFOHydroFluxes()    1748   553 KiB  2097 KiB
+AMRSimulation::MakeNewLevelFromScratch()       9  1263 KiB  1271 KiB
+REG::HydroSolver                             608  1178 KiB  1205 KiB
+QuokkaSimulation::advanceHydroAtLevel()     1976   865 KiB   978 KiB
+MHDSystem::ComputeEMF_FelkerStone2017()    18468    88 KiB   370 KiB
+Unprofiled                                    11    77   B   120 KiB
+AMRSimulation::setInitialConditions()          1     1   B    24 KiB
+OverrideSync_nowait()                          3     0   B  9216   B
+OwnerMask()                                    3     0   B  4608   B
+--------------------------------------------------------------------
+
+AMReX (26.05-45-g5e5a411f935e) finalized

@@ -1,11 +1,9 @@
-## paper run: circular Alfven wave, grid-aligned
-## based on quokka/inputs/AlfvenWaveCircular.toml
-
+## geometry
 geometry.prob_lo = [0.0, 0.0, 0.0]
 geometry.prob_hi = [1.0, 1.0, 1.0]
 quokka.bc = ["periodic", "periodic", "periodic"]
 
-amr.v = 1
+## resolution
 amr.n_cell = [128, 8, 8]
 amr.max_level = 0
 amr.max_grid_size = 128
@@ -13,19 +11,23 @@ amr.blocking_factor_x = 128
 amr.blocking_factor_y = 8
 amr.blocking_factor_z = 8
 
-do_reflux = 0
-do_subcycle = 0
+## verbosity
+amr.v = 1
 
+## output
+checkpoint_interval = -1
 plotfile_interval = 200
 plotfile_prefix = "snapshots/plt"
-checkpoint_interval = -1
+
+## time integration
 cfl = 0.3
 stop_time = 5.0
 max_timesteps = 8000
 
+## hydro
 hydro.rk_integrator_order = 2
 hydro.reconstruction_order = 5
-hydro.use_dual_energy = 0
 
+## mhd
 mhd.emf_compute_scheme = "Quokka2026"
 mhd.emf_averaging_scheme = "LondrilloDelZanna2004"

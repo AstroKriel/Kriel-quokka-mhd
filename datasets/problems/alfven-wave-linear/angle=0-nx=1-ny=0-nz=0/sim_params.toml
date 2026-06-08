@@ -31,6 +31,7 @@ hydro.reconstruction_order = 5
 ## mhd
 mhd.emf_compute_scheme = "Quokka2026"
 mhd.emf_averaging_scheme = "LondrilloDelZanna2004"
+mhd.emf_reconstruction_order = 5
 
 ## problem setup
 setup.angle_between_k_b0 = 0

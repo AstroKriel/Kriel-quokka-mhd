@@ -4,7 +4,7 @@ geometry.prob_hi = [1.0, 1.0, 1.0]
 quokka.bc = ["periodic", "periodic", "periodic"]
 
 ## verbosity
-amr.v = 0
+amr.v = 1
 
 ## output
 checkpoint_interval = -1

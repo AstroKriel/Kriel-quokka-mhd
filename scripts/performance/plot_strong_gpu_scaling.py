@@ -65,10 +65,11 @@ def main() -> None:
     )
     df = df.sort_values(["compute_scheme", "averaging_scheme", "num_gpus"])
     fig, ax = manage_plots.create_figure()
-    for (compute, avg), group in df.groupby(
+    for group_key, group in df.groupby(
             by=["compute_scheme", "averaging_scheme"],
             sort=False,
     ):
+        compute, avg = group_key  # pyright: ignore[reportGeneralTypeIssues]
         compute = str(compute)
         avg = str(avg)
         ax.scatter(

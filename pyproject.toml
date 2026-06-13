@@ -16,5 +16,14 @@ dependencies = [
 jormi = { path = "../../sindri/submodules/jormi", editable = true }
 ww-quokka-sims = { path = "../../sindri/submodules/ww-quokka-sims", editable = true }
 
-[tool.pyright]
+[dependency-groups]
+dev = ["basedpyright>=1.0"]
+
+[tool.basedpyright]
 include = ["scripts"]
+exclude = ["scripts/datasets.gitignored"]
+reportExplicitAny = "none"
+reportAny = "none"
+reportImplicitStringConcatenation = "none"
+reportImplicitOverride = "none"
+reportUnusedCallResult = "none"

@@ -15,7 +15,7 @@ from matplotlib.ticker import NullLocator as mpl_NullLocator
 
 ## personal
 from jormi.ww_io import manage_io
-from jormi.ww_plots import manage_plots
+from jormi.ww_plots import manage_plots, style_plots
 
 ##
 ## === CONSTANTS
@@ -184,6 +184,7 @@ def style_axes(
 
 
 def main() -> None:
+    style_plots.set_theme()
     datasets_dir = Path(__file__).parents[2] / "datasets" / "performance" / "wave-convergence"
     figures_dir = Path(__file__).parents[2] / "figures" / "performance" / "wave-convergence"
     manage_io.create_directory(figures_dir)

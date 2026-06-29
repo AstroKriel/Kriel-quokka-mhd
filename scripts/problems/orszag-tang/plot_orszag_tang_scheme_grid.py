@@ -15,7 +15,7 @@ import numpy
 from matplotlib.cm import ScalarMappable as mpl_ScalarMappable
 
 ## personal
-from jormi.ww_plots import add_color, manage_plots, plot_data
+from jormi.ww_plots import add_color, manage_plots, plot_data, style_plots
 
 ##
 ## === CONFIGURATION
@@ -151,6 +151,7 @@ def add_grid_colorbar(
 
 
 def main() -> None:
+    style_plots.set_theme()
     cell_size = read_cell_size(dataset_dir=DATASET_DIR)
     slices = load_scheme_slices()
     slices = {scheme: numpy.log10(cell_size * array_2d) for scheme, array_2d in slices.items()}

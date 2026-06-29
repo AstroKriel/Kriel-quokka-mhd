@@ -6,7 +6,7 @@
 
 from pathlib import Path
 from matplotlib.patches import Rectangle
-from jormi.ww_plots import manage_plots
+from jormi.ww_plots import manage_plots, style_plots
 from jormi.ww_types import box_positions
 from ww_quokka_sims.sim_io.profile_models import ScalarProfile, VectorProfile
 
@@ -42,6 +42,7 @@ def plot_profile(
 
 
 def main():
+    style_plots.set_theme()
     fig, axs = manage_plots.create_figure(
         num_cols=2,
         num_rows=3,
@@ -177,7 +178,7 @@ def main():
         ax.yaxis.set_label_position("right")
     manage_plots.save_figure(
         fig=fig,
-        fig_path=Path(__file__).parents[3] / "figures/brio-wu-shock-tube/bw-profiles.png",
+        fig_path=Path(__file__).parents[3] / "figures/problems/brio-wu-shock-tube/bw-profiles.png",
         dpi=300,
     )
 

@@ -5,8 +5,6 @@
 ##
 
 ## stdlib
-import tomllib
-
 from pathlib import Path
 
 ## third-party
@@ -15,7 +13,8 @@ import numpy
 from matplotlib.cm import ScalarMappable as mpl_ScalarMappable
 
 ## personal
-from jormi.ww_plots import add_color, manage_plots, plot_data, style_plots
+from jormi.ww_plots import add_color, annotate_axis, manage_plots, plot_data, style_plots
+from jormi.ww_types import box_positions
 
 ##
 ## === CONFIGURATION
@@ -28,7 +27,7 @@ INTERPOLATIONS = ("plm", "ppm", "ppm_ep")  ## grid row-blocks (top -> bottom)
 EMF_AVERAGINGS = ("ld04", "b25")  ## the two rows within each interpolation block
 
 ## the out-of-plane current density slice, shared across the whole grid
-SLICE_GLOB = "cur-slice=x_2-index=*.npy"
+SLICE_GLOB = "current_density_magnitude-slice=x_2-index=*.npy"
 FIELD_LABEL = r"$\log_{10} \left( \Delta x \, |\nabla \times \vec{b}| \right)$"
 PALETTE_NAME = "cmr.wildfire"
 
@@ -37,12 +36,12 @@ PALETTE_NAME = "cmr.wildfire"
 ## saturates rather than stretching the scale (the field rarely drops this low)
 VALUE_FLOOR = -5.0
 
-## the computational domain is 1 x 1 in dimensionless units (see sim_params.toml)
+## the computational domain is 1 x 1 in dimensionless units
 AXIS_BOUNDS = ((-0.5, 0.5), (-0.5, 0.5))
 
 ROOT_DIR = Path(__file__).parents[3]
 DATASET_DIR = ROOT_DIR / "datasets/problems/orszag-tang/ncells=1024"
-FIGURE_PATH = ROOT_DIR / "figures/problems/orszag-tang/ot-schemes.pdf"
+FIGURE_PATH = ROOT_DIR / "figures/problems/orszag-tang/ot-schemes.png"
 
 ##
 ## === HELPER FUNCTIONS
@@ -67,16 +66,13 @@ def read_cell_size(
     *,
     dataset_dir: Path,
 ) -> float:
-    """Read the isotropic cell size dx = L / N from a representative sim_params.toml.
+    """Compute the isotropic cell size dx = L / N from the `ncells=<N>` dataset directory name.
 
-    Every scheme directory shares the same geometry and resolution, so any one suffices.
+    The computational domain is 1 x 1 in dimensionless units (see `AXIS_BOUNDS`); `sim_params.toml`
+    is not committed to the repo (raw configs stay on the HPC), so `ncells` is read from the path.
     """
-    params_paths = sorted(dataset_dir.glob("*/sim_params.toml"))
-    if not params_paths:
-        raise FileNotFoundError(f"no sim_params.toml found under: {dataset_dir}")
-    params = tomllib.loads(params_paths[0].read_text())
-    domain_length = params["geometry"]["prob_hi"][0] - params["geometry"]["prob_lo"][0]
-    num_cells = params["amr"]["n_cell"][0]
+    num_cells = int(dataset_dir.name.split("=")[-1])
+    domain_length = AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]
     return domain_length / num_cells
 
 
@@ -185,6 +181,18 @@ def main() -> None:
             )
             ax.set_xticks([])
             ax.set_yticks([])
+            annotate_axis.add_text(
+                ax=ax,
+                x_pos=0.5,
+                y_pos=0.03,
+                label=f"{reconstruction}+{averaging}+{interpolation}",
+                x_alignment=box_positions.Positions.Center.Center,
+                y_alignment=box_positions.Positions.Side.Bottom,
+                text_size=16,
+                text_color="black",
+                box_color="white",
+                box_alpha=0.6,
+            )
     add_grid_colorbar(
         fig=fig,
         axs=axs,

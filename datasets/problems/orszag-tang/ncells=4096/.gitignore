@@ -1,7 +1,0 @@
-*.npy
-!q26-b25-ppm/current_density_magnitude-slice=x_2-index=0029073.npy
-!q26-b25-ppm/current_density_magnitude-slice=x_2-index=0056825.npy
-!q26-b25-ppm/current_density_magnitude-slice=x_2-index=0069719.npy
-!q26-b25-ppm_ep/current_density_magnitude-slice=x_2-index=0029084.npy
-!q26-b25-ppm_ep/current_density_magnitude-slice=x_2-index=0056669.npy
-!q26-b25-ppm_ep/current_density_magnitude-slice=x_2-index=0069489.npy

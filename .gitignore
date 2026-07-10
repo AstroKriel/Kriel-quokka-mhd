@@ -3,18 +3,25 @@
 __pycache__/
 .venv/
 
-## sim outputs
+## ignore sim outputs
 snapshots/
 checkpoints/
-diagnostics/
-!datasets/**/diagnostics/**
 
-## media: block repo-wide and only allow a curated subset
+## ignore all media that is not intentionally placed in the figures folder
 *.svg
 *.png
 *.mp4
 *.pdf
 !figures/**
+
+## ignore folders named diagnostics except under datasets/
+diagnostics/
+!datasets/**/diagnostics/**
+## note: media inside datasets/**/diagnostics/ folders are re-ignored
+datasets/**/diagnostics/**/*.svg
+datasets/**/diagnostics/**/*.png
+datasets/**/diagnostics/**/*.mp4
+datasets/**/diagnostics/**/*.pdf
 
 ## tag to indicate a directory should be ignored; leave this last so it always wins
 *.gitignored/

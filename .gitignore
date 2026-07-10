@@ -1,13 +1,22 @@
 ## ignore extraneous artefacts
 .DS_Store
 __pycache__/
-
-## tag to indicate a directory should be ignored
-*.gitignored/
+.venv/
 
 ## sim outputs
 snapshots/
-plots/
-tmp/
+checkpoints/
+diagnostics/
+!datasets/**/diagnostics/**
+
+## media: block repo-wide and only allow a curated subset
+*.svg
+*.png
+*.mp4
+*.pdf
+!figures/**
+
+## tag to indicate a directory should be ignored; leave this last so it always wins
+*.gitignored/
 
 ## .

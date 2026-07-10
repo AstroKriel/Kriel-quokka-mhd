@@ -22,6 +22,9 @@ datasets/**/diagnostics/**/*.svg
 datasets/**/diagnostics/**/*.png
 datasets/**/diagnostics/**/*.mp4
 datasets/**/diagnostics/**/*.pdf
+## raw slice arrays are regeneratable from HPC plotfiles (see reextraction-plan.md) and too large
+## for plain git (single files exceed GitHub's 100MB per-file limit); keep them local-only for now
+datasets/**/diagnostics/**/*.npz
 
 ## tag to indicate a directory should be ignored; leave this last so it always wins
 *.gitignored/

@@ -23,9 +23,9 @@ from jormi.ww_plots import add_color, manage_plots, plot_data, style_plots
 
 ROOT_DIR = Path(__file__).parents[3]
 
-FIELD_LABEL = r"$\log_{10} |\nabla \times \vec{b}|$"
+FIELD_LABEL = r"$\log_{10} \left( \Delta x \, |\nabla \times \vec{b}| \right)$"
 FIELD_PALETTE = "cmr.wildfire_r"
-FIELD_RANGE = (0.0, 3.0)
+FIELD_RANGE = (-4.0, -1.0)
 
 ABS_DIFF_LABEL = r"$|\nabla \times \vec{b}| - R_{180^\circ}|\nabla \times \vec{b}|$"
 DIFF_PALETTE = "cmr.iceburn"
@@ -34,13 +34,38 @@ DIFF_PERCENTILE = 99.0
 AXIS_BOUNDS = ((-0.5, 0.5), (-0.5, 0.5))
 
 ##
+## === HELPER FUNCTIONS
+##
+
+
+def read_cell_size(
+    *,
+    data_path: Path,
+) -> float:
+    """Compute the isotropic cell size dx = L / N from the slice path's `ncells=<N>` ancestor directory.
+
+    The computational domain is 1 x 1 in dimensionless units (see `AXIS_BOUNDS`); `sim_params.toml`
+    is not read here, so `ncells` is parsed from the path (see `plot_scheme_grid.read_cell_size`).
+    """
+    ncells_dir = next(
+        (parent for parent in data_path.parents if parent.name.startswith("ncells=")),
+        None,
+    )
+    if ncells_dir is None:
+        raise ValueError(f"no `ncells=<N>` ancestor directory found for: {data_path}")
+    num_cells = int(ncells_dir.name.split("=")[-1])
+    domain_length = AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]
+    return domain_length / num_cells
+
+
+##
 ## === PROGRAM MAIN
 ##
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Plot an OT current-density slice.")
-    parser.add_argument("data_path", type=Path, help="Path to the .npy slice file.")
+    parser.add_argument("data_path", type=Path, help="Path to the .npz slice file.")
     parser.add_argument("--abs-diff", action="store_true", default=False, help="Show rot180 absolute difference on lower triangle.")
     args = parser.parse_args()
 
@@ -49,13 +74,19 @@ def main() -> None:
     if args.abs_diff:
         stem += "-abs_diff"
 
-    figures_dir = ROOT_DIR / "figures" / data_path.relative_to(ROOT_DIR / "datasets").parent
+    dataset_relative_dir = data_path.relative_to(ROOT_DIR / "datasets").parent
+    if dataset_relative_dir.name == "diagnostics":
+        ## the new extraction nests raw slices under a `diagnostics/` subdir; figures stay flat,
+        ## mirroring the scheme dir itself rather than that subdir.
+        dataset_relative_dir = dataset_relative_dir.parent
+    figures_dir = ROOT_DIR / "figures" / dataset_relative_dir
     figures_dir.mkdir(parents=True, exist_ok=True)
     slice_path = figures_dir / (stem + ".png")
 
     manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    field = numpy.load(data_path)
-    log_field = compute_array_stats.compute_safe_log10(numpy.abs(field))
+    cell_size = read_cell_size(data_path=data_path)
+    field = numpy.load(data_path)["sarray_2d"]
+    log_field = compute_array_stats.compute_safe_log10(cell_size * numpy.abs(field))
     field_config = add_color.SequentialConfig(palette_name=FIELD_PALETTE)
     fig, axs = manage_plots.create_figure_grid(
         num_rows=1,

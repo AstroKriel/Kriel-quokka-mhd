@@ -27,9 +27,9 @@ INTERPOLATIONS = ("plm", "ppm", "ppm_ep")  ## grid row-blocks (top -> bottom)
 EMF_AVERAGINGS = ("ld04", "b25")  ## the two rows within each interpolation block
 
 ## the out-of-plane current density slice, shared across the whole grid
-SLICE_GLOB = "current_density_magnitude-slice=x_2-index=*.npy"
+SLICE_GLOB = "current_density_magnitude-slice=x_2-index=*.npz"
 FIELD_LABEL = r"$\log_{10} \left( \Delta x \, |\nabla \times \vec{b}| \right)$"
-PALETTE_NAME = "cmr.wildfire"
+PALETTE_NAME = "cmr.wildfire_r"
 
 ## floor for the shared colour scale, in log10 units of the cell-size-normalised field; the bottom
 ## palette colour maps to this value instead of the data minimum, so the sparsely-populated low tail
@@ -41,7 +41,7 @@ AXIS_BOUNDS = ((-0.5, 0.5), (-0.5, 0.5))
 
 ROOT_DIR = Path(__file__).parents[3]
 DATASET_DIR = ROOT_DIR / "datasets/problems/orszag-tang/ncells=1024"
-FIGURE_PATH = ROOT_DIR / "figures/problems/orszag-tang/ot-schemes.png"
+FIGURE_PATH = ROOT_DIR / "figures/problems/orszag-tang/ncells=1024/scheme_grid.png"
 
 ##
 ## === HELPER FUNCTIONS
@@ -52,13 +52,13 @@ def find_last_slice_path(
     *,
     scheme_dir: Path,
 ) -> Path:
-    """Return the latest slice (the largest saved time index, t = 1.0) in `scheme_dir`."""
+    """Return the latest slice (the largest saved time index, t = 1.0) in `scheme_dir/diagnostics`."""
     slice_paths = sorted(
-        scheme_dir.glob(SLICE_GLOB),
+        (scheme_dir / "diagnostics").glob(SLICE_GLOB),
         key=lambda path: int(path.stem.split("index=")[-1]),
     )
     if not slice_paths:
-        raise FileNotFoundError(f"no slice matching `{SLICE_GLOB}` found in: {scheme_dir}")
+        raise FileNotFoundError(f"no slice matching `{SLICE_GLOB}` found in: {scheme_dir / 'diagnostics'}")
     return slice_paths[-1]
 
 
@@ -84,7 +84,7 @@ def load_scheme_slices() -> dict[tuple[str, str, str], numpy.ndarray]:
             for averaging in EMF_AVERAGINGS:
                 scheme_dir = DATASET_DIR / f"{reconstruction}-{averaging}-{interpolation}"
                 slice_path = find_last_slice_path(scheme_dir=scheme_dir)
-                slices[(reconstruction, averaging, interpolation)] = numpy.load(slice_path)
+                slices[(reconstruction, averaging, interpolation)] = numpy.load(slice_path)["sarray_2d"]
     return slices
 
 

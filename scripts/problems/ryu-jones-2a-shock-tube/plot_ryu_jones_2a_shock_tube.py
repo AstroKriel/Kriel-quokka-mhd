@@ -66,7 +66,7 @@ def plot_exact_profile(
 
 def main():
     style_plots.set_theme()
-    base_dir = Path(__file__).parents[3] / "datasets/problems/rj2a-shock-tube/ncells=512/derived"
+    base_dir = Path(__file__).parents[3] / "datasets/problems/ryu-jones-2a-shock-tube/ncells=512/derived"
     rho_profile = ScalarProfile.load_from_file(base_dir / "density-axis=x_0-index=0000766.json")
     pressure_profile = ScalarProfile.load_from_file(base_dir / "pressure-axis=x_0-index=0000766.json")
     total_energy_profile = ScalarProfile.load_from_file(base_dir / "total_energy-axis=x_0-index=0000766.json")
@@ -134,7 +134,7 @@ def main():
 
     manage_plots.save_figure(
         fig=fig,
-        fig_path=Path(__file__).parents[3] / "figures/problems/rj2a-shock-tube/rj2a-profiles.png",
+        fig_path=Path(__file__).parents[3] / "figures/problems/ryu-jones-2a-shock-tube/ryu-jones-2a-profiles.png",
         dpi=300,
     )
 

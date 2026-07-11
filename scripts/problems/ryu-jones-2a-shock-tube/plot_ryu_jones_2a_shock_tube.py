@@ -99,7 +99,12 @@ def main():
         gamma=GAMMA,
     )
     exact_x = numpy.linspace(0.0, 1.0, 2001)
-    exact_states = exact_solution.sample_profile(solution=solution, x=exact_x, t=step_time, x0=X0)
+    exact_states = exact_solution.sample_profile(
+        solution=solution,
+        positions=exact_x,
+        time=step_time,
+        discontinuity_position=X0,
+    )
     exact_rho = numpy.array([state.density for state in exact_states])
     exact_pressure = numpy.array([state.pressure for state in exact_states])
     exact_vx = numpy.array([state.velocity_normal for state in exact_states])
@@ -108,7 +113,13 @@ def main():
     exact_by = numpy.array([state.magnetic_field_transverse_1 for state in exact_states])
     exact_bz = numpy.array([state.magnetic_field_transverse_2 for state in exact_states])
     exact_energy = numpy.array(
-        [mhd_state.compute_energy(state=state, magnetic_field_normal=MAGNETIC_FIELD_NORMAL, gamma=GAMMA) for state in exact_states],
+        [
+            mhd_state.compute_energy(
+                state=state,
+                magnetic_field_normal=MAGNETIC_FIELD_NORMAL,
+                gamma=GAMMA,
+            ) for state in exact_states
+        ],
     )
 
     fig, axs = manage_plots.create_figure(
@@ -120,15 +131,25 @@ def main():
     plot_exact_profile(exact_x, exact_rho, axs[0, 0])
     plot_quokka_profile(pressure_profile.position, pressure_profile.field_value, axs[0, 1])
     plot_exact_profile(exact_x, exact_pressure, axs[0, 1])
-    plot_quokka_profile(vel_profile.components["x_0"].position, vel_profile.components["x_0"].field_value, axs[1, 0])
+    plot_quokka_profile(
+        vel_profile.components["x_0"].position, vel_profile.components["x_0"].field_value, axs[1, 0]
+    )
     plot_exact_profile(exact_x, exact_vx, axs[1, 0])
-    plot_quokka_profile(vel_profile.components["x_1"].position, vel_profile.components["x_1"].field_value, axs[1, 1])
+    plot_quokka_profile(
+        vel_profile.components["x_1"].position, vel_profile.components["x_1"].field_value, axs[1, 1]
+    )
     plot_exact_profile(exact_x, exact_vy, axs[1, 1])
-    plot_quokka_profile(vel_profile.components["x_2"].position, vel_profile.components["x_2"].field_value, axs[2, 0])
+    plot_quokka_profile(
+        vel_profile.components["x_2"].position, vel_profile.components["x_2"].field_value, axs[2, 0]
+    )
     plot_exact_profile(exact_x, exact_vz, axs[2, 0])
-    plot_quokka_profile(mag_profile.components["x_1"].position, mag_profile.components["x_1"].field_value, axs[2, 1])
+    plot_quokka_profile(
+        mag_profile.components["x_1"].position, mag_profile.components["x_1"].field_value, axs[2, 1]
+    )
     plot_exact_profile(exact_x, exact_by, axs[2, 1])
-    plot_quokka_profile(mag_profile.components["x_2"].position, mag_profile.components["x_2"].field_value, axs[3, 0])
+    plot_quokka_profile(
+        mag_profile.components["x_2"].position, mag_profile.components["x_2"].field_value, axs[3, 0]
+    )
     plot_exact_profile(exact_x, exact_bz, axs[3, 0])
     plot_quokka_profile(total_energy_profile.position, total_energy_profile.field_value, axs[3, 1])
     plot_exact_profile(exact_x, exact_energy, axs[3, 1])
@@ -157,7 +178,8 @@ def main():
 
     manage_plots.save_figure(
         fig=fig,
-        fig_path=Path(__file__).parents[3] / "figures/problems/ryu-jones-2a-shock-tube/ryu-jones-2a-profiles.png",
+        fig_path=Path(__file__).parents[3] /
+        "figures/problems/ryu-jones-2a-shock-tube/ryu-jones-2a-profiles.png",
         dpi=300,
     )
 

@@ -92,7 +92,7 @@ def main():
         magnetic_field_transverse_2=0.5641895835477562,
         pressure=1.0,
     )
-    solution = exact_solution.solve_riemann_problem(
+    riemann_solution = exact_solution.solve_riemann_problem(
         left_state=left_state,
         right_state=right_state,
         magnetic_field_normal=MAGNETIC_FIELD_NORMAL,
@@ -100,7 +100,7 @@ def main():
     )
     exact_x = numpy.linspace(0.0, 1.0, 2001)
     exact_states = exact_solution.sample_profile(
-        solution=solution,
+        riemann_solution=riemann_solution,
         positions=exact_x,
         time=step_time,
         discontinuity_position=X0,
@@ -132,23 +132,33 @@ def main():
     plot_quokka_profile(pressure_profile.position, pressure_profile.field_value, axs[0, 1])
     plot_exact_profile(exact_x, exact_pressure, axs[0, 1])
     plot_quokka_profile(
-        vel_profile.components["x_0"].position, vel_profile.components["x_0"].field_value, axs[1, 0]
+        vel_profile.components["x_0"].position,
+        vel_profile.components["x_0"].field_value,
+        axs[1, 0],
     )
     plot_exact_profile(exact_x, exact_vx, axs[1, 0])
     plot_quokka_profile(
-        vel_profile.components["x_1"].position, vel_profile.components["x_1"].field_value, axs[1, 1]
+        vel_profile.components["x_1"].position,
+        vel_profile.components["x_1"].field_value,
+        axs[1, 1],
     )
     plot_exact_profile(exact_x, exact_vy, axs[1, 1])
     plot_quokka_profile(
-        vel_profile.components["x_2"].position, vel_profile.components["x_2"].field_value, axs[2, 0]
+        vel_profile.components["x_2"].position,
+        vel_profile.components["x_2"].field_value,
+        axs[2, 0],
     )
     plot_exact_profile(exact_x, exact_vz, axs[2, 0])
     plot_quokka_profile(
-        mag_profile.components["x_1"].position, mag_profile.components["x_1"].field_value, axs[2, 1]
+        mag_profile.components["x_1"].position,
+        mag_profile.components["x_1"].field_value,
+        axs[2, 1],
     )
     plot_exact_profile(exact_x, exact_by, axs[2, 1])
     plot_quokka_profile(
-        mag_profile.components["x_2"].position, mag_profile.components["x_2"].field_value, axs[3, 0]
+        mag_profile.components["x_2"].position,
+        mag_profile.components["x_2"].field_value,
+        axs[3, 0],
     )
     plot_exact_profile(exact_x, exact_bz, axs[3, 0])
     plot_quokka_profile(total_energy_profile.position, total_energy_profile.field_value, axs[3, 1])

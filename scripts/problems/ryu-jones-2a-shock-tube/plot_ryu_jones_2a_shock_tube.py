@@ -74,7 +74,7 @@ def main():
     mag_profile = VectorProfile.load_from_file(base_dir / "magnetic-axis=x_0-index=0000766.json")
     step_time = rho_profile.step_time
 
-    left = PrimitiveState(
+    left_state = PrimitiveState(
         density=1.08,
         velocity_normal=1.2,
         velocity_transverse_1=0.01,
@@ -83,7 +83,7 @@ def main():
         magnetic_field_transverse_2=0.5641895835477562,
         pressure=0.95,
     )
-    right = PrimitiveState(
+    right_state = PrimitiveState(
         density=1.0,
         velocity_normal=0.0,
         velocity_transverse_1=0.0,
@@ -92,7 +92,12 @@ def main():
         magnetic_field_transverse_2=0.5641895835477562,
         pressure=1.0,
     )
-    solution = exact_solution.solve_riemann_problem(left=left, right=right, magnetic_field_normal=MAGNETIC_FIELD_NORMAL, gamma=GAMMA)
+    solution = exact_solution.solve_riemann_problem(
+        left_state=left_state,
+        right_state=right_state,
+        magnetic_field_normal=MAGNETIC_FIELD_NORMAL,
+        gamma=GAMMA,
+    )
     exact_x = numpy.linspace(0.0, 1.0, 2001)
     exact_states = exact_solution.sample_profile(solution=solution, x=exact_x, t=step_time, x0=X0)
     exact_rho = numpy.array([state.density for state in exact_states])

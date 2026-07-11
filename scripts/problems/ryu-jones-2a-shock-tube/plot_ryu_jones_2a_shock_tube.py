@@ -10,14 +10,14 @@ import numpy
 from jormi.ww_plots import manage_plots, style_plots
 from ww_quokka_sims.sim_io.profile_models import ScalarProfile, VectorProfile
 
-from riemann_solver.exact_solution import evaluate, solve_riemann_problem
-from riemann_solver.mhd_state import PrimitiveState, compute_energy
+from riemann_solver import exact_solution, mhd_state
+from riemann_solver.mhd_state import PrimitiveState
 
 ##
 ## === CONSTANTS
 ##
 
-BX = 0.5641895835477562
+MAGNETIC_FIELD_NORMAL = 0.5641895835477562
 GAMMA = 5.0 / 3.0
 X0 = 0.5  # initial discontinuity position in quokka's [0, 1] domain
 
@@ -74,19 +74,37 @@ def main():
     mag_profile = VectorProfile.load_from_file(base_dir / "magnetic-axis=x_0-index=0000766.json")
     step_time = rho_profile.step_time
 
-    left = PrimitiveState(rho=1.08, u=1.2, v=0.01, w=0.5, by=1.0155412503859613, bz=0.5641895835477562, p=0.95)
-    right = PrimitiveState(rho=1.0, u=0.0, v=0.0, w=0.0, by=1.1283791670955125, bz=0.5641895835477562, p=1.0)
-    solution = solve_riemann_problem(left=left, right=right, bx=BX, gamma=GAMMA)
+    left = PrimitiveState(
+        density=1.08,
+        velocity_normal=1.2,
+        velocity_transverse_1=0.01,
+        velocity_transverse_2=0.5,
+        magnetic_field_transverse_1=1.0155412503859613,
+        magnetic_field_transverse_2=0.5641895835477562,
+        pressure=0.95,
+    )
+    right = PrimitiveState(
+        density=1.0,
+        velocity_normal=0.0,
+        velocity_transverse_1=0.0,
+        velocity_transverse_2=0.0,
+        magnetic_field_transverse_1=1.1283791670955125,
+        magnetic_field_transverse_2=0.5641895835477562,
+        pressure=1.0,
+    )
+    solution = exact_solution.solve_riemann_problem(left=left, right=right, magnetic_field_normal=MAGNETIC_FIELD_NORMAL, gamma=GAMMA)
     exact_x = numpy.linspace(0.0, 1.0, 2001)
-    exact_states = evaluate(solution=solution, x=exact_x, t=step_time, x0=X0)
-    exact_rho = numpy.array([state.rho for state in exact_states])
-    exact_pressure = numpy.array([state.p for state in exact_states])
-    exact_vx = numpy.array([state.u for state in exact_states])
-    exact_vy = numpy.array([state.v for state in exact_states])
-    exact_vz = numpy.array([state.w for state in exact_states])
-    exact_by = numpy.array([state.by for state in exact_states])
-    exact_bz = numpy.array([state.bz for state in exact_states])
-    exact_energy = numpy.array([compute_energy(state=state, bx=BX, gamma=GAMMA) for state in exact_states])
+    exact_states = exact_solution.sample_profile(solution=solution, x=exact_x, t=step_time, x0=X0)
+    exact_rho = numpy.array([state.density for state in exact_states])
+    exact_pressure = numpy.array([state.pressure for state in exact_states])
+    exact_vx = numpy.array([state.velocity_normal for state in exact_states])
+    exact_vy = numpy.array([state.velocity_transverse_1 for state in exact_states])
+    exact_vz = numpy.array([state.velocity_transverse_2 for state in exact_states])
+    exact_by = numpy.array([state.magnetic_field_transverse_1 for state in exact_states])
+    exact_bz = numpy.array([state.magnetic_field_transverse_2 for state in exact_states])
+    exact_energy = numpy.array(
+        [mhd_state.compute_energy(state=state, magnetic_field_normal=MAGNETIC_FIELD_NORMAL, gamma=GAMMA) for state in exact_states],
+    )
 
     fig, axs = manage_plots.create_figure(
         num_cols=2,

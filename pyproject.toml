@@ -72,4 +72,5 @@ reportImplicitOverride = "none"
 reportUnusedCallResult = "none"
 reportUnknownMemberType = "none"  # cascade from scipy's untyped stubs; not actionable
 reportUnknownVariableType = "none"  # cascade from scipy's untyped stubs; not actionable
+reportPrivateUsage = "none"  # tests legitimately access private members
 reportUnknownArgumentType = "none"  # cascade from scipy's untyped stubs; not actionable

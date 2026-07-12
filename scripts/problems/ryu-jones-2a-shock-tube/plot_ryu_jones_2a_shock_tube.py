@@ -114,7 +114,7 @@ def main():
     exact_bz = numpy.array([state.magnetic_field_transverse_2 for state in exact_states])
     exact_energy = numpy.array(
         [
-            mhd_state.compute_energy(
+            mhd_state.compute_total_energy(
                 state=state,
                 magnetic_field_normal=MAGNETIC_FIELD_NORMAL,
                 gamma=GAMMA,

@@ -71,7 +71,7 @@ def main():
     for emf_scheme in ["fs18", "b25", "q26"]:
         for ave_scheme in ["ld04", "b25"]:
             scheme_name = f"{emf_scheme}-{ave_scheme}"
-            data_dir = base_dir / scheme_name / "derived"
+            data_dir = base_dir / scheme_name / "diagnostics"
             plot_args = dict(
                 color=color_map[emf_scheme],
                 marker=marker_map[ave_scheme],

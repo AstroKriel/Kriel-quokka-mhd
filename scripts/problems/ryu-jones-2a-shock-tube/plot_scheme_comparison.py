@@ -257,7 +257,7 @@ def main():
     axs[0, 0].set_ylabel(r"$\rho$")
     axs[0, 1].set_ylabel(r"$p$")
     axs[1, 0].set_ylabel(r"$u_1$")
-    axs[1, 1].set_ylabel(r"$E$")
+    axs[1, 1].set_ylabel(r"$E_\mathrm{tot}$")
     axs[2, 0].set_ylabel(r"$u_2$")
     axs[2, 1].set_ylabel(r"$b_2$")
     axs[3, 0].set_ylabel(r"$u_3$")

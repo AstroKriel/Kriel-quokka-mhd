@@ -9,6 +9,7 @@ description = "magnetising quokka code paper"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "aegir",
     "jormi",
     "numpy>=2.3.2",
     "pandas>=3.0.0",
@@ -18,25 +19,9 @@ dependencies = [
 ]
 
 [tool.uv.sources]
+aegir = { path = "../../sindri/submodules/aegir", editable = true }
 jormi = { path = "../../sindri/submodules/jormi", editable = true }
 ww-quokka-sims = { path = "../../sindri/submodules/ww-quokka-sims", editable = true }
-
-##
-## === BUILD SYSTEM
-##
-
-## hatchling packages the source into a distributable wheel
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-## point hatchling to the importable source code
-[tool.hatch.build]
-sources = ["src"]
-
-## project name doesn't match the package name, so point the wheel at it explicitly
-[tool.hatch.build.targets.wheel]
-packages = ["src/riemann_solver"]
 
 ##
 ## === DEVELOPMENT DEPENDENCIES
@@ -53,7 +38,6 @@ dev = [
 ##
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]  # makes src/ visible to pytest without installing the package
 testpaths = ["utests"]  # vtests are run manually
 
 ##
@@ -61,9 +45,8 @@ testpaths = ["utests"]  # vtests are run manually
 ##
 
 [tool.basedpyright]
-include = ["src", "scripts", "utests", "vtests"]
+include = ["scripts", "utests", "vtests"]
 exclude = ["scripts/datasets.gitignored"]
-extraPaths = ["src"]
 reportMissingTypeStubs = false  # suppress missing stub warnings for third-party packages (e.g. scipy)
 reportExplicitAny = "none"
 reportAny = "none"

@@ -13,6 +13,28 @@ resolution-markers = [
 ]
 
 [[package]]
+name = "aegir"
+version = "0.1.0"
+source = { editable = "../../sindri/submodules/aegir" }
+dependencies = [
+    { name = "numpy" },
+    { name = "scipy" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "numpy", specifier = ">=2.3.2" },
+    { name = "scipy", specifier = ">=1.15.2" },
+]
+
+[package.metadata.requires-dev]
+demo = [{ name = "matplotlib", specifier = ">=3.10.1" }]
+dev = [
+    { name = "basedpyright", specifier = ">=1.0" },
+    { name = "pytest", specifier = ">=9.0.2" },
+]
+
+[[package]]
 name = "basedpyright"
 version = "1.39.8"
 source = { registry = "https://pypi.org/simple" }
@@ -431,8 +453,9 @@ wheels = [
 [[package]]
 name = "kriel-2025-quokka-mhd"
 version = "0.1.0"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
+    { name = "aegir" },
     { name = "jormi" },
     { name = "numpy" },
     { name = "pandas" },
@@ -449,6 +472,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aegir", editable = "../../sindri/submodules/aegir" },
     { name = "jormi", editable = "../../sindri/submodules/jormi" },
     { name = "numpy", specifier = ">=2.3.2" },
     { name = "pandas", specifier = ">=3.0.0" },

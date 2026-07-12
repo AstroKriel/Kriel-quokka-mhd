@@ -10,8 +10,7 @@ import numpy
 from jormi.ww_plots import manage_plots, style_plots
 from ww_quokka_sims.sim_io.profile_models import ScalarProfile, VectorProfile
 
-from riemann_solver import exact_solution, mhd_state
-from riemann_solver.mhd_state import PrimitiveState
+from aegir import PrimitiveState, mhd_state, sample_profile, solve_riemann_problem
 
 ##
 ## === CONSTANTS
@@ -92,14 +91,14 @@ def main():
         magnetic_field_transverse_2=0.5641895835477562,
         pressure=1.0,
     )
-    riemann_solution = exact_solution.solve_riemann_problem(
+    riemann_solution = solve_riemann_problem(
         left_state=left_state,
         right_state=right_state,
         magnetic_field_normal=MAGNETIC_FIELD_NORMAL,
         gamma=GAMMA,
     )
     exact_x = numpy.linspace(0.0, 1.0, 2001)
-    exact_states = exact_solution.sample_profile(
+    exact_states = sample_profile(
         riemann_solution=riemann_solution,
         positions=exact_x,
         time=step_time,

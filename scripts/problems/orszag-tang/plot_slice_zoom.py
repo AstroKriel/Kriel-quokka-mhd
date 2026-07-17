@@ -35,19 +35,21 @@ AXIS_BOUNDS = ((-0.5, 0.5), (-0.5, 0.5))
 ## ((x0, y0), (x1, y1)) per zoom panel; corners are normalised (sorted) before cropping,
 ## so it does not matter whether a given axis is given low-to-high or high-to-low.
 ZOOM_REGIONS = (
-    ((-0.4425, 0.0575), (-0.2925, 0.2075)),
     ((0.0525, 0.001625), (0.135, -0.080875)),
+    ((0.4225, -0.0985), (0.2725, -0.2485)),
 )
 
 ZOOM_BOX_COLOR = "white"
 ZOOM_BOX_LINEWIDTH = 1.0
 
-## main panel occupies the top NUM_MAIN_ROWS x NUM_GRID_COLS block; the remaining rows
-## are split evenly into `NUM_ZOOM_AXES` side-by-side zoom panels
-NUM_GRID_ROWS = 6
-NUM_GRID_COLS = 4
-NUM_MAIN_ROWS = 4
+## main panel occupies the left NUM_MAIN_CELLS x NUM_MAIN_CELLS block (kept square); the zoom
+## panels stack vertically to its right, each spanning ZOOM_CELL_SIZE rows so their combined
+## height matches the main panel and every panel (main and zoom) remains square
 NUM_ZOOM_AXES = len(ZOOM_REGIONS)
+NUM_MAIN_CELLS = 6
+ZOOM_CELL_SIZE = NUM_MAIN_CELLS // NUM_ZOOM_AXES
+NUM_GRID_ROWS = NUM_MAIN_CELLS
+NUM_GRID_COLS = NUM_MAIN_CELLS + ZOOM_CELL_SIZE
 
 CELL_SIZE_INCHES = 1.5
 
@@ -178,14 +180,13 @@ def main() -> None:
     )
     grid_spec = mpl_gridspec.GridSpec(nrows=NUM_GRID_ROWS, ncols=NUM_GRID_COLS, figure=fig)
 
-    ax_main = fig.add_subplot(grid_spec[0:NUM_MAIN_ROWS, :])
+    ax_main = fig.add_subplot(grid_spec[:, 0:NUM_MAIN_CELLS])
     plot_field_on_axis(ax=ax_main, log_field=log_field, axis_bounds=AXIS_BOUNDS, add_cbar=True)
 
-    zoom_cols_per_axis = NUM_GRID_COLS // NUM_ZOOM_AXES
     for zoom_index, region in enumerate(ZOOM_REGIONS):
-        col_start = zoom_index * zoom_cols_per_axis
-        col_end = col_start + zoom_cols_per_axis
-        ax_zoom = fig.add_subplot(grid_spec[NUM_MAIN_ROWS:NUM_GRID_ROWS, col_start:col_end])
+        row_start = zoom_index * ZOOM_CELL_SIZE
+        row_end = row_start + ZOOM_CELL_SIZE
+        ax_zoom = fig.add_subplot(grid_spec[row_start:row_end, NUM_MAIN_CELLS:NUM_GRID_COLS])
         cropped_field, cropped_bounds = crop_field_to_region(log_field=log_field, region=region)
         plot_field_on_axis(ax=ax_zoom, log_field=cropped_field, axis_bounds=cropped_bounds, add_cbar=False)
         draw_zoom_box(ax=ax_main, bounds=cropped_bounds)

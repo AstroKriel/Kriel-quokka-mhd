@@ -25,7 +25,7 @@ ROOT_DIR = Path(__file__).parents[3]
 
 FIELD_LABEL = r"$\log_{10} \left( \Delta x \, |\nabla \times \vec{b}| \right)$"
 FIELD_PALETTE = "cmr.wildfire_r"
-FIELD_RANGE = (-4.0, -1.0)
+FIELD_RANGE = (-3.0, -1.25)
 
 ABS_DIFF_LABEL = r"$|\nabla \times \vec{b}| - R_{180^\circ}|\nabla \times \vec{b}|$"
 DIFF_PALETTE = "cmr.iceburn"
@@ -87,7 +87,7 @@ def main() -> None:
     cell_size = read_cell_size(data_path=data_path)
     field = numpy.load(data_path)["sarray_2d"]
     log_field = compute_array_stats.compute_safe_log10(cell_size * numpy.abs(field))
-    field_config = add_color.SequentialConfig(palette_name=FIELD_PALETTE)
+    field_config = add_color.SequentialConfig(palette_name=FIELD_PALETTE, palette_range=(0.2, 1.0))
     fig, axs = manage_plots.create_figure_grid(
         num_rows=1,
         num_cols=1,
@@ -157,6 +157,7 @@ def main() -> None:
             cbar_bounds=FIELD_RANGE,
             palette_config=field_config,
             cbar_label=FIELD_LABEL,
+            cbar_side="top",
         )
         ax.set_xticks([])
         ax.set_yticks([])

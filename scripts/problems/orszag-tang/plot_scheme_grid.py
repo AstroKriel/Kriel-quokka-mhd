@@ -13,6 +13,7 @@ import numpy
 from matplotlib.cm import ScalarMappable as mpl_ScalarMappable
 
 ## personal
+from jormi.ww_arrays.mask_2d_arrays import DiagonalMasks2D
 from jormi.ww_plots import add_color, annotate_axis, manage_plots, plot_data, style_plots
 from jormi.ww_types import box_positions
 
@@ -23,18 +24,26 @@ from jormi.ww_types import box_positions
 ## scheme tokens, in the order they appear in each dataset directory name:
 ##     <emf-reconstruction>-<emf-averaging>-<interpolation>
 EMF_RECONSTRUCTIONS = ("fs17", "b25", "q26")  ## grid columns (left -> right)
-INTERPOLATIONS = ("plm", "ppm", "ppm_ep")  ## grid row-blocks (top -> bottom)
-EMF_AVERAGINGS = ("ld04", "b25")  ## the two rows within each interpolation block
+INTERPOLATIONS = ("plm", "ppm", "ppm_ep")  ## grid rows (top -> bottom)
+## the two EMF averaging schemes share a single panel per (reconstruction, interpolation) combo,
+## split across the main diagonal: the OT field is exactly rot180-symmetric, so either half of
+## the domain already contains the same information as the other, and we use the "spare" half to
+## show the other averaging scheme instead of repeating the same (mirrored) data twice.
+EMF_AVERAGINGS = ("ld04", "b25")
+
+## display shorthand, distinct from the lowercase dataset-directory tokens
+RECONSTRUCTION_LABELS = {"fs17": "FS17", "b25": "B25", "q26": "Q26"}
+INTERPOLATION_LABELS = {"plm": "PLM", "ppm": "PPM", "ppm_ep": "PPM-EP"}
+AVERAGING_LABELS = {"ld04": "LD04", "b25": "B25"}
 
 ## the out-of-plane current density slice, shared across the whole grid
 SLICE_GLOB = "current_density_magnitude-slice=x_2-index=*.npz"
+## compare at the second of the three saved snapshots (t = 0.5, 0.85, 1.0), rather than the last
+TARGET_TIME = 0.85
 FIELD_LABEL = r"$\log_{10} \left( \Delta x \, |\nabla \times \vec{b}| \right)$"
-PALETTE_NAME = "cmr.wildfire_r"
-
-## floor for the shared colour scale, in log10 units of the cell-size-normalised field; the bottom
-## palette colour maps to this value instead of the data minimum, so the sparsely-populated low tail
-## saturates rather than stretching the scale (the field rarely drops this low)
-VALUE_FLOOR = -5.0
+## same colormap as the neighbouring `plot_slice.py`, subset to its upper half
+PALETTE_NAME = "cmr.eclipse"
+PALETTE_RANGE = (0.0, 1.0)
 
 ## the computational domain is 1 x 1 in dimensionless units
 AXIS_BOUNDS = ((-0.5, 0.5), (-0.5, 0.5))
@@ -48,18 +57,23 @@ FIGURE_PATH = ROOT_DIR / "figures/problems/orszag-tang/ncells=1024/scheme_grid.p
 ##
 
 
-def find_last_slice_path(
+def find_slice_near_time(
     *,
     scheme_dir: Path,
 ) -> Path:
-    """Return the latest slice (the largest saved time index, t = 1.0) in `scheme_dir/diagnostics`."""
-    slice_paths = sorted(
-        (scheme_dir / "diagnostics").glob(SLICE_GLOB),
-        key=lambda path: int(path.stem.split("index=")[-1]),
-    )
+    """Return the saved slice whose `step_time` is closest to `TARGET_TIME`.
+
+    Different schemes take different numbers of (CFL-limited) timesteps to reach the same physical
+    time, so the saved snapshot index that corresponds to `TARGET_TIME` differs slightly between
+    combos; matching on the metadata directly (rather than assuming a shared index) is robust to that.
+    """
+    slice_paths = sorted((scheme_dir / "diagnostics").glob(SLICE_GLOB))
     if not slice_paths:
         raise FileNotFoundError(f"no slice matching `{SLICE_GLOB}` found in: {scheme_dir / 'diagnostics'}")
-    return slice_paths[-1]
+    return min(
+        slice_paths,
+        key=lambda path: abs(float(numpy.load(path)["step_time"]) - TARGET_TIME),
+    )
 
 
 def read_cell_size(
@@ -77,13 +91,13 @@ def read_cell_size(
 
 
 def load_scheme_slices() -> dict[tuple[str, str, str], numpy.ndarray]:
-    """Load the last current-density slice for every (reconstruction, averaging, interpolation) combo."""
+    """Load the t = 0.85 current-density slice for every (reconstruction, averaging, interpolation) combo."""
     slices: dict[tuple[str, str, str], numpy.ndarray] = {}
     for reconstruction in EMF_RECONSTRUCTIONS:
         for interpolation in INTERPOLATIONS:
             for averaging in EMF_AVERAGINGS:
                 scheme_dir = DATASET_DIR / f"{reconstruction}-{averaging}-{interpolation}"
-                slice_path = find_last_slice_path(scheme_dir=scheme_dir)
+                slice_path = find_slice_near_time(scheme_dir=scheme_dir)
                 slices[(reconstruction, averaging, interpolation)] = numpy.load(slice_path)["sarray_2d"]
     return slices
 
@@ -106,17 +120,35 @@ def compute_shared_value_range(
     )
 
 
+def compose_averaging_split(
+    *,
+    upper_array: numpy.ndarray,
+    lower_array: numpy.ndarray,
+) -> numpy.ndarray:
+    """Combine two (rot180-symmetric) fields into one array, split across the main diagonal.
+
+    Neither half loses information relative to showing either field in full: each field already
+    repeats itself (point-reflected) between the two halves, so one half per field is sufficient.
+    """
+    num_rows, num_cols = upper_array.shape
+    upper_mask = DiagonalMasks2D.get_mask_above_main_diagonal(
+        num_rows=num_rows,
+        num_cols=num_cols,
+    )
+    return numpy.where(upper_mask, upper_array, lower_array)
+
+
 def add_grid_colorbar(
     *,
     fig,
     axs,
     value_range: tuple[float, float],
-    gap: float = 0.02,
-    thickness: float = 0.04,
+    gap: float = 0.015,
+    thickness: float = 0.0225,
 ) -> None:
-    """Add a single colorbar spanning the full height of the grid's right-hand column."""
+    """Add a single vertical colorbar spanning the full height of the grid's right-hand column."""
     palette = add_color.make_palette(
-        config=add_color.SequentialConfig(palette_name=PALETTE_NAME),
+        config=add_color.SequentialConfig(palette_name=PALETTE_NAME, palette_range=PALETTE_RANGE),
         value_range=value_range,
     )
     top_box = axs[0, -1].get_position()
@@ -151,48 +183,68 @@ def main() -> None:
     cell_size = read_cell_size(dataset_dir=DATASET_DIR)
     slices = load_scheme_slices()
     slices = {scheme: numpy.log10(cell_size * array_2d) for scheme, array_2d in slices.items()}
-    _, max_value = compute_shared_value_range(slices=slices)
-    value_range = (-4, -1)
-    row_schemes = [
-        (interpolation, averaging)
-        for interpolation in INTERPOLATIONS
-        for averaging in EMF_AVERAGINGS
-    ]
+    value_range = (-2.5, -1.2)
     fig, axs = manage_plots.create_figure_grid(
-        num_rows=len(row_schemes),
+        num_rows=len(INTERPOLATIONS),
         num_cols=len(EMF_RECONSTRUCTIONS),
-        axis_shape=(4, 4),
+        axis_shape=(4, 4.35),
         x_spacing=0.02,
         y_spacing=0.02,
         share_x=True,
         share_y=True,
     )
-    for row_index, (interpolation, averaging) in enumerate(row_schemes):
+    for row_index, interpolation in enumerate(INTERPOLATIONS):
         for col_index, reconstruction in enumerate(EMF_RECONSTRUCTIONS):
             ax = axs[row_index, col_index]
+            composite = compose_averaging_split(
+                upper_array=slices[(reconstruction, EMF_AVERAGINGS[0], interpolation)],
+                lower_array=slices[(reconstruction, EMF_AVERAGINGS[1], interpolation)],
+            )
             plot_data.plot_2d_array(
                 ax=ax,
-                array_2d=slices[(reconstruction, averaging, interpolation)],
+                array_2d=composite,
                 data_format="xy",
                 axis_bounds=AXIS_BOUNDS,
                 cbar_bounds=value_range,
-                palette_config=add_color.SequentialConfig(palette_name=PALETTE_NAME),
+                palette_config=add_color.SequentialConfig(palette_name=PALETTE_NAME, palette_range=PALETTE_RANGE),
                 add_cbar=False,
+            )
+            ax.plot(
+                [AXIS_BOUNDS[0][0], AXIS_BOUNDS[0][1]],
+                [AXIS_BOUNDS[1][0], AXIS_BOUNDS[1][1]],
+                color="white",
+                linewidth=0.6,
+            )
+            annotate_axis.add_text(
+                ax=ax,
+                x_pos=0.05,
+                y_pos=0.95,
+                label=AVERAGING_LABELS[EMF_AVERAGINGS[0]],
+                x_alignment=box_positions.Positions.Side.Left,
+                y_alignment=box_positions.Positions.Side.Top,
+                text_size=22,
+                text_color="white",
+                box_color="black",
+                box_alpha=0.85,
+            )
+            annotate_axis.add_text(
+                ax=ax,
+                x_pos=0.95,
+                y_pos=0.05,
+                label=AVERAGING_LABELS[EMF_AVERAGINGS[1]],
+                x_alignment=box_positions.Positions.Side.Right,
+                y_alignment=box_positions.Positions.Side.Bottom,
+                text_size=22,
+                text_color="white",
+                box_color="black",
+                box_alpha=0.85,
             )
             ax.set_xticks([])
             ax.set_yticks([])
-            annotate_axis.add_text(
-                ax=ax,
-                x_pos=0.5,
-                y_pos=0.03,
-                label=f"{reconstruction}+{averaging}+{interpolation}",
-                x_alignment=box_positions.Positions.Center.Center,
-                y_alignment=box_positions.Positions.Side.Bottom,
-                text_size=16,
-                text_color="black",
-                box_color="white",
-                box_alpha=0.6,
-            )
+            if row_index == 0:
+                ax.set_title(RECONSTRUCTION_LABELS[reconstruction])
+            if col_index == 0:
+                ax.set_ylabel(INTERPOLATION_LABELS[interpolation])
     add_grid_colorbar(
         fig=fig,
         axs=axs,

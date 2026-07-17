@@ -6,7 +6,11 @@
 
 from pathlib import Path
 
-from jormi.ww_plots import manage_plots, style_plots
+import numpy
+from matplotlib.lines import Line2D as mpl_line2d
+
+from jormi.ww_plots import annotate_axis, manage_plots, style_plots
+from jormi.ww_types import box_positions
 from ww_quokka_sims.sim_io.profile_models import ScalarProfile, VectorProfile
 
 ##
@@ -15,14 +19,18 @@ from ww_quokka_sims.sim_io.profile_models import ScalarProfile, VectorProfile
 
 ## scheme tokens, in the order they appear in each dataset directory name:
 ##     <emf-compute>-<emf-averaging>-ppm_ep
-EMF_COMPUTES = ("q26", "fs17", "b25")
-EMF_AVERAGINGS = ("ld04", "b25")
+EMF_COMPUTES = ("q26", "b25", "fs17")
+EMF_AVERAGINGS = ("b25", "ld04")
 
 ## data figure convention (distinct from the schematic centering colours): blue/red/green denote the
 ## Q26/Balsara2025/FelkerStone2017 EMF reconstruction schemes; diamond/circle denote Balsara2025/
 ## LondrilloDelZanna2004 EMF averaging
-COMPUTE_COLORS = {"q26": "goldenrod", "b25": "tab:blue", "fs17": "tab:green"}
+COMPUTE_COLORS = {"q26": "gold", "b25": "cornflowerblue", "fs17": "forestgreen"}
 AVERAGING_MARKERS = {"b25": "D", "ld04": "o"}
+
+## display shorthand for legend labels, distinct from the lowercase dataset-directory tokens
+COMPUTE_LABELS = {"q26": "Q26", "fs17": "FS17", "b25": "B25"}
+AVERAGING_LABELS = {"ld04": "LD04", "b25": "B25"}
 
 ## the high-resolution PPM-EP reference: aegir's exact solver fails on Brio-Wu's coplanar IC
 ## (singular rotation-discontinuity root-find), so this run stands in as the reference solution
@@ -72,8 +80,8 @@ def plot_combo_profile(
         marker=marker,
         markeredgecolor=color,
         markerfacecolor="none",
-        markersize=4,
-        markeredgewidth=0.7,
+        markersize=6,
+        markeredgewidth=0.3,
         linestyle="",
         zorder=zorder,
     )
@@ -97,27 +105,46 @@ def plot_combo_profile(
     )
 
 
+def smooth(
+    values,
+    *,
+    window: int = 35,
+):
+    """Short boxcar moving average.
+
+    The 8192-cell reference run stands in for an exact solution, but it's still a numerical solution
+    using Q26 -- the reconstruction scheme that rings the most -- so it retains small-scale ringing of
+    its own at this resolution, which does not go away (and plausibly grows) with further refinement.
+    This averages over a window short enough to leave the discontinuities themselves sharp, only
+    smoothing the sub-window-scale oscillations.
+    """
+    kernel = numpy.ones(window) / window
+    pad_width = window // 2
+    padded_values = numpy.pad(values, pad_width, mode="edge")
+    return numpy.convolve(padded_values, kernel, mode="same")[pad_width:pad_width + len(values)]
+
+
 def plot_reference_profile(
     profiles,
     axs,
 ):
-    plot_args = dict(color="black", linewidth=1.0, linestyle="-", zorder=4)
-    axs[0, 0].plot(profiles["density"].position, profiles["density"].field_value, **plot_args)
-    axs[0, 1].plot(profiles["pressure"].position, profiles["pressure"].field_value, **plot_args)
+    plot_args = dict(color="black", linewidth=1.5, linestyle="-", zorder=4)
+    axs[0, 0].plot(profiles["density"].position, smooth(profiles["density"].field_value), **plot_args)
+    axs[0, 1].plot(profiles["pressure"].position, smooth(profiles["pressure"].field_value), **plot_args)
     axs[1, 0].plot(
         profiles["velocity"].components["x_0"].position,
-        profiles["velocity"].components["x_0"].field_value,
+        smooth(profiles["velocity"].components["x_0"].field_value),
         **plot_args,
     )
-    axs[1, 1].plot(profiles["pressure"].position, profiles["pressure_ratio"], **plot_args)
+    axs[1, 1].plot(profiles["pressure"].position, smooth(profiles["pressure_ratio"]), **plot_args)
     axs[2, 0].plot(
         profiles["velocity"].components["x_1"].position,
-        profiles["velocity"].components["x_1"].field_value,
+        smooth(profiles["velocity"].components["x_1"].field_value),
         **plot_args,
     )
     axs[2, 1].plot(
         profiles["magnetic"].components["x_1"].position,
-        profiles["magnetic"].components["x_1"].field_value,
+        smooth(profiles["magnetic"].components["x_1"].field_value),
         **plot_args,
     )
 
@@ -130,8 +157,8 @@ def plot_llf_profile(
         marker="s",
         markeredgecolor="deeppink",
         markerfacecolor="none",
-        markersize=4,
-        markeredgewidth=0.7,
+        markersize=6,
+        markeredgewidth=0.3,
         linestyle="",
         zorder=0,
     )
@@ -153,6 +180,101 @@ def plot_llf_profile(
         profiles["magnetic"].components["x_1"].field_value,
         **plot_args,
     )
+
+
+def add_zoom_inset(
+    *,
+    ax,
+    bbox: tuple[float, float, float, float],
+    xlim: tuple[float, float],
+    ylim: tuple[float, float],
+) -> None:
+    """Add a zoomed inset of `ax`'s data."""
+    inset_ax = ax.inset_axes(bbox)
+    for line in ax.get_lines():
+        inset_ax.plot(
+            line.get_xdata(),
+            line.get_ydata(),
+            color=line.get_color(),
+            marker=line.get_marker(),
+            markeredgecolor=line.get_markeredgecolor(),
+            markerfacecolor=line.get_markerfacecolor(),
+            markersize=line.get_markersize(),
+            markeredgewidth=line.get_markeredgewidth() * 3.0,
+            linestyle=line.get_linestyle(),
+            linewidth=line.get_linewidth(),
+            zorder=line.get_zorder(),
+        )
+    inset_ax.set_xlim(xlim)
+    inset_ax.set_ylim(ylim)
+    inset_ax.set_xticks([])
+    inset_ax.set_yticks([])
+    ax.indicate_inset_zoom(inset_ax, edgecolor="black")
+
+
+def add_compute_legend(
+    *,
+    ax,
+) -> None:
+    """Legend for EMF compute, shown as coloured shorthand text (no marker, since colour alone
+    already encodes compute in the data).
+    """
+    annotate_axis.add_custom_legend(
+        ax=ax,
+        artists=["o" for _ in EMF_COMPUTES],
+        labels=[COMPUTE_LABELS[compute_key] for compute_key in EMF_COMPUTES],
+        colors=[COMPUTE_COLORS[compute_key] for compute_key in EMF_COMPUTES],
+        marker_size=0,  ## hide the marker handle, leaving only the coloured label text
+        text_color="markerfacecolor",
+        marker_first=False,  ## put the (invisible) handle after the text, so text hugs the left edge
+        anchor_point=(0.0, 0.0),
+        anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
+    )
+
+
+def add_averaging_legend(
+    *,
+    ax,
+) -> None:
+    """Legend for EMF averaging, shown as marker + shorthand."""
+    annotate_axis.add_custom_legend(
+        ax=ax,
+        artists=[AVERAGING_MARKERS[averaging_key] for averaging_key in EMF_AVERAGINGS],
+        labels=[AVERAGING_LABELS[averaging_key] for averaging_key in EMF_AVERAGINGS],
+        colors=["black" for _ in EMF_AVERAGINGS],
+        marker_size=7,
+        text_color="black",
+        anchor_point=(0.0, 0.0),
+        anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
+    )
+
+
+def add_llf_legend(
+    *,
+    ax,
+) -> None:
+    """Legend for the LLF validation run, shown as a marker matching the data style."""
+    handle = mpl_line2d(
+        [0], [0],
+        marker="s",
+        linewidth=0,
+        markeredgecolor="deeppink",
+        markerfacecolor="none",
+        markeredgewidth=0.3,
+        markersize=7,
+    )
+    legend = ax.legend(
+        handles=[handle],
+        labels=["LLF"],
+        loc="lower left",
+        bbox_to_anchor=(0.0, 0.0),
+        fontsize=16,
+        labelcolor="black",
+        frameon=False,
+        borderpad=0.45,
+        handletextpad=0.5,
+    )
+    ax.add_artist(legend)
 
 
 ##
@@ -177,17 +299,34 @@ def main():
                 axs,
                 color=COMPUTE_COLORS[compute_key],
                 marker=AVERAGING_MARKERS[averaging_key],
-                zorder=3 if compute_key == "q26" else 1,
+                zorder={"b25": 1, "fs17": 2, "q26": 3}[compute_key],
             )
+
+    add_zoom_inset(
+        ax=axs[1, 0],
+        bbox=(0.675, 0.425, 0.975 - 0.675, 0.965 - 0.425),
+        xlim=(0.625, 0.85),
+        ylim=(-0.31, -0.19),
+    )
+    add_zoom_inset(
+        ax=axs[1, 1],
+        bbox=(0.05, 0.3, 0.5 - 0.05, 0.925 - 0.3),
+        xlim=(0.55, 0.65),
+        ylim=(1.4, 1.55),
+    )
+
+    add_compute_legend(ax=axs[0, 0])
+    add_averaging_legend(ax=axs[0, 1])
+    add_llf_legend(ax=axs[1, 0])
 
     axs[0, 0].set_ylabel(r"$\rho$")
     axs[0, 1].set_ylabel(r"$p$")
-    axs[1, 0].set_ylabel(r"$u_1$")
+    axs[1, 0].set_ylabel(r"$u_0$")
     axs[1, 1].set_ylabel(r"$p / \rho$")
-    axs[2, 0].set_ylabel(r"$u_2$")
-    axs[2, 1].set_ylabel(r"$b_2$")
-    axs[2, 0].set_xlabel(r"$x_1$")
-    axs[2, 1].set_xlabel(r"$x_1$")
+    axs[2, 0].set_ylabel(r"$u_1$")
+    axs[2, 1].set_ylabel(r"$b_1$")
+    axs[2, 0].set_xlabel(r"$x_0$")
+    axs[2, 1].set_xlabel(r"$x_0$")
 
     for ax in [axs[0, 1], axs[1, 1], axs[2, 1]]:
         ax.tick_params(

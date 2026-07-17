@@ -36,7 +36,7 @@ FIGURE_PATH = ROOT_DIR / f"figures/problems/quirk/ncells={NCELLS}/carbuncle_fix_
 def load_snapshots(combo):
     dataset_dir = DATASET_ROOT / combo
     pressure_paths = sorted(
-        dataset_dir.glob("diagnostics/pressure-slice=x_2-index=*.npz"),
+        dataset_dir.glob("extracted/pressure-slice=x_2-index=*.npz"),
         key=lambda path: int(re.search(r"index=(\d+)", path.stem).group(1)),
     )
     snapshots = []

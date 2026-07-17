@@ -158,8 +158,8 @@ def main() -> None:
     stem = data_path.stem
 
     dataset_relative_dir = data_path.relative_to(ROOT_DIR / "datasets").parent
-    if dataset_relative_dir.name == "diagnostics":
-        ## raw slices are nested under a `diagnostics/` subdir; figures stay flat,
+    if dataset_relative_dir.name == "extracted":
+        ## raw slices are nested under a `extracted/` subdir; figures stay flat,
         ## mirroring the scheme dir itself rather than that subdir.
         dataset_relative_dir = dataset_relative_dir.parent
     figures_dir = ROOT_DIR / "figures" / dataset_relative_dir

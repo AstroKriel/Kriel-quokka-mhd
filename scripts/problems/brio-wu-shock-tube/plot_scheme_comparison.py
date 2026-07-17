@@ -52,13 +52,13 @@ def load_profiles(
     *,
     combo_dir: Path,
 ):
-    diagnostics_dir = combo_dir / "diagnostics"
-    density_path = next(diagnostics_dir.glob("density-axis=x_0-index=*.json"))
+    extracted_dir = combo_dir / "extracted"
+    density_path = next(extracted_dir.glob("density-axis=x_0-index=*.json"))
     index = density_path.stem.split("index=")[-1]
-    density = ScalarProfile.load_from_file(diagnostics_dir / f"density-axis=x_0-index={index}.json")
-    pressure = ScalarProfile.load_from_file(diagnostics_dir / f"pressure-axis=x_0-index={index}.json")
-    velocity = VectorProfile.load_from_file(diagnostics_dir / f"velocity-axis=x_0-index={index}.json")
-    magnetic = VectorProfile.load_from_file(diagnostics_dir / f"magnetic-axis=x_0-index={index}.json")
+    density = ScalarProfile.load_from_file(extracted_dir / f"density-axis=x_0-index={index}.json")
+    pressure = ScalarProfile.load_from_file(extracted_dir / f"pressure-axis=x_0-index={index}.json")
+    velocity = VectorProfile.load_from_file(extracted_dir / f"velocity-axis=x_0-index={index}.json")
+    magnetic = VectorProfile.load_from_file(extracted_dir / f"magnetic-axis=x_0-index={index}.json")
     return {
         "density": density,
         "pressure": pressure,

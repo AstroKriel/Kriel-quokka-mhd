@@ -61,9 +61,9 @@ def find_slice_near_time(
     time, so the saved snapshot index that corresponds to `TARGET_TIME` differs slightly between
     combos; matching on the metadata directly (rather than assuming a shared index) is robust to that.
     """
-    slice_paths = sorted((scheme_dir / "diagnostics").glob(SLICE_GLOB))
+    slice_paths = sorted((scheme_dir / "extracted").glob(SLICE_GLOB))
     if not slice_paths:
-        raise FileNotFoundError(f"no slice matching `{SLICE_GLOB}` found in: {scheme_dir / 'diagnostics'}")
+        raise FileNotFoundError(f"no slice matching `{SLICE_GLOB}` found in: {scheme_dir / 'extracted'}")
     return min(
         slice_paths,
         key=lambda path: abs(float(numpy.load(path)["step_time"]) - TARGET_TIME),

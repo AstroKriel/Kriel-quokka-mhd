@@ -47,9 +47,9 @@ def load_component_snapshots(
     component: str,
 ) -> list[tuple[float, numpy.ndarray, numpy.ndarray]]:
     """Load (time, position, field_value) for every snapshot of one magnetic-field component."""
-    diagnostics_dir = DATASET_DIR / f"eta={eta_label}" / f"ncells={NCELLS}" / SCHEME / "diagnostics"
+    extracted_dir = DATASET_DIR / f"eta={eta_label}" / f"ncells={NCELLS}" / SCHEME / "extracted"
     snapshots = []
-    file_paths = sorted(diagnostics_dir.glob(f"magnetic-axis={PROFILE_AXIS}-index=*.json"))
+    file_paths = sorted(extracted_dir.glob(f"magnetic-axis={PROFILE_AXIS}-index=*.json"))
     for file_path in file_paths:
         data = json_io.read_json_file_into_dict(file_path, verbose=False)
         comp = data["field_comps"][component]

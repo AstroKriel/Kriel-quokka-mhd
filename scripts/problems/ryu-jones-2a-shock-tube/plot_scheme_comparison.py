@@ -54,16 +54,16 @@ def load_combo_profiles(
     *,
     combo_dir: Path,
 ):
-    diagnostics_dir = combo_dir / "diagnostics"
-    density_path = next(diagnostics_dir.glob("density-axis=x_0-index=*.json"))
+    extracted_dir = combo_dir / "extracted"
+    density_path = next(extracted_dir.glob("density-axis=x_0-index=*.json"))
     index = density_path.stem.split("index=")[-1]
     return {
-        "density": ScalarProfile.load_from_file(diagnostics_dir / f"density-axis=x_0-index={index}.json"),
-        "pressure": ScalarProfile.load_from_file(diagnostics_dir / f"pressure-axis=x_0-index={index}.json"),
+        "density": ScalarProfile.load_from_file(extracted_dir / f"density-axis=x_0-index={index}.json"),
+        "pressure": ScalarProfile.load_from_file(extracted_dir / f"pressure-axis=x_0-index={index}.json"),
         "total_energy":
-        ScalarProfile.load_from_file(diagnostics_dir / f"total_energy-axis=x_0-index={index}.json"),
-        "velocity": VectorProfile.load_from_file(diagnostics_dir / f"velocity-axis=x_0-index={index}.json"),
-        "magnetic": VectorProfile.load_from_file(diagnostics_dir / f"magnetic-axis=x_0-index={index}.json"),
+        ScalarProfile.load_from_file(extracted_dir / f"total_energy-axis=x_0-index={index}.json"),
+        "velocity": VectorProfile.load_from_file(extracted_dir / f"velocity-axis=x_0-index={index}.json"),
+        "magnetic": VectorProfile.load_from_file(extracted_dir / f"magnetic-axis=x_0-index={index}.json"),
     }
 
 
@@ -198,11 +198,11 @@ def compute_exact_solution():
         magnetic_field_normal=MAGNETIC_FIELD_NORMAL,
         gamma=GAMMA,
     )
-    ## use the step_time recorded in one of the combo's diagnostics so the exact solution is
+    ## use the step_time recorded in one of the combo's extracted files so the exact solution is
     ## sampled at the same physical time the simulations reached, not a hardcoded stop_time
     combo_dir = DATASET_DIR / "hlld" / RECOMMENDED_COMBO
     step_time = ScalarProfile.load_from_file(
-        next((combo_dir / "diagnostics").glob("density-axis=x_0-index=*.json")),
+        next((combo_dir / "extracted").glob("density-axis=x_0-index=*.json")),
     ).step_time
     exact_x = numpy.linspace(0.0, 1.0, 2001)
     exact_states = exact_solution.sample_snapshot(

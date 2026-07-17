@@ -43,10 +43,10 @@ def find_slice_near_time(
     target_time: float,
 ) -> Path:
     """Return the saved out-of-plane current-density slice nearest `target_time`."""
-    diagnostics_dir = DATASET_DIR / "diagnostics"
-    slice_paths = sorted(diagnostics_dir.glob(SLICE_GLOB))
+    extracted_dir = DATASET_DIR / "extracted"
+    slice_paths = sorted(extracted_dir.glob(SLICE_GLOB))
     if not slice_paths:
-        raise FileNotFoundError(f"no slice matching `{SLICE_GLOB}` found in: {diagnostics_dir}")
+        raise FileNotFoundError(f"no slice matching `{SLICE_GLOB}` found in: {extracted_dir}")
     return min(
         slice_paths,
         key=lambda path: abs(float(numpy.load(path)["step_time"]) - target_time),

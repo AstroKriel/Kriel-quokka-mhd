@@ -52,9 +52,9 @@ def load_energy_time_series(
     edge, and using trapz here introduced a spurious ~1-2% time-dependent oscillation, since the
     profile's phase shifts snapshot to snapshot -- the plain sum is stable to ~0.2% instead.
     """
-    diagnostics_dir = DATASET_DIR / f"ncells={NCELLS}" / SCHEME / "diagnostics"
+    extracted_dir = DATASET_DIR / f"ncells={NCELLS}" / SCHEME / "extracted"
     file_paths = sorted(
-        diagnostics_dir.glob(f"magnetic-axis={PROFILE_AXIS}-index=*.json"),
+        extracted_dir.glob(f"magnetic-axis={PROFILE_AXIS}-index=*.json"),
         key=lambda path: int(path.stem.split("index=")[-1].split("-")[0]),
     )
     times = []

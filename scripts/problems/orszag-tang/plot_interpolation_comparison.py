@@ -55,7 +55,7 @@ def load_log_field(
     """Load the second saved snapshot (t = 0.85) for `q26-b25-<interpolation>`."""
     index = SNAPSHOT_INDEX_BY_INTERPOLATION[interpolation]
     slice_path = (
-        DATASET_DIR / f"q26-b25-{interpolation}" / "diagnostics"
+        DATASET_DIR / f"q26-b25-{interpolation}" / "extracted"
         / f"current_density_magnitude-slice=x_2-index={index}-amr_level=0.npz"
     )
     array_2d = numpy.load(slice_path)["sarray_2d"]

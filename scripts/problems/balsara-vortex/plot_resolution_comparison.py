@@ -49,29 +49,29 @@ FIGURE_PATH = ROOT_DIR / "figures/problems/balsara-vortex/balsara-vortex.png"
 
 def find_first_slice_path(
     *,
-    diagnostics_dir: Path,
+    extracted_dir: Path,
 ) -> Path:
-    """Return the earliest slice (t = 0, the initial condition) in `diagnostics_dir`."""
+    """Return the earliest slice (t = 0, the initial condition) in `extracted_dir`."""
     slice_paths = sorted(
-        diagnostics_dir.glob(SLICE_GLOB),
+        extracted_dir.glob(SLICE_GLOB),
         key=lambda path: int(path.stem.split("index=")[-1].split("-")[0]),
     )
     if not slice_paths:
-        raise FileNotFoundError(f"no slice matching `{SLICE_GLOB}` found in: {diagnostics_dir}")
+        raise FileNotFoundError(f"no slice matching `{SLICE_GLOB}` found in: {extracted_dir}")
     return slice_paths[0]
 
 
 def find_last_slice_path(
     *,
-    diagnostics_dir: Path,
+    extracted_dir: Path,
 ) -> Path:
-    """Return the latest slice (t = 30 sqrt(2), after 3 diagonal crossings) in `diagnostics_dir`."""
+    """Return the latest slice (t = 30 sqrt(2), after 3 diagonal crossings) in `extracted_dir`."""
     slice_paths = sorted(
-        diagnostics_dir.glob(SLICE_GLOB),
+        extracted_dir.glob(SLICE_GLOB),
         key=lambda path: int(path.stem.split("index=")[-1].split("-")[0]),
     )
     if not slice_paths:
-        raise FileNotFoundError(f"no slice matching `{SLICE_GLOB}` found in: {diagnostics_dir}")
+        raise FileNotFoundError(f"no slice matching `{SLICE_GLOB}` found in: {extracted_dir}")
     return slice_paths[-1]
 
 
@@ -139,14 +139,14 @@ NUM_ORBITS = 3
 
 def compute_retention_fraction_per_orbit(
     *,
-    diagnostics_dir: Path,
+    extracted_dir: Path,
 ) -> float:
     """Per-orbit fraction of the initial (volume-integrated) magnetic energy retained.
 
     Energy loss compounds geometrically orbit-to-orbit, so the per-orbit rate is the `NUM_ORBITS`-th
     root of the total retained fraction, not that total fraction divided by `NUM_ORBITS`.
     """
-    vi_path = diagnostics_dir / "magnetic_energy-vi_evolution.json"
+    vi_path = extracted_dir / "magnetic_energy-vi_evolution.json"
     with vi_path.open() as file:
         vi_data = json.load(file)
     vi_values = vi_data["vi_values"]
@@ -253,29 +253,29 @@ def main() -> None:
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
-    diagnostics_dirs = {
-        num_cells: DATASET_DIR / f"ncells={num_cells}/q26-b25-ppm_ep/diagnostics" for num_cells in RESOLUTIONS
+    extracted_dirs = {
+        num_cells: DATASET_DIR / f"ncells={num_cells}/q26-b25-ppm_ep/extracted" for num_cells in RESOLUTIONS
     }
     initial_slices = {
         num_cells: upsample_by_block_replication(
-            array_2d=numpy.load(find_first_slice_path(diagnostics_dir=diagnostics_dir))["sarray_2d"],
+            array_2d=numpy.load(find_first_slice_path(extracted_dir=extracted_dir))["sarray_2d"],
             target_num_cells=COMMON_NUM_CELLS,
         )
-        for num_cells, diagnostics_dir in diagnostics_dirs.items()
+        for num_cells, extracted_dir in extracted_dirs.items()
     }
     final_slices = {
         num_cells: upsample_by_block_replication(
             array_2d=recenter_via_periodic_shift(
-                array_2d=numpy.load(find_last_slice_path(diagnostics_dir=diagnostics_dir))["sarray_2d"],
+                array_2d=numpy.load(find_last_slice_path(extracted_dir=extracted_dir))["sarray_2d"],
                 axis_bounds=AXIS_BOUNDS,
             ),
             target_num_cells=COMMON_NUM_CELLS,
         )
-        for num_cells, diagnostics_dir in diagnostics_dirs.items()
+        for num_cells, extracted_dir in extracted_dirs.items()
     }
     retention_fractions_per_orbit = {
-        num_cells: compute_retention_fraction_per_orbit(diagnostics_dir=diagnostics_dir)
-        for num_cells, diagnostics_dir in diagnostics_dirs.items()
+        num_cells: compute_retention_fraction_per_orbit(extracted_dir=extracted_dir)
+        for num_cells, extracted_dir in extracted_dirs.items()
     }
     left_res, right_res = RESOLUTIONS
     composite = compose_quadrants(

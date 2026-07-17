@@ -54,10 +54,10 @@ def find_slice_near_time(
     target_time: float,
 ) -> Path:
     """Return the saved density slice for `q26-b25-ppm_ep` at `ncells` nearest `target_time`."""
-    diagnostics_dir = DATASET_DIR / f"ncells={ncells}" / "q26-b25-ppm_ep" / "diagnostics"
-    slice_paths = sorted(diagnostics_dir.glob("density-slice=x_2-index=*.npz"))
+    extracted_dir = DATASET_DIR / f"ncells={ncells}" / "q26-b25-ppm_ep" / "extracted"
+    slice_paths = sorted(extracted_dir.glob("density-slice=x_2-index=*.npz"))
     if not slice_paths:
-        raise FileNotFoundError(f"no density slice found in: {diagnostics_dir}")
+        raise FileNotFoundError(f"no density slice found in: {extracted_dir}")
     return min(
         slice_paths,
         key=lambda path: abs(float(numpy.load(path)["step_time"]) - target_time),

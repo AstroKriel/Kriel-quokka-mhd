@@ -31,7 +31,7 @@ AXIS_LABEL_SIZE = 25
 
 ROOT_DIR = Path(__file__).parents[3]
 DATASET_DIR = ROOT_DIR / "datasets/problems/field-loop/ncells=128/q26-b25-ppm_ep"
-DIAGNOSTICS_DIR = DATASET_DIR / "diagnostics"
+EXTRACTED_DIR = DATASET_DIR / "extracted"
 FIGURE_PATH = ROOT_DIR / "figures/problems/field-loop/field-loop.png"
 
 AXIS_BOUNDS = ((-1.0, 1.0), (-0.578125, 0.578125))
@@ -54,9 +54,9 @@ def find_slice_near_time(
     target_time: float,
 ) -> Path:
     """Return the saved slice nearest `target_time`."""
-    slice_paths = sorted(DIAGNOSTICS_DIR.glob(file_glob))
+    slice_paths = sorted(EXTRACTED_DIR.glob(file_glob))
     if not slice_paths:
-        raise FileNotFoundError(f"no slice matching `{file_glob}` found in: {DIAGNOSTICS_DIR}")
+        raise FileNotFoundError(f"no slice matching `{file_glob}` found in: {EXTRACTED_DIR}")
     return min(
         slice_paths,
         key=lambda path: abs(float(numpy.load(path)["step_time"]) - target_time),
@@ -123,9 +123,9 @@ def plot_slice(
 def main() -> None:
     style_plots.set_theme()
 
-    divb_paths = sorted(DIAGNOSTICS_DIR.glob(DIVB_GLOB))
+    divb_paths = sorted(EXTRACTED_DIR.glob(DIVB_GLOB))
     if not divb_paths:
-        raise FileNotFoundError(f"no slice matching `{DIVB_GLOB}` found in: {DIAGNOSTICS_DIR}")
+        raise FileNotFoundError(f"no slice matching `{DIVB_GLOB}` found in: {EXTRACTED_DIR}")
     divb_series = [load_slice(slice_path=divb_path) for divb_path in divb_paths]
 
     divb_time, divb = load_slice(

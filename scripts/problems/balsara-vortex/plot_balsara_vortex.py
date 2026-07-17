@@ -11,9 +11,8 @@ from pathlib import Path
 ## third-party
 import numpy
 
-from matplotlib.cm import ScalarMappable as mpl_ScalarMappable
-
 ## personal
+from jormi.ww_arrays import compute_array_stats
 from jormi.ww_arrays.mask_2d_arrays import QuadrantMasks2D
 from jormi.ww_io import manage_io
 from jormi.ww_plots import add_color, annotate_axis, manage_plots, plot_data, style_plots
@@ -30,10 +29,10 @@ RESOLUTION_LABELS = {64: r"$64^2$", 128: r"$128^2$"}
 COMMON_NUM_CELLS = max(RESOLUTIONS)
 
 SLICE_GLOB = "magnetic_energy-slice=x_2-index=*.npz"
-FIELD_LABEL = r"$b^2 / 2$"
-PALETTE_NAME = "cmr.ember"
+FIELD_LABEL = r"$\log_{10}(b^2 / 2)$"
+PALETTE_NAME = "cmr.horizon_r"
 PALETTE_RANGE = (0.0, 1.0)
-VALUE_RANGE = (0.0, 5.0e-5)
+VALUE_RANGE = (-10.3, -4.3)
 
 ## the vortex is centred on the domain and has a characteristic core radius of 1 (\citet{Balsara04a})
 AXIS_BOUNDS = ((-5.0, 5.0), (-5.0, 5.0))
@@ -189,9 +188,57 @@ def add_reference_circle(
     ax.plot(
         VORTEX_CORE_RADIUS * numpy.cos(theta),
         VORTEX_CORE_RADIUS * numpy.sin(theta),
-        color="white",
+        color="black",
         linestyle="--",
         linewidth=1.0,
+    )
+
+
+def add_advection_arrow(
+    *,
+    ax,
+) -> None:
+    direction_component = 1.0 / numpy.sqrt(2.0)
+    arrow_start_radius = VORTEX_CORE_RADIUS
+    arrow_end_radius = VORTEX_CORE_RADIUS + 1.25
+    label_anchor_radius = VORTEX_CORE_RADIUS + 0.2
+    label_anchor = label_anchor_radius * direction_component
+    label_offset = 0.35
+    advection_label_offset = label_offset + 0.15
+    ax.annotate(
+        "",
+        xy=(arrow_end_radius * direction_component, arrow_end_radius * direction_component),
+        xytext=(arrow_start_radius * direction_component, arrow_start_radius * direction_component),
+        arrowprops={
+            "arrowstyle": "-|>",
+            "color": "black",
+            "linestyle": "-",
+            "linewidth": 1.0,
+            "mutation_scale": 15.0,
+            "shrinkA": 0.0,
+            "shrinkB": 0.0,
+        },
+    )
+    ax.text(
+        label_anchor - advection_label_offset,
+        label_anchor + advection_label_offset,
+        "advection\ndirection",
+        ha="left",
+        va="center",
+        multialignment="left",
+        rotation=45.0,
+        rotation_mode="anchor",
+        fontsize=24,
+    )
+    ax.text(
+        label_anchor + label_offset,
+        label_anchor - label_offset,
+        r"$\mathcal{M} = 0.01$",
+        ha="left",
+        va="center",
+        rotation=45.0,
+        rotation_mode="anchor",
+        fontsize=24,
     )
 
 
@@ -245,16 +292,17 @@ def main() -> None:
     ax = axs[0, 0]
     plot_data.plot_2d_array(
         ax=ax,
-        array_2d=composite,
+        array_2d=compute_array_stats.compute_safe_log10(composite),
         data_format="ij",
         axis_bounds=AXIS_BOUNDS,
         cbar_bounds=VALUE_RANGE,
         palette_config=add_color.SequentialConfig(palette_name=PALETTE_NAME, palette_range=PALETTE_RANGE),
         add_cbar=False,
     )
-    ax.axhline(0.0, color="white", linewidth=0.6)
-    ax.axvline(0.0, color="white", linewidth=0.6)
+    ax.axhline(0.0, color="black", linewidth=0.6)
+    ax.axvline(0.0, color="black", linewidth=0.6)
     add_reference_circle(ax=ax)
+    add_advection_arrow(ax=ax)
     ax.set_xticks([])
     ax.set_yticks([])
     for x_pos, num_cells in ((0.025, left_res), (0.975, right_res)):
@@ -265,29 +313,30 @@ def main() -> None:
             label=RESOLUTION_LABELS[num_cells],
             x_alignment=box_positions.Positions.Side.Left if x_pos < 0.5 else box_positions.Positions.Side.Right,
             y_alignment=box_positions.Positions.Side.Top,
-            text_size=18,
-            text_color="white",
-            box_color="black",
-            box_alpha=0.6,
+            text_size=24,
+            text_color="black",
+            box_alpha=0.0,
         )
-    for x_pos, num_cells in ((0.25, left_res), (0.75, right_res)):
+    for x_pos, num_cells in ((0.025, left_res), (0.975, right_res)):
         annotate_axis.add_text(
             ax=ax,
             x_pos=x_pos,
             y_pos=0.025,
-            label=f"conserve {100.0 * retention_fractions_per_orbit[num_cells]:.1f}\\% / orbit",
-            x_alignment=box_positions.Positions.Center.Center,
+            label=f"conserve\n{100.0 * retention_fractions_per_orbit[num_cells]:.1f}\\% / orbit",
+            x_alignment=(
+                box_positions.Positions.Side.Left if x_pos < 0.5 else box_positions.Positions.Side.Right
+            ),
             y_alignment=box_positions.Positions.Side.Bottom,
-            text_size=16,
-            text_color="white",
-            box_color="black",
-            box_alpha=0.6,
+            text_size=24,
+            text_color="black",
+            box_alpha=0.0,
         )
     ax.text(
         0.5,
         1.02,
         "initial profile",
         transform=ax.transAxes,
+        fontsize=32,
         ha="center",
         va="bottom",
     )
@@ -296,6 +345,7 @@ def main() -> None:
         -0.02,
         "profile after 3 orbits",
         transform=ax.transAxes,
+        fontsize=32,
         ha="center",
         va="top",
     )
@@ -303,17 +353,13 @@ def main() -> None:
         config=add_color.SequentialConfig(palette_name=PALETTE_NAME, palette_range=PALETTE_RANGE),
         value_range=VALUE_RANGE,
     )
-    mappable = mpl_ScalarMappable(
-        norm=palette.mpl_norm,
-        cmap=palette.mpl_cmap,
-    )
-    mappable.set_array([])
-    fig.colorbar(
-        mappable=mappable,
-        ax=axs,
+    add_color.add_colorbar(
+        ax=ax,
+        palette=palette,
         label=FIELD_LABEL,
-        location="right",
-        shrink=0.85,
+        cbar_side="right",
+        label_size=32,
+        label_pad=24.0,
     )
     manage_plots.save_figure(
         fig=fig,

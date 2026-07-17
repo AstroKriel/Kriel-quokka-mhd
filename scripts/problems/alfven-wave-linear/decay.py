@@ -125,7 +125,7 @@ def main() -> None:
     )
     plot_decay_rate_panel(ax=axs[0, 0])
     axs[0, 0].set_xlabel(r"$\log_{10}\ (\mathrm{input}\ \eta)$")
-    axs[0, 0].set_ylabel(r"$\log_{10}\ (\mathrm{measured\ decay\ rate})$")
+    axs[0, 0].set_ylabel(r"$\log_{10}\ (\mathrm{measured}\ \gamma)$")
     axs[0, 0].legend(loc="upper left", frameon=False)
     manage_plots.save_figure(
         fig=fig,

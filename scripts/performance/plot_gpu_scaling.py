@@ -31,7 +31,6 @@ class ComputeSchemeStyle:
 
 
 class ComputeScheme(Enum):
-    ## draw order (top to bottom): Q26, then B25, then FS18
     Q26 = ComputeSchemeStyle(
         label="Q26",
         color="gold",

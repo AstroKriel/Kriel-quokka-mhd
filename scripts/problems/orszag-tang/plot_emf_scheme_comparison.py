@@ -5,46 +5,117 @@
 ##
 
 ## stdlib
+from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 
 ## third-party
 import numpy
 
+from numpy.typing import NDArray
+
 ## personal
 from jormi.ww_arrays.mask_2d_arrays import DiagonalMasks2D
-from jormi.ww_io import manage_io
-from jormi.ww_plots import manage_plots, style_plots
+from jormi.ww_io import manage_io, manage_log
+from jormi.ww_plots import (
+    manage_plots,
+    plot_data,
+    style_plots,
+)
+from jormi.ww_types import box_positions
+from jormi.ww_validation import validate_box_positions
 
 ##
-## === CONFIGURATION
+## === DATA STRUCTURES
 ##
 
-## same grid as `plot_scheme_grid.py`, but comparing the two EMF averaging schemes via contour
-## overlays (diagonal-split, each with a faint 'ghost' of itself over the other half) instead of
-## an imshow + diagonal-split composite
-EMF_RECONSTRUCTIONS = ("fs17", "b25", "q26")  ## grid columns (left -> right)
-INTERPOLATIONS = ("plm", "ppm", "ppm_ep")  ## grid rows (top -> bottom)
-EMF_AVERAGINGS = ("ld04", "b25")  ## (upper-left triangle, lower-right triangle)
 
-RECONSTRUCTION_LABELS = {"fs17": "FS17", "b25": "B25", "q26": "Q26"}
-INTERPOLATION_LABELS = {"plm": "PLM", "ppm": "PPM", "ppm_ep": "PPM-EP"}
-AVERAGING_LABELS = {"ld04": "LD04", "b25": "B25"}
+@dataclass(frozen=True)
+class EMFComputeSchemeStyle:
+    label: str
 
-COLOR_UPPER = "blue"  ## LD04
-COLOR_LOWER = "red"  ## B25
-GHOST_ALPHA = 0.4
 
-SLICE_GLOB = "current_density_magnitude-slice=x_2-index=*.npz"
-## compare at the second of the three saved snapshots (t = 0.5, 0.85, 1.0), rather than the last
+@dataclass(frozen=True)
+class EMFAveragingSchemeStyle:
+    label: str
+    color: str
+
+
+@dataclass(frozen=True)
+class InterpolationSchemeStyle:
+    label: str
+
+
+class EMFComputeScheme(Enum):
+    FS17 = EMFComputeSchemeStyle(label="FS17")
+    B25 = EMFComputeSchemeStyle(label="B25")
+    Q26 = EMFComputeSchemeStyle(label="Q26")
+
+    @property
+    def as_tag(
+        self,
+    ) -> str:
+        return self.name.lower()
+
+
+class EMFAveragingScheme(Enum):
+    LD04 = EMFAveragingSchemeStyle(
+        label="LD04",
+        color="blue",
+    )
+    B25 = EMFAveragingSchemeStyle(
+        label="B25",
+        color="red",
+    )
+
+    @property
+    def as_tag(
+        self,
+    ) -> str:
+        return self.name.lower()
+
+
+class InterpolationScheme(Enum):
+    PLM = InterpolationSchemeStyle(label="PLM")
+    PPM = InterpolationSchemeStyle(label="PPM")
+    PPM_EP = InterpolationSchemeStyle(label="PPM-EP")
+
+    @property
+    def as_tag(
+        self,
+    ) -> str:
+        return self.name.lower()
+
+
+@dataclass(frozen=True)
+class Simulation:
+    emf_compute_scheme: EMFComputeScheme
+    emf_averaging_scheme: EMFAveragingScheme
+    interpolation_scheme: InterpolationScheme
+
+    @property
+    def as_tag(
+        self,
+    ) -> str:
+        return (
+            f"{self.emf_compute_scheme.as_tag}-"
+            f"{self.emf_averaging_scheme.as_tag}-"
+            f"{self.interpolation_scheme.as_tag}"
+        )
+
+
+##
+## === CONSTANTS
+##
+
+FILE_NAME_GLOB = "current_density_magnitude-slice=x_2-index=*.npz"
 TARGET_TIME = 0.85
-CONTOUR_LEVEL = -1.6
+CONTOUR_LOG10_VALUE = -1.6
+AXIS_BOUNDS: plot_data.AxisBounds = ((-0.5, 0.5), (-0.5, 0.5))
 
-## the computational domain is 1 x 1 in dimensionless units
-AXIS_BOUNDS = ((-0.5, 0.5), (-0.5, 0.5))
-
-ROOT_DIR = Path(__file__).parents[3]
-DATASET_DIR = ROOT_DIR / "datasets/problems/orszag-tang/ncells=1024"
-FIGURE_PATH = ROOT_DIR / "figures/problems/orszag-tang/ncells=1024/scheme_grid_contours.png"
+ROOT_DIR: Path = Path(__file__).parents[3]
+DATASET_DIR: Path = ROOT_DIR / "datasets/problems/orszag-tang/ncells=1024"
+FIGURE_PATH: Path = ROOT_DIR / "figures/problems/orszag-tang/ncells=1024/emf-scheme-comparison.png"
 
 ##
 ## === HELPER FUNCTIONS
@@ -53,80 +124,165 @@ FIGURE_PATH = ROOT_DIR / "figures/problems/orszag-tang/ncells=1024/scheme_grid_c
 
 def find_slice_near_time(
     *,
-    scheme_dir: Path,
+    sim_dir: Path,
+    target_time: float,
 ) -> Path:
-    """Return the saved slice whose `step_time` is closest to `TARGET_TIME`.
-
-    Different schemes take different numbers of (CFL-limited) timesteps to reach the same physical
-    time, so the saved snapshot index that corresponds to `TARGET_TIME` differs slightly between
-    combos; matching on the metadata directly (rather than assuming a shared index) is robust to that.
-    """
-    slice_paths = sorted((scheme_dir / "extracted").glob(SLICE_GLOB))
+    slice_paths = sorted((sim_dir / "extracted").glob(FILE_NAME_GLOB))
     if not slice_paths:
-        raise FileNotFoundError(f"no slice matching `{SLICE_GLOB}` found in: {scheme_dir / 'extracted'}")
+        raise FileNotFoundError(f"no slice matching `{FILE_NAME_GLOB}` found in: {sim_dir / 'extracted'}")
     return min(
         slice_paths,
-        key=lambda path: abs(float(numpy.load(path)["step_time"]) - TARGET_TIME),
+        key=lambda path: abs(float(numpy.load(path)["step_time"]) - target_time),
     )
 
 
-def load_log_field(
+def load_log10_sarray_slice(
     *,
-    reconstruction: str,
-    averaging: str,
-    interpolation: str,
-) -> numpy.ndarray:
-    scheme_dir = DATASET_DIR / f"{reconstruction}-{averaging}-{interpolation}"
-    slice_path = find_slice_near_time(scheme_dir=scheme_dir)
-    array_2d = numpy.load(slice_path)["sarray_2d"]
-    cell_size = (AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]) / array_2d.shape[0]
-    return numpy.log10(cell_size * array_2d)
+    sim: Simulation,
+    target_time: float,
+) -> NDArray[numpy.floating]:
+    sim_dir = DATASET_DIR / sim.as_tag
+    slice_path = find_slice_near_time(
+        sim_dir=sim_dir,
+        target_time=target_time,
+    )
+    sarray_2d = numpy.load(slice_path)["sarray_2d"]
+    cell_size = (AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]) / sarray_2d.shape[0]
+    return numpy.log10(cell_size * sarray_2d)
 
 
-def add_averaging_comparison_contours(
+def mask_sarray_slice(
     *,
-    ax,
-    field_upper: numpy.ndarray,
-    field_lower: numpy.ndarray,
+    sarray: NDArray[numpy.floating],
+    mask: NDArray[numpy.bool],
+) -> NDArray[numpy.floating]:
+    return numpy.where(mask, sarray, numpy.nan)
+
+
+def plot_comparison_contours(
+    *,
+    ax: manage_plots.PlotAxis,
+    upper_sarray: NDArray[numpy.floating],
+    lower_sarray: NDArray[numpy.floating],
+    contour_value: float,
+    upper_color: str,
+    lower_color: str,
 ) -> None:
-    """Overlay the two averaging schemes' contours, split across the main diagonal, each with a
-    faint, full-domain 'ghost' of the same scheme drawn (semi-transparently) on top of the other half.
     """
-    num_rows, num_cols = field_upper.shape
-    upper_mask = DiagonalMasks2D.get_mask_above_main_diagonal(num_rows=num_rows, num_cols=num_cols)
-    lower_mask = DiagonalMasks2D.get_mask_below_main_diagonal(num_rows=num_rows, num_cols=num_cols)
-    field_upper_own = numpy.where(upper_mask, field_upper, numpy.nan)
-    field_upper_ghost = numpy.where(lower_mask, field_upper, numpy.nan)
-    field_lower_own = numpy.where(lower_mask, field_lower, numpy.nan)
-    field_lower_ghost = numpy.where(upper_mask, field_lower, numpy.nan)
+    Overlay contours of two averaging schemes; split across the off-diagonal, each with a
+    faint 'ghost' of the other scheme overlayed.
+    """
+    num_rows, num_cols = upper_sarray.shape
+    upper_mask = DiagonalMasks2D.get_mask_above_main_diagonal(
+        num_rows=num_rows,
+        num_cols=num_cols,
+    )
+    lower_mask = DiagonalMasks2D.get_mask_below_main_diagonal(
+        num_rows=num_rows,
+        num_cols=num_cols,
+    )
+    upper_sarray_main = mask_sarray_slice(
+        sarray=upper_sarray,
+        mask=upper_mask,
+    )
+    lower_sarray_main = mask_sarray_slice(
+        sarray=lower_sarray,
+        mask=lower_mask,
+    )
+    upper_sarray_ghost = mask_sarray_slice(
+        sarray=upper_sarray,
+        mask=lower_mask,
+    )
+    lower_sarray_ghost = mask_sarray_slice(
+        sarray=lower_sarray,
+        mask=upper_mask,
+    )
     grid_x, grid_y = numpy.meshgrid(
         numpy.linspace(AXIS_BOUNDS[0][0], AXIS_BOUNDS[0][1], num_cols),
         numpy.linspace(AXIS_BOUNDS[1][0], AXIS_BOUNDS[1][1], num_rows),
     )
-    ## primary, fully-opaque contours in each scheme's own triangle (drawn first, in the back)
+    ## contours of each scheme's solution
     ax.contour(
-        grid_x, grid_y, field_upper_own.T,
-        levels=[CONTOUR_LEVEL], colors=COLOR_UPPER, linewidths=0.65, alpha=1.0, linestyles="solid", zorder=1,
+        grid_x,
+        grid_y,
+        upper_sarray_main.T,
+        levels=[contour_value],
+        colors=upper_color,
+        linewidths=0.75,
+        alpha=1.0,
+        linestyles="solid",
+        zorder=1,
     )
     ax.contour(
-        grid_x, grid_y, field_lower_own.T,
-        levels=[CONTOUR_LEVEL], colors=COLOR_LOWER, linewidths=0.65, alpha=1.0, linestyles="solid", zorder=1,
+        grid_x,
+        grid_y,
+        lower_sarray_main.T,
+        levels=[contour_value],
+        colors=lower_color,
+        linewidths=0.75,
+        alpha=1.0,
+        linestyles="solid",
+        zorder=1,
     )
-    ## faint 'ghost' contours in the opposite triangle (drawn on top)
+    ## faint "ghost" reference contours in the opposite triangle (overlayed on top)
     ax.contour(
-        grid_x, grid_y, field_upper_ghost.T,
-        levels=[CONTOUR_LEVEL], colors=COLOR_UPPER, linewidths=0.65, alpha=GHOST_ALPHA, linestyles="solid", zorder=2,
+        grid_x,
+        grid_y,
+        upper_sarray_ghost.T,
+        levels=[contour_value],
+        colors=upper_color,
+        linewidths=0.65,
+        alpha=0.4,
+        linestyles="solid",
+        zorder=2,
     )
     ax.contour(
-        grid_x, grid_y, field_lower_ghost.T,
-        levels=[CONTOUR_LEVEL], colors=COLOR_LOWER, linewidths=0.65, alpha=GHOST_ALPHA, linestyles="solid", zorder=2,
+        grid_x,
+        grid_y,
+        lower_sarray_ghost.T,
+        levels=[contour_value],
+        colors=lower_color,
+        linewidths=0.65,
+        alpha=0.4,
+        linestyles="solid",
+        zorder=2,
     )
+    ## off-diagonal line separating the two triangular halves of the domain
     ax.plot(
         [AXIS_BOUNDS[0][0], AXIS_BOUNDS[0][1]],
         [AXIS_BOUNDS[1][0], AXIS_BOUNDS[1][1]],
         color="black",
         linewidth=0.6,
         zorder=3,
+    )
+
+
+def add_label(
+    *,
+    ax: manage_plots.PlotAxis,
+    x_position: float,
+    y_position: float,
+    x_alignment: box_positions.Positions.PositionLike,
+    y_alignment: box_positions.Positions.PositionLike,
+    label: str,
+) -> None:
+    x_anchor = validate_box_positions.as_mpl_ha(x_alignment)
+    y_anchor = validate_box_positions.as_mpl_va(y_alignment)
+    ax.text(
+        x_position,
+        y_position,
+        label,
+        transform=ax.transAxes,
+        ha=x_anchor.value,
+        va=y_anchor.value,
+        fontsize=22,
+        color="black",
+        bbox={
+            "facecolor": "white",
+            "edgecolor": "none",
+            "alpha": 0.85,
+            "boxstyle": "round,pad=0.0",
+        },
     )
 
 
@@ -137,54 +293,76 @@ def add_averaging_comparison_contours(
 
 def main() -> None:
     style_plots.set_theme()
+    manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
+    interpolation_schemes = list(InterpolationScheme)
+    emf_compute_schemes = list(EMFComputeScheme)
     fig, axs = manage_plots.create_figure_grid(
-        num_rows=len(INTERPOLATIONS),
-        num_cols=len(EMF_RECONSTRUCTIONS),
+        num_rows=len(interpolation_schemes),
+        num_cols=len(emf_compute_schemes),
         axis_shape=(4, 4),
         x_spacing=0.02,
         y_spacing=0.02,
         share_x=True,
         share_y=True,
     )
-    for row_index, interpolation in enumerate(INTERPOLATIONS):
-        for col_index, reconstruction in enumerate(EMF_RECONSTRUCTIONS):
+    for row_index, interpolation_scheme in enumerate(interpolation_schemes):
+        for col_index, emf_compute_scheme in enumerate(emf_compute_schemes):
             ax = axs[row_index, col_index]
-            field_upper = load_log_field(
-                reconstruction=reconstruction,
-                averaging=EMF_AVERAGINGS[0],
-                interpolation=interpolation,
+            ld04_sim = Simulation(
+                emf_compute_scheme=emf_compute_scheme,
+                emf_averaging_scheme=EMFAveragingScheme.LD04,
+                interpolation_scheme=interpolation_scheme,
             )
-            field_lower = load_log_field(
-                reconstruction=reconstruction,
-                averaging=EMF_AVERAGINGS[1],
-                interpolation=interpolation,
+            b25_sim = Simulation(
+                emf_compute_scheme=emf_compute_scheme,
+                emf_averaging_scheme=EMFAveragingScheme.B25,
+                interpolation_scheme=interpolation_scheme,
             )
-            add_averaging_comparison_contours(ax=ax, field_upper=field_upper, field_lower=field_lower)
+            ld04_log10_sarray_slice = load_log10_sarray_slice(
+                sim=ld04_sim,
+                target_time=TARGET_TIME,
+            )
+            b25_log10_sarray_slice = load_log10_sarray_slice(
+                sim=b25_sim,
+                target_time=TARGET_TIME,
+            )
+            plot_comparison_contours(
+                ax=ax,
+                upper_sarray=ld04_log10_sarray_slice,
+                lower_sarray=b25_log10_sarray_slice,
+                contour_value=CONTOUR_LOG10_VALUE,
+                upper_color=EMFAveragingScheme.LD04.value.color,
+                lower_color=EMFAveragingScheme.B25.value.color,
+            )
             ax.set_facecolor("white")
             ax.set_xlim(AXIS_BOUNDS[0])
             ax.set_ylim(AXIS_BOUNDS[1])
             ax.set_xticks([])
             ax.set_yticks([])
-            ax.text(
-                0.05, 0.95, AVERAGING_LABELS[EMF_AVERAGINGS[0]],
-                transform=ax.transAxes, ha="left", va="top",
-                fontsize=22, color="black",
-                bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.85, "boxstyle": "round,pad=0.3"},
+            add_label(
+                ax=ax,
+                x_position=0.05,
+                y_position=0.95,
+                x_alignment=box_positions.Positions.Side.Left,
+                y_alignment=box_positions.Positions.Side.Top,
+                label=EMFAveragingScheme.LD04.value.label,
             )
-            ax.text(
-                0.95, 0.05, AVERAGING_LABELS[EMF_AVERAGINGS[1]],
-                transform=ax.transAxes, ha="right", va="bottom",
-                fontsize=22, color="black",
-                bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.85, "boxstyle": "round,pad=0.3"},
+            add_label(
+                ax=ax,
+                x_position=0.95,
+                y_position=0.05,
+                x_alignment=box_positions.Positions.Side.Right,
+                y_alignment=box_positions.Positions.Side.Bottom,
+                label=EMFAveragingScheme.B25.value.label,
             )
             if row_index == 0:
-                ax.set_title(RECONSTRUCTION_LABELS[reconstruction])
+                ax.set_title(emf_compute_scheme.value.label)
             if col_index == 0:
-                ax.set_ylabel(INTERPOLATION_LABELS[interpolation])
+                ax.set_ylabel(interpolation_scheme.value.label)
     manage_plots.save_figure(
         fig=fig,
         fig_path=FIGURE_PATH,

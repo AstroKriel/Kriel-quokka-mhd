@@ -4,193 +4,266 @@
 ## === DEPENDENCIES
 ##
 
+## stdlib
+from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
+from typing import Any
 
+## third-party
 import numpy
-from matplotlib.lines import Line2D as mpl_line2d
 
-from jormi.ww_plots import annotate_axis, manage_plots, style_plots
+from matplotlib.lines import Line2D as mpl_line2d
+from numpy.typing import NDArray
+
+## personal (local)
+from jormi.ww_plots import (
+    annotate_axis,
+    manage_plots,
+    style_plots,
+)
 from jormi.ww_types import box_positions
-from ww_quokka_sims.sim_io.profile_models import ScalarProfile, VectorProfile
+from ww_quokka_sims.sim_io.profile_models import (
+    ComponentArrays,
+    ScalarProfile,
+    VectorProfile,
+)
+
+##
+## === DATA STRUCTURES
+##
+
+
+@dataclass(frozen=True)
+class EMFComputeSchemeStyle:
+    label: str
+    color: str
+    zorder: int
+
+
+@dataclass(frozen=True)
+class EMFAveragingSchemeStyle:
+    label: str
+    marker: str
+
+
+class EMFComputeScheme(Enum):
+    Q26 = EMFComputeSchemeStyle(
+        label="Q26",
+        color="gold",
+        zorder=3,
+    )
+    B25 = EMFComputeSchemeStyle(
+        label="B25",
+        color="cornflowerblue",
+        zorder=1,
+    )
+    FS17 = EMFComputeSchemeStyle(
+        label="FS17",
+        color="forestgreen",
+        zorder=2,
+    )
+
+    @property
+    def as_tag(
+        self,
+    ) -> str:
+        return self.name.lower()
+
+
+class EMFAveragingScheme(Enum):
+    B25 = EMFAveragingSchemeStyle(
+        label="B25",
+        marker="D",
+    )
+    LD04 = EMFAveragingSchemeStyle(
+        label="LD04",
+        marker="o",
+    )
+
+    @property
+    def as_tag(
+        self,
+    ) -> str:
+        return self.name.lower()
+
+
+@dataclass(frozen=True)
+class ShockTubeProfiles:
+    density: ComponentArrays
+    pressure: ComponentArrays
+    pressure_ratio: ComponentArrays
+    velocity_x0: ComponentArrays
+    velocity_x1: ComponentArrays
+    magnetic_x1: ComponentArrays
+
 
 ##
 ## === CONSTANTS
 ##
 
-## scheme tokens, in the order they appear in each dataset directory name:
-##     <emf-compute>-<emf-averaging>-ppm_ep
-EMF_COMPUTES = ("q26", "b25", "fs17")
-EMF_AVERAGINGS = ("b25", "ld04")
+ROOT_DIR: Path = Path(__file__).parents[3]
+DATASET_DIR: Path = ROOT_DIR / "datasets/problems/brio-wu-shock-tube"
+FIGURE_PATH: Path = ROOT_DIR / "figures/problems/brio-wu-shock-tube/ncells=256/scheme-comparison.png"
 
-## data figure convention (distinct from the schematic centering colours): blue/red/green denote the
-## Q26/Balsara2025/FelkerStone2017 EMF reconstruction schemes; diamond/circle denote Balsara2025/
-## LondrilloDelZanna2004 EMF averaging
-COMPUTE_COLORS = {"q26": "gold", "b25": "cornflowerblue", "fs17": "forestgreen"}
-AVERAGING_MARKERS = {"b25": "D", "ld04": "o"}
-
-## display shorthand for legend labels, distinct from the lowercase dataset-directory tokens
-COMPUTE_LABELS = {"q26": "Q26", "fs17": "FS17", "b25": "B25"}
-AVERAGING_LABELS = {"ld04": "LD04", "b25": "B25"}
-
-## the high-resolution PPM-EP reference: aegir's exact solver fails on Brio-Wu's coplanar IC
-## (singular rotation-discontinuity root-find), so this run stands in as the reference solution
-REFERENCE_COMBO_DIR_NAME = "ncells=8192/hlld/q26-b25-ppm_ep"
-
-## recommended combo, used for the LLF-vs-HLLD comparison (matched resolution+combo)
-RECOMMENDED_COMBO = "q26-b25-ppm_ep"
-
-ROOT_DIR = Path(__file__).parents[3]
-DATASET_DIR = ROOT_DIR / "datasets/problems/brio-wu-shock-tube"
-FIGURE_PATH = ROOT_DIR / "figures/problems/brio-wu-shock-tube/ncells=256/scheme_comparison.png"
+MARKER_PLOT_KWARGS: dict[str, Any] = {
+    "markerfacecolor": "none",
+    "markersize": 6,
+    "markeredgewidth": 0.3,
+    "linestyle": "",
+}
 
 ##
 ## === HELPER FUNCTIONS
 ##
 
 
-def load_profiles(
+def get_sim_tag(
     *,
-    combo_dir: Path,
-):
-    extracted_dir = combo_dir / "extracted"
+    emf_compute_scheme: EMFComputeScheme,
+    emf_averaging_scheme: EMFAveragingScheme,
+) -> str:
+    return f"{emf_compute_scheme.as_tag}-{emf_averaging_scheme.as_tag}-ppm_ep"
+
+
+def load_sim_profiles(
+    *,
+    sim_dir: Path,
+) -> ShockTubeProfiles:
+    extracted_dir = sim_dir / "extracted"
     density_path = next(extracted_dir.glob("density-axis=x_0-index=*.json"))
     index = density_path.stem.split("index=")[-1]
-    density = ScalarProfile.load_from_file(extracted_dir / f"density-axis=x_0-index={index}.json")
-    pressure = ScalarProfile.load_from_file(extracted_dir / f"pressure-axis=x_0-index={index}.json")
-    velocity = VectorProfile.load_from_file(extracted_dir / f"velocity-axis=x_0-index={index}.json")
-    magnetic = VectorProfile.load_from_file(extracted_dir / f"magnetic-axis=x_0-index={index}.json")
-    return {
-        "density": density,
-        "pressure": pressure,
-        "pressure_ratio": pressure.field_value / density.field_value,
-        "velocity": velocity,
-        "magnetic": magnetic,
-    }
+    density_profile = ScalarProfile.load_from_file(
+        file_path=extracted_dir / f"density-axis=x_0-index={index}.json",
+    )
+    pressure_profile = ScalarProfile.load_from_file(
+        file_path=extracted_dir / f"pressure-axis=x_0-index={index}.json",
+    )
+    velocity_profile = VectorProfile.load_from_file(
+        file_path=extracted_dir / f"velocity-axis=x_0-index={index}.json",
+    )
+    magnetic_profile = VectorProfile.load_from_file(
+        file_path=extracted_dir / f"magnetic-axis=x_0-index={index}.json",
+    )
+    return ShockTubeProfiles(
+        density=ComponentArrays(
+            position=density_profile.position,
+            field_value=density_profile.field_value,
+        ),
+        pressure=ComponentArrays(
+            position=pressure_profile.position,
+            field_value=pressure_profile.field_value,
+        ),
+        pressure_ratio=ComponentArrays(
+            position=pressure_profile.position,
+            field_value=pressure_profile.field_value / density_profile.field_value,
+        ),
+        velocity_x0=velocity_profile.components["x_0"],
+        velocity_x1=velocity_profile.components["x_1"],
+        magnetic_x1=magnetic_profile.components["x_1"],
+    )
 
 
-def plot_combo_profile(
-    profiles,
-    axs,
+def compute_moving_average(
+    values: NDArray[numpy.floating],
     *,
-    color: str,
-    marker: str,
-    zorder: int,
-):
-    plot_args = dict(
-        marker=marker,
-        markeredgecolor=color,
-        markerfacecolor="none",
-        markersize=6,
-        markeredgewidth=0.3,
-        linestyle="",
-        zorder=zorder,
-    )
-    axs[0, 0].plot(profiles["density"].position, profiles["density"].field_value, **plot_args)
-    axs[0, 1].plot(profiles["pressure"].position, profiles["pressure"].field_value, **plot_args)
-    axs[1, 0].plot(
-        profiles["velocity"].components["x_0"].position,
-        profiles["velocity"].components["x_0"].field_value,
-        **plot_args,
-    )
-    axs[1, 1].plot(profiles["pressure"].position, profiles["pressure_ratio"], **plot_args)
-    axs[2, 0].plot(
-        profiles["velocity"].components["x_1"].position,
-        profiles["velocity"].components["x_1"].field_value,
-        **plot_args,
-    )
-    axs[2, 1].plot(
-        profiles["magnetic"].components["x_1"].position,
-        profiles["magnetic"].components["x_1"].field_value,
-        **plot_args,
-    )
-
-
-def smooth(
-    values,
-    *,
-    window: int = 35,
-):
-    """Short boxcar moving average.
-
-    The 8192-cell reference run stands in for an exact solution, but it's still a numerical solution
-    using Q26 -- the reconstruction scheme that rings the most -- so it retains small-scale ringing of
-    its own at this resolution, which does not go away (and plausibly grows) with further refinement.
-    This averages over a window short enough to leave the discontinuities themselves sharp, only
-    smoothing the sub-window-scale oscillations.
-    """
-    kernel = numpy.ones(window) / window
-    pad_width = window // 2
+    window_width: int = 35,
+) -> NDArray[numpy.floating]:
+    averaging_kernel = numpy.ones(window_width) / window_width
+    pad_width = window_width // 2
     padded_values = numpy.pad(values, pad_width, mode="edge")
-    return numpy.convolve(padded_values, kernel, mode="same")[pad_width:pad_width + len(values)]
+    return numpy.convolve(padded_values, averaging_kernel, mode="same")[pad_width:pad_width + len(values)]
 
 
-def plot_reference_profile(
-    profiles,
-    axs,
-):
-    plot_args = dict(color="black", linewidth=1.5, linestyle="-", zorder=4)
-    axs[0, 0].plot(profiles["density"].position, smooth(profiles["density"].field_value), **plot_args)
-    axs[0, 1].plot(profiles["pressure"].position, smooth(profiles["pressure"].field_value), **plot_args)
-    axs[1, 0].plot(
-        profiles["velocity"].components["x_0"].position,
-        smooth(profiles["velocity"].components["x_0"].field_value),
-        **plot_args,
+def compute_smoothed_profiles(
+    *,
+    profiles: ShockTubeProfiles,
+) -> ShockTubeProfiles:
+    """
+    The 8192-cell reference solution is used as an exact solution, however, it carries small-scale ringing
+    near discontinuities. We attempt to remove this with smoothing kernal that has a (default) window small
+    enough to only smooth-out the ringing (scales smaller than the window), and leaves the structure of the
+    discontinuities, unaffected.
+    """
+    return ShockTubeProfiles(
+        density=ComponentArrays(
+            position=profiles.density.position,
+            field_value=compute_moving_average(profiles.density.field_value),
+        ),
+        pressure=ComponentArrays(
+            position=profiles.pressure.position,
+            field_value=compute_moving_average(profiles.pressure.field_value),
+        ),
+        pressure_ratio=ComponentArrays(
+            position=profiles.pressure_ratio.position,
+            field_value=compute_moving_average(profiles.pressure_ratio.field_value),
+        ),
+        velocity_x0=ComponentArrays(
+            position=profiles.velocity_x0.position,
+            field_value=compute_moving_average(profiles.velocity_x0.field_value),
+        ),
+        velocity_x1=ComponentArrays(
+            position=profiles.velocity_x1.position,
+            field_value=compute_moving_average(profiles.velocity_x1.field_value),
+        ),
+        magnetic_x1=ComponentArrays(
+            position=profiles.magnetic_x1.position,
+            field_value=compute_moving_average(profiles.magnetic_x1.field_value),
+        ),
     )
-    axs[1, 1].plot(profiles["pressure"].position, smooth(profiles["pressure_ratio"]), **plot_args)
+
+
+def plot_profiles(
+    *,
+    axs: manage_plots.PlotAxesGrid,
+    profiles: ShockTubeProfiles,
+    plot_kwargs: dict[str, Any],
+) -> None:
+    axs[0, 0].plot(
+        profiles.density.position,
+        profiles.density.field_value,
+        **plot_kwargs,
+    )
+    axs[0, 1].plot(
+        profiles.pressure.position,
+        profiles.pressure.field_value,
+        **plot_kwargs,
+    )
+    axs[1, 0].plot(
+        profiles.velocity_x0.position,
+        profiles.velocity_x0.field_value,
+        **plot_kwargs,
+    )
+    axs[1, 1].plot(
+        profiles.pressure_ratio.position,
+        profiles.pressure_ratio.field_value,
+        **plot_kwargs,
+    )
     axs[2, 0].plot(
-        profiles["velocity"].components["x_1"].position,
-        smooth(profiles["velocity"].components["x_1"].field_value),
-        **plot_args,
+        profiles.velocity_x1.position,
+        profiles.velocity_x1.field_value,
+        **plot_kwargs,
     )
     axs[2, 1].plot(
-        profiles["magnetic"].components["x_1"].position,
-        smooth(profiles["magnetic"].components["x_1"].field_value),
-        **plot_args,
-    )
-
-
-def plot_llf_profile(
-    profiles,
-    axs,
-):
-    plot_args = dict(
-        marker="s",
-        markeredgecolor="deeppink",
-        markerfacecolor="none",
-        markersize=6,
-        markeredgewidth=0.3,
-        linestyle="",
-        zorder=0,
-    )
-    axs[0, 0].plot(profiles["density"].position, profiles["density"].field_value, **plot_args)
-    axs[0, 1].plot(profiles["pressure"].position, profiles["pressure"].field_value, **plot_args)
-    axs[1, 0].plot(
-        profiles["velocity"].components["x_0"].position,
-        profiles["velocity"].components["x_0"].field_value,
-        **plot_args,
-    )
-    axs[1, 1].plot(profiles["pressure"].position, profiles["pressure_ratio"], **plot_args)
-    axs[2, 0].plot(
-        profiles["velocity"].components["x_1"].position,
-        profiles["velocity"].components["x_1"].field_value,
-        **plot_args,
-    )
-    axs[2, 1].plot(
-        profiles["magnetic"].components["x_1"].position,
-        profiles["magnetic"].components["x_1"].field_value,
-        **plot_args,
+        profiles.magnetic_x1.position,
+        profiles.magnetic_x1.field_value,
+        **plot_kwargs,
     )
 
 
 def add_zoom_inset(
     *,
-    ax,
-    bbox: tuple[float, float, float, float],
-    xlim: tuple[float, float],
-    ylim: tuple[float, float],
+    ax: manage_plots.PlotAxis,
+    bounds: manage_plots.AxisBounds,
+    x_bounds: tuple[float, float],
+    y_bounds: tuple[float, float],
 ) -> None:
-    """Add a zoomed inset of `ax`'s data."""
-    inset_ax = ax.inset_axes(bbox)
+    inset_ax = ax.inset_axes((
+        bounds.x_min,
+        bounds.y_min,
+        bounds.x_width,
+        bounds.y_width,
+    ))
     for line in ax.get_lines():
         inset_ax.plot(
             line.get_xdata(),
@@ -205,43 +278,41 @@ def add_zoom_inset(
             linewidth=line.get_linewidth(),
             zorder=line.get_zorder(),
         )
-    inset_ax.set_xlim(xlim)
-    inset_ax.set_ylim(ylim)
+    inset_ax.set_xlim(x_bounds)
+    inset_ax.set_ylim(y_bounds)
     inset_ax.set_xticks([])
     inset_ax.set_yticks([])
-    ax.indicate_inset_zoom(inset_ax, edgecolor="black")
+    for spine in inset_ax.spines.values():
+        spine.set_edgecolor("red")
+    ax.indicate_inset_zoom(inset_ax, edgecolor="red")
 
 
-def add_compute_legend(
+def add_emf_compute_scheme_legend(
     *,
-    ax,
+    ax: manage_plots.PlotAxis,
 ) -> None:
-    """Legend for EMF compute, shown as coloured shorthand text (no marker, since colour alone
-    already encodes compute in the data).
-    """
     annotate_axis.add_custom_legend(
         ax=ax,
-        artists=["o" for _ in EMF_COMPUTES],
-        labels=[COMPUTE_LABELS[compute_key] for compute_key in EMF_COMPUTES],
-        colors=[COMPUTE_COLORS[compute_key] for compute_key in EMF_COMPUTES],
-        marker_size=0,  ## hide the marker handle, leaving only the coloured label text
+        artists=["o" for _ in EMFComputeScheme],
+        labels=[scheme.value.label for scheme in EMFComputeScheme],
+        colors=[scheme.value.color for scheme in EMFComputeScheme],
+        marker_size=0,
         text_color="markerfacecolor",
-        marker_first=False,  ## put the (invisible) handle after the text, so text hugs the left edge
+        marker_first=False,  # put the (invisible) handle after the text, so text hugs the left edge
         anchor_point=(0.0, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
     )
 
 
-def add_averaging_legend(
+def add_emf_averaging_scheme_legend(
     *,
-    ax,
+    ax: manage_plots.PlotAxis,
 ) -> None:
-    """Legend for EMF averaging, shown as marker + shorthand."""
     annotate_axis.add_custom_legend(
         ax=ax,
-        artists=[AVERAGING_MARKERS[averaging_key] for averaging_key in EMF_AVERAGINGS],
-        labels=[AVERAGING_LABELS[averaging_key] for averaging_key in EMF_AVERAGINGS],
-        colors=["black" for _ in EMF_AVERAGINGS],
+        artists=[scheme.value.marker for scheme in EMFAveragingScheme],
+        labels=[scheme.value.label for scheme in EMFAveragingScheme],
+        colors=["black" for _ in EMFAveragingScheme],
         marker_size=7,
         text_color="black",
         anchor_point=(0.0, 0.0),
@@ -251,11 +322,11 @@ def add_averaging_legend(
 
 def add_llf_legend(
     *,
-    ax,
+    ax: manage_plots.PlotAxis,
 ) -> None:
-    """Legend for the LLF validation run, shown as a marker matching the data style."""
     handle = mpl_line2d(
-        [0], [0],
+        [0],
+        [0],
         marker="s",
         linewidth=0,
         markeredgecolor="deeppink",
@@ -282,43 +353,88 @@ def add_llf_legend(
 ##
 
 
-def main():
+def main() -> None:
     style_plots.set_theme()
-    reference_profiles = load_profiles(combo_dir=DATASET_DIR / REFERENCE_COMBO_DIR_NAME)
-    llf_profiles = load_profiles(combo_dir=DATASET_DIR / "ncells=256/llf" / RECOMMENDED_COMBO)
-
-    fig, axs = manage_plots.create_figure(num_cols=2, num_rows=3, share_x=True)
-    plot_reference_profile(reference_profiles, axs)
-    plot_llf_profile(llf_profiles, axs)
-    for compute_key in EMF_COMPUTES:
-        for averaging_key in EMF_AVERAGINGS:
-            combo_dir = DATASET_DIR / "ncells=256/hlld" / f"{compute_key}-{averaging_key}-ppm_ep"
-            profiles = load_profiles(combo_dir=combo_dir)
-            plot_combo_profile(
-                profiles,
-                axs,
-                color=COMPUTE_COLORS[compute_key],
-                marker=AVERAGING_MARKERS[averaging_key],
-                zorder={"b25": 1, "fs17": 2, "q26": 3}[compute_key],
+    reference_sim_dir = DATASET_DIR / "ncells=8192/hlld" / get_sim_tag(
+        emf_compute_scheme=EMFComputeScheme.Q26,
+        emf_averaging_scheme=EMFAveragingScheme.B25,
+    )
+    reference_sim_profiles = compute_smoothed_profiles(
+        profiles=load_sim_profiles(sim_dir=reference_sim_dir),
+    )
+    llf_sim_profiles = load_sim_profiles(
+        sim_dir=DATASET_DIR / "ncells=256/llf" / get_sim_tag(
+            emf_compute_scheme=EMFComputeScheme.Q26,
+            emf_averaging_scheme=EMFAveragingScheme.B25,
+        ),
+    )
+    fig, axs = manage_plots.create_figure(
+        num_cols=2,
+        num_rows=3,
+        share_x=True,
+    )
+    plot_profiles(
+        axs=axs,
+        profiles=reference_sim_profiles,
+        plot_kwargs={
+            "color": "black",
+            "linewidth": 1.5,
+            "linestyle": "-",
+            "zorder": 4,
+        },
+    )
+    plot_profiles(
+        axs=axs,
+        profiles=llf_sim_profiles,
+        plot_kwargs={
+            **MARKER_PLOT_KWARGS,
+            "marker": "s",
+            "markeredgecolor": "deeppink",
+            "zorder": 0,
+        },
+    )
+    for emf_compute_scheme in EMFComputeScheme:
+        for emf_averaging_scheme in EMFAveragingScheme:
+            sim_dir = DATASET_DIR / "ncells=256/hlld" / get_sim_tag(
+                emf_compute_scheme=emf_compute_scheme,
+                emf_averaging_scheme=emf_averaging_scheme,
             )
-
+            sim_profiles = load_sim_profiles(sim_dir=sim_dir)
+            plot_profiles(
+                axs=axs,
+                profiles=sim_profiles,
+                plot_kwargs={
+                    **MARKER_PLOT_KWARGS,
+                    "marker": emf_averaging_scheme.value.marker,
+                    "markeredgecolor": emf_compute_scheme.value.color,
+                    "zorder": emf_compute_scheme.value.zorder,
+                },
+            )
     add_zoom_inset(
         ax=axs[1, 0],
-        bbox=(0.675, 0.425, 0.975 - 0.675, 0.965 - 0.425),
-        xlim=(0.625, 0.85),
-        ylim=(-0.31, -0.19),
+        bounds=manage_plots.AxisBounds(
+            x_min=0.675,
+            y_min=0.425,
+            x_width=0.975 - 0.675,
+            y_width=0.965 - 0.425,
+        ),
+        x_bounds=(0.625, 0.85),
+        y_bounds=(-0.31, -0.19),
     )
     add_zoom_inset(
         ax=axs[1, 1],
-        bbox=(0.05, 0.3, 0.5 - 0.05, 0.925 - 0.3),
-        xlim=(0.55, 0.65),
-        ylim=(1.4, 1.55),
+        bounds=manage_plots.AxisBounds(
+            x_min=0.05,
+            y_min=0.3,
+            x_width=0.5 - 0.05,
+            y_width=0.925 - 0.3,
+        ),
+        x_bounds=(0.55, 0.65),
+        y_bounds=(1.4, 1.55),
     )
-
-    add_compute_legend(ax=axs[0, 0])
-    add_averaging_legend(ax=axs[0, 1])
+    add_emf_compute_scheme_legend(ax=axs[0, 0])
+    add_emf_averaging_scheme_legend(ax=axs[0, 1])
     add_llf_legend(ax=axs[1, 0])
-
     axs[0, 0].set_ylabel(r"$\rho$")
     axs[0, 1].set_ylabel(r"$p$")
     axs[1, 0].set_ylabel(r"$u_0$")
@@ -327,8 +443,7 @@ def main():
     axs[2, 1].set_ylabel(r"$b_1$")
     axs[2, 0].set_xlabel(r"$x_0$")
     axs[2, 1].set_xlabel(r"$x_0$")
-
-    for ax in [axs[0, 1], axs[1, 1], axs[2, 1]]:
+    for ax in axs[:, 1]:
         ax.tick_params(
             axis="y",
             which="both",
@@ -338,7 +453,6 @@ def main():
             labelright=True,
         )
         ax.yaxis.set_label_position("right")
-
     manage_plots.save_figure(
         fig=fig,
         fig_path=FIGURE_PATH,

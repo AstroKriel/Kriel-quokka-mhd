@@ -5,205 +5,331 @@
 ##
 
 ## stdlib
+from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 
 ## third-party
 import numpy
 
+from numpy.typing import NDArray
+
 ## personal
 from jormi.ww_data import fit_series
-from jormi.ww_io import csv_io, manage_io
+from jormi.ww_io import csv_io, manage_io, manage_log
 from jormi.ww_plots import annotate_axis, manage_plots, style_plots
 from jormi.ww_types import box_positions
+from jormi.ww_validation import validate_arrays, validate_types
 
 ##
-## === CONFIGURATION
+## === DATA STRUCTURES
 ##
 
-## one row per linear MHD wave family; each reads the grid-aligned convergence run.
-## `sub_path` is the resolution-ladder subdirectory beneath convergence/.
-WAVES = (
-    {
-        "label": "Alfvén (linear)",
-        "problem_dir": "alfven-wave-linear",
-        "sub_path": "ideal/angle=0-nx=1-ny=0-nz=0",
-        "csv_name": "alfven_wave_convergence.csv",
-        "y_lim": (-6, -12.5),
-        "reference_max_ncells": 512,
-    },
-    {
-        ## no angle/mode axis for this test, hence the flat sub_path.
-        "label": "Alfvén (circular)",
-        "problem_dir": "alfven-wave-circular",
-        "sub_path": "",
-        "csv_name": "alfven_wave_circular_convergence.csv",
-        "y_lim": (-6, -13),
-        "reference_max_ncells": None,  ## show across the full resolution ladder
-    },
-    {
-        "label": "fast",
-        "problem_dir": "fast-wave",
-        "sub_path": "nx=1-ny=0-nz=0",
-        "csv_name": "fast_wave_convergence.csv",
-        "y_lim": (-6, -12),
-        "reference_max_ncells": 512,
-    },
-    {
-        "label": "slow",
-        "problem_dir": "slow-wave",
-        "sub_path": "nx=1-ny=0-nz=0",
-        "csv_name": "slow_wave_convergence.csv",
-        "y_lim": (-5.5, -12),
-        "reference_max_ncells": 512,
-    },
+
+@dataclass(frozen=True)
+class WaveConfig:
+
+    wave_label: str
+    wave_data_dir: Path
+    wave_data_file_name: str
+    axis_y_range: tuple[float, float]
+    fit_x_range: tuple[int, int]
+
+    def __post_init__(
+        self,
+    ) -> None:
+        validate_types.ensure_ordered_pair(
+            self.axis_y_range,
+            param_name="axis_y_range",
+            strict_ordering=True,
+        )
+        validate_types.ensure_ordered_pair(
+            self.fit_x_range,
+            param_name="fit_x_range",
+            strict_ordering=True,
+        )
+
+
+@dataclass(frozen=True)
+class EMFComputeSchemeStyle:
+    color: str
+    label: str
+    zorder: int
+
+
+@dataclass(frozen=True)
+class EMFAveragingSchemeStyle:
+    marker: str
+    marker_size: float
+    label: str
+
+
+@dataclass(frozen=True)
+class InterpolationSchemeStyle:
+    linestyle: str
+    label: str
+
+
+class EMFComputeScheme(Enum):
+    Q26 = EMFComputeSchemeStyle(
+        color="gold",
+        label="Q26",
+        zorder=2,
+    )
+    B25 = EMFComputeSchemeStyle(
+        color="cornflowerblue",
+        label="B25",
+        zorder=1,
+    )
+    FS17 = EMFComputeSchemeStyle(
+        color="forestgreen",
+        label="FS17",
+        zorder=1,
+    )
+
+    @property
+    def as_tag(
+        self,
+    ) -> str:
+        return self.name.lower()
+
+
+class EMFAveragingScheme(Enum):
+    B25 = EMFAveragingSchemeStyle(
+        marker="D",
+        marker_size=8,
+        label="B25",
+    )
+    LD04 = EMFAveragingSchemeStyle(
+        marker="o",
+        marker_size=4,
+        label="LD04",
+    )
+
+    @property
+    def as_tag(
+        self,
+    ) -> str:
+        return self.name.lower()
+
+
+class InterpolationScheme(Enum):
+    PLM = InterpolationSchemeStyle(
+        linestyle=":",
+        label="PLM",
+    )
+    PPM = InterpolationSchemeStyle(
+        linestyle="--",
+        label="PPM",
+    )
+    PPM_EP = InterpolationSchemeStyle(
+        linestyle="-",
+        label="PPM-EP",
+    )
+
+    @property
+    def as_tag(
+        self,
+    ) -> str:
+        return self.name.lower()
+
+
+@dataclass(frozen=True)
+class SchemeSet:
+    emf_compute_scheme: EMFComputeScheme
+    emf_averaging_scheme: EMFAveragingScheme
+    interpolation_scheme: InterpolationScheme
+
+    @property
+    def as_tag(
+        self,
+    ) -> str:
+        return (
+            f"{self.emf_compute_scheme.as_tag}-"
+            f"{self.emf_averaging_scheme.as_tag}-"
+            f"{self.interpolation_scheme.as_tag}"
+        )
+
+
+@dataclass(frozen=True)
+class ConvergenceSeries:
+    scheme_set: SchemeSet
+    ncells: NDArray[numpy.float64]
+    cell_size: NDArray[numpy.float64]
+    error: NDArray[numpy.float64]
+
+    def __post_init__(
+        self,
+    ) -> None:
+        self._ensure_data_array(self.ncells, param_name="ncells")
+        self._ensure_data_array(self.cell_size, param_name="cell_size")
+        self._ensure_data_array(self.error, param_name="error")
+        validate_arrays.ensure_same_shape(
+            array_a=self.ncells,
+            array_b=self.cell_size,
+            param_name_a="ncells",
+            param_name_b="cell_size",
+        )
+        validate_arrays.ensure_same_shape(
+            array_a=self.cell_size,
+            array_b=self.error,
+            param_name_a="cell_size",
+            param_name_b="error",
+        )
+
+    @staticmethod
+    def _ensure_data_array(
+        array: NDArray[numpy.float64],
+        *,
+        param_name: str,
+    ) -> None:
+        validate_arrays.ensure_nonempty(array, param_name=param_name)
+        validate_arrays.ensure_finite(array, param_name=param_name)
+        validate_arrays.ensure_1d(array, param_name=param_name)
+
+
+##
+## === CONSTANTS
+##
+
+ROOT_DIR: Path = Path(__file__).parents[3]
+DATASET_DIR: Path = ROOT_DIR / "datasets/problems"
+FIGURE_PATH: Path = ROOT_DIR / "figures/problems/wave-convergence/wave-convergence.png"
+
+WAVE_CONFIGS: tuple[WaveConfig, ...] = (
+    WaveConfig(
+        wave_label="Alfvén (linear)",
+        wave_data_dir=Path("alfven-wave-linear/convergence/ideal/angle=0-nx=1-ny=0-nz=0"),
+        wave_data_file_name="alfven_wave_convergence.csv",
+        axis_y_range=(-12.5, -6),
+        fit_x_range=(16, 512),
+    ),
+    WaveConfig(
+        wave_label="Alfvén (circular)",
+        wave_data_dir=Path("alfven-wave-circular/convergence"),
+        wave_data_file_name="alfven_wave_circular_convergence.csv",
+        axis_y_range=(-13, -6),
+        fit_x_range=(16, 2048),
+    ),
+    WaveConfig(
+        wave_label="fast",
+        wave_data_dir=Path("fast-wave/convergence/nx=1-ny=0-nz=0"),
+        wave_data_file_name="fast_wave_convergence.csv",
+        axis_y_range=(-12, -6),
+        fit_x_range=(16, 512),
+    ),
+    WaveConfig(
+        wave_label="slow",
+        wave_data_dir=Path("slow-wave/convergence/nx=1-ny=0-nz=0"),
+        wave_data_file_name="slow_wave_convergence.csv",
+        axis_y_range=(-12, -5.5),
+        fit_x_range=(16, 512),
+    ),
 )
-
-## scheme tokens, matching the dataset directory names: <reconstruction>-<averaging>-<interpolation>.
-EMF_RECONSTRUCTIONS = ("q26", "b25", "fs17")
-EMF_AVERAGINGS = ("b25", "ld04")
-INTERPOLATIONS = ("plm", "ppm", "ppm_ep")  ## encoded by linestyle; (omitted: "pcm")
-
-## same convention as `brio-wu-shock-tube/plot_scheme_comparison.py`: colour by EMF reconstruction,
-## marker by EMF averaging. Linestyle-by-interpolation is specific to this plot, since the wave
-## tests (unlike the shock tubes) sweep interpolation order too.
-COMPUTE_COLORS = {"q26": "gold", "b25": "cornflowerblue", "fs17": "forestgreen"}
-AVERAGING_MARKERS = {"b25": "D", "ld04": "o"}
-## the diamond marker reads visually smaller than the circle at equal markersize, so bump it up
-MARKERSIZE_BY_AVERAGING = {"b25": 8, "ld04": 4}
-## q26 is the recommended reconstruction, so draw it last/on top when combos overlap
-ZORDER_BY_RECONSTRUCTION = {"fs17": 1, "b25": 1, "q26": 2}
-LINESTYLE_BY_INTERPOLATION = {
-    "plm": ":",
-    "ppm": "--",
-    "ppm_ep": "-",
-}
-
-## display shorthand for legend labels, distinct from the lowercase dataset-directory tokens
-COMPUTE_LABELS = {"q26": "Q26", "fs17": "FS17", "b25": "B25"}
-AVERAGING_LABELS = {"ld04": "LD04", "b25": "B25"}
-INTERPOLATION_LABELS = {"plm": "PLM", "ppm": "PPM", "ppm_ep": "PPM-EP"}
-
-## the raw error is plotted (uncompensated), so the slope is the convergence order directly;
-## both axes plot the log10 of the data (linear axes), rather than log-scaling the axes
-FIELD_LABEL_X = r"$\log_{10} \Delta x$"
-FIELD_LABEL_Y = r"$\log_{10} \, \mathrm{error}$"
-
-ROOT_DIR = Path(__file__).parents[3]
-DATASET_DIR = ROOT_DIR / "datasets/problems"
-FIGURE_PATH = ROOT_DIR / "figures/problems/wave-convergence/wave-convergence.png"
 
 ##
 ## === HELPER FUNCTIONS
 ##
 
 
-def get_convergence_dir(
+def load_data_series_list(
     *,
-    wave: dict[str, str],
-) -> Path:
-    """Path to a wave's resolution-ladder directory."""
-    return DATASET_DIR / wave["problem_dir"] / "convergence" / wave["sub_path"]
-
-
-def load_wave_convergence(
-    *,
-    wave: dict[str, str],
-) -> dict[tuple[str, str, str], tuple[numpy.ndarray, numpy.ndarray]]:
-    """Load (dx, error) for every plotted scheme combo of a single wave family.
-
-    Missing combos (eg. a still-running regeneration job) are skipped with a warning
-    rather than raising, so the figure can be previewed before every job has finished.
-    """
-    series: dict[tuple[str, str, str], tuple[numpy.ndarray, numpy.ndarray]] = {}
-    convergence_dir = get_convergence_dir(wave=wave)
-    for reconstruction in EMF_RECONSTRUCTIONS:
-        for averaging in EMF_AVERAGINGS:
-            for interpolation in INTERPOLATIONS:
-                csv_path = convergence_dir / f"{reconstruction}-{averaging}-{interpolation}" / wave["csv_name"]
-                if not csv_path.is_file():
-                    print(f"[skip] missing: {csv_path}")
+    wave_config: WaveConfig,
+) -> list[ConvergenceSeries]:
+    data_dir = DATASET_DIR / wave_config.wave_data_dir
+    data_series_list: list[ConvergenceSeries] = []
+    for emf_compute_scheme in EMFComputeScheme:
+        for emf_averaging_scheme in EMFAveragingScheme:
+            for interpolation_scheme in InterpolationScheme:
+                scheme_set = SchemeSet(
+                    emf_compute_scheme=emf_compute_scheme,
+                    emf_averaging_scheme=emf_averaging_scheme,
+                    interpolation_scheme=interpolation_scheme,
+                )
+                data_path = data_dir / scheme_set.as_tag / wave_config.wave_data_file_name
+                if not data_path.is_file():
+                    manage_log.log_warning(text=f"missing: {data_path}")
                     continue
-                table = csv_io.read_csv_file_into_dict(
-                    csv_path,
+                data_table = csv_io.read_csv_file_into_dict(
+                    data_path,
                     verbose=False,
                 )
-                cell_size = numpy.asarray(table["dx"])
-                error = numpy.asarray(table["error"])
-                series[(reconstruction, averaging, interpolation)] = (cell_size, error)
-    return series
+                data_series_list.append(
+                    ConvergenceSeries(
+                        scheme_set=scheme_set,
+                        ncells=numpy.asarray(data_table["nx"]),
+                        cell_size=numpy.asarray(data_table["dx"]),
+                        error=numpy.asarray(data_table["error"]),
+                    ),
+                )
+    return data_series_list
 
 
 def plot_wave_panel(
     *,
-    ax,
-    series: dict[tuple[str, str, str], tuple[numpy.ndarray, numpy.ndarray]],
+    ax: manage_plots.PlotAxis,
+    data_series_list: list[ConvergenceSeries],
 ) -> None:
-    """Plot every scheme combo for one wave family onto `ax`, as error vs dx."""
-    for reconstruction in EMF_RECONSTRUCTIONS:
-        for averaging in EMF_AVERAGINGS:
-            for interpolation in INTERPOLATIONS:
-                key = (reconstruction, averaging, interpolation)
-                if key not in series:
-                    continue
-                cell_size, error = series[key]
-                ax.plot(
-                    numpy.log10(cell_size),
-                    numpy.log10(error),
-                    color=COMPUTE_COLORS[reconstruction],
-                    marker=AVERAGING_MARKERS[averaging],
-                    markersize=MARKERSIZE_BY_AVERAGING[averaging],
-                    markerfacecolor="none",
-                    markeredgecolor=COMPUTE_COLORS[reconstruction],
-                    markeredgewidth=1.5,
-                    linestyle=LINESTYLE_BY_INTERPOLATION[interpolation],
-                    linewidth=1.5,
-                    zorder=ZORDER_BY_RECONSTRUCTION[reconstruction],
-                )
+    for data_series in data_series_list:
+        emf_compute_scheme_style = data_series.scheme_set.emf_compute_scheme.value
+        emf_averaging_scheme_style = data_series.scheme_set.emf_averaging_scheme.value
+        interpolation_scheme_style = data_series.scheme_set.interpolation_scheme.value
+        ax.plot(
+            numpy.log10(data_series.cell_size),
+            numpy.log10(data_series.error),
+            color=emf_compute_scheme_style.color,
+            marker=emf_averaging_scheme_style.marker,
+            markersize=emf_averaging_scheme_style.marker_size,
+            markerfacecolor="none",
+            markeredgecolor=emf_compute_scheme_style.color,
+            markeredgewidth=1.5,
+            linestyle=interpolation_scheme_style.linestyle,
+            linewidth=1.5,
+            zorder=emf_compute_scheme_style.zorder,
+        )
 
 
-## the reference line's anchor point is set from the recommended scheme (Q26 + Balsara2025),
-## halfway between the PPM and PPM-EP interpolation curves, at this resolution
-REFERENCE_SLOPE = 2.0
-REFERENCE_ANCHOR_NCELLS = 128
-REFERENCE_RECONSTRUCTION = "q26"
-REFERENCE_AVERAGING = "b25"
-
-
-def add_reference_slope(
+def overlay_reference_slope(
     *,
-    ax,
-    wave: dict[str, str],
+    ax: manage_plots.PlotAxis,
+    wave_config: WaveConfig,
+    data_series_list: list[ConvergenceSeries],
 ) -> None:
-    """Overlay a slope=`REFERENCE_SLOPE` line, anchored halfway (in log-log space) between the
-    PPM and PPM-EP curves of the recommended scheme, at `REFERENCE_ANCHOR_NCELLS`.
-    """
-    convergence_dir = get_convergence_dir(wave=wave)
-    table_ppm = csv_io.read_csv_file_into_dict(
-        convergence_dir / f"{REFERENCE_RECONSTRUCTION}-{REFERENCE_AVERAGING}-ppm" / wave["csv_name"],
-        verbose=False,
+    """Overlay a reference slope anchored halfway between the PPM and PPM-EP data series."""
+    reference_slope: float = 2.0
+    reference_anchor_ncells: int = 128
+    reference_scheme_set_ppm = SchemeSet(
+        emf_compute_scheme=EMFComputeScheme.Q26,
+        emf_averaging_scheme=EMFAveragingScheme.B25,
+        interpolation_scheme=InterpolationScheme.PPM,
     )
-    table_ppm_ep = csv_io.read_csv_file_into_dict(
-        convergence_dir / f"{REFERENCE_RECONSTRUCTION}-{REFERENCE_AVERAGING}-ppm_ep" / wave["csv_name"],
-        verbose=False,
+    reference_scheme_set_ppm_ep = SchemeSet(
+        emf_compute_scheme=EMFComputeScheme.Q26,
+        emf_averaging_scheme=EMFAveragingScheme.B25,
+        interpolation_scheme=InterpolationScheme.PPM_EP,
     )
-    nx_array = numpy.asarray(table_ppm["nx"])
-    dx_array = numpy.asarray(table_ppm["dx"])
-    anchor_index = int(numpy.argmin(numpy.abs(nx_array - REFERENCE_ANCHOR_NCELLS)))
-    x_ref = numpy.log10(dx_array[anchor_index])
-    y_ppm = numpy.log10(numpy.asarray(table_ppm["error"])[anchor_index])
-    y_ppm_ep = numpy.log10(numpy.asarray(table_ppm_ep["error"])[anchor_index])
-    y_ref = 0.5 * (y_ppm + y_ppm_ep)
+    data_series_ppm = next(
+        data_series for data_series in data_series_list if data_series.scheme_set == reference_scheme_set_ppm
+    )
+    data_series_ppm_ep = next(
+        data_series for data_series in data_series_list
+        if data_series.scheme_set == reference_scheme_set_ppm_ep
+    )
+    anchor_index = int(numpy.argmin(numpy.abs(data_series_ppm.ncells - reference_anchor_ncells)))
+    x_anchor = numpy.log10(data_series_ppm.cell_size[anchor_index])
+    y_ppm = numpy.log10(data_series_ppm.error[anchor_index])
+    y_ppm_ep = numpy.log10(data_series_ppm_ep.error[anchor_index])
+    y_anchor = 0.5 * (y_ppm + y_ppm_ep)
     intercept = fit_series.get_linear_intercept(
-        slope=REFERENCE_SLOPE,
-        x_ref=x_ref,
-        y_ref=y_ref,
+        slope=reference_slope,
+        x_ref=x_anchor,
+        y_ref=y_anchor,
     )
-    ## the line spans from the coarsest resolution up to `reference_max_ncells` (or the finest,
-    ## when unset), so it can be truncated per-wave where the data no longer tracks 2nd order
-    max_ncells = wave.get("reference_max_ncells") or nx_array[-1]
-    end_index = int(numpy.argmin(numpy.abs(nx_array - max_ncells)))
-    x_values = numpy.log10(dx_array[[0, end_index]])
-    y_values = REFERENCE_SLOPE * x_values + intercept
+    min_ncells, max_ncells = wave_config.fit_x_range
+    start_index = int(numpy.argmin(numpy.abs(data_series_ppm.ncells - min_ncells)))
+    end_index = int(numpy.argmin(numpy.abs(data_series_ppm.ncells - max_ncells)))
+    x_values = numpy.log10(data_series_ppm.cell_size[[start_index, end_index]])
+    y_values = reference_slope * x_values + intercept
     annotate_axis.overlay_curve(
         ax=ax,
         x_values=x_values,
@@ -216,72 +342,60 @@ def add_reference_slope(
     )
 
 
-def read_resolution_ladder(
-    *,
-    wave: dict[str, str],
-) -> tuple[numpy.ndarray, numpy.ndarray]:
-    """Read the shared (ncells, dx) ladder for a wave from a representative combo's CSV."""
-    combo = f"{EMF_RECONSTRUCTIONS[0]}-{EMF_AVERAGINGS[0]}-{INTERPOLATIONS[0]}"
-    csv_path = get_convergence_dir(wave=wave) / combo / wave["csv_name"]
-    table = csv_io.read_csv_file_into_dict(
-        csv_path,
-        verbose=False,
-    )
-    return numpy.asarray(table["nx"]), numpy.asarray(table["dx"])
-
-
 def set_resolution_ticks(
     *,
-    ax,
-    ncells: numpy.ndarray,
-    cell_sizes: numpy.ndarray,
+    ax: manage_plots.PlotAxis,
+    ncells: NDArray[numpy.float64],
+    cell_sizes: NDArray[numpy.float64],
+    show_tick_labels: bool,
+    show_axis_label: bool,
 ) -> None:
-    """Set the bottom x-axis ticks to the linear cell count at each log10(dx) tick position."""
     ax.set_xticks(numpy.log10(cell_sizes))
     ax.set_xticklabels([str(int(n)) for n in ncells])
+    ax.tick_params(labelbottom=show_tick_labels)
     ax.minorticks_off()
-    ax.set_xlabel("resolution")
+    if show_axis_label:
+        ax.set_xlabel("resolution")
 
 
 def add_delta_x_axis(
     *,
-    ax,
+    ax: manage_plots.PlotAxis,
+    show_tick_labels: bool,
+    show_axis_label: bool,
 ) -> None:
-    """Annotate a top x-axis with log10(dx), using default numeric ticks."""
     top_ax = ax.twiny()
-    top_ax.set_xlim(ax.get_xlim())  ## share the (inverted) log10(dx) range of the bottom axis
-    top_ax.set_xlabel(FIELD_LABEL_X)
+    top_ax.set_xlim(ax.get_xlim())
+    top_ax.tick_params(labeltop=show_tick_labels)
+    if show_axis_label:
+        top_ax.set_xlabel(r"$\log_{10} \Delta x$")
 
 
-def add_compute_legend(
+def add_emf_compute_scheme_legend(
     *,
-    ax,
+    ax: manage_plots.PlotAxis,
 ) -> None:
-    """Legend for EMF compute, shown as coloured shorthand text (no marker, since colour alone
-    already encodes compute in the data).
-    """
     annotate_axis.add_custom_legend(
         ax=ax,
-        artists=["o" for _ in EMF_RECONSTRUCTIONS],
-        labels=[COMPUTE_LABELS[reconstruction] for reconstruction in EMF_RECONSTRUCTIONS],
-        colors=[COMPUTE_COLORS[reconstruction] for reconstruction in EMF_RECONSTRUCTIONS],
-        marker_size=0,  ## hide the marker handle, leaving only the coloured label text
+        artists=["o" for _ in EMFComputeScheme],
+        labels=[scheme.value.label for scheme in EMFComputeScheme],
+        colors=[scheme.value.color for scheme in EMFComputeScheme],
+        marker_size=0,  # hide the marker handle, only leave the coloured label text
         text_color="markerfacecolor",
         anchor_point=(1.0, 1.0),
         anchor_at_corner=box_positions.Positions.Corner.TopRight,
     )
 
 
-def add_averaging_legend(
+def add_emf_averaging_scheme_legend(
     *,
-    ax,
+    ax: manage_plots.PlotAxis,
 ) -> None:
-    """Legend for EMF averaging, shown as marker + shorthand."""
     annotate_axis.add_custom_legend(
         ax=ax,
-        artists=[AVERAGING_MARKERS[averaging] for averaging in EMF_AVERAGINGS],
-        labels=[AVERAGING_LABELS[averaging] for averaging in EMF_AVERAGINGS],
-        colors=["black" for _ in EMF_AVERAGINGS],
+        artists=[scheme.value.marker for scheme in EMFAveragingScheme],
+        labels=[scheme.value.label for scheme in EMFAveragingScheme],
+        colors=["black" for _ in EMFAveragingScheme],
         marker_size=7,
         text_color="black",
         anchor_point=(1.0, 1.0),
@@ -289,21 +403,21 @@ def add_averaging_legend(
     )
 
 
-def add_interpolation_legend(
+def add_interpolation_scheme_legend(
     *,
-    ax,
+    ax: manage_plots.PlotAxis,
 ) -> None:
-    """Legend for interpolation order, shown as line style + shorthand."""
     annotate_axis.add_custom_legend(
         ax=ax,
-        artists=[LINESTYLE_BY_INTERPOLATION[interpolation] for interpolation in INTERPOLATIONS],
-        labels=[INTERPOLATION_LABELS[interpolation] for interpolation in INTERPOLATIONS],
-        colors=["black" for _ in INTERPOLATIONS],
+        artists=[scheme.value.linestyle for scheme in InterpolationScheme],
+        labels=[scheme.value.label for scheme in InterpolationScheme],
+        colors=["black" for _ in InterpolationScheme],
         line_width=1.2,
         text_color="black",
         anchor_point=(1.0, 1.0),
         anchor_at_corner=box_positions.Positions.Corner.TopRight,
     )
+
 
 ##
 ## === PROGRAM MAIN
@@ -316,48 +430,57 @@ def main() -> None:
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
-    fig, axs = manage_plots.create_figure_grid(
-        num_rows=len(WAVES),
+    fig, axs = manage_plots.create_figure(
+        num_rows=len(WAVE_CONFIGS),
         num_cols=1,
         axis_shape=(3.5, 6),
         share_x=True,
         share_y=False,
     )
-    for row_index, wave in enumerate(WAVES):
+    for row_index, wave_config in enumerate(WAVE_CONFIGS):
         ax = axs[row_index, 0]
-        series = load_wave_convergence(wave=wave)
-        plot_wave_panel(ax=ax, series=series)
-        add_reference_slope(ax=ax, wave=wave)
-        ax.set_ylim(wave["y_lim"][1], wave["y_lim"][0])
+        data_series_list = load_data_series_list(wave_config=wave_config)
+        set_resolution_ticks(
+            ax=ax,
+            ncells=data_series_list[0].ncells,
+            cell_sizes=data_series_list[0].cell_size,
+            show_tick_labels=(row_index == len(WAVE_CONFIGS) - 1),
+            show_axis_label=(row_index == len(WAVE_CONFIGS) - 1),
+        )
+        add_delta_x_axis(
+            ax=ax,
+            show_tick_labels=(row_index == 0),
+            show_axis_label=(row_index == 0),
+        )
+        plot_wave_panel(
+            ax=ax,
+            data_series_list=data_series_list,
+        )
+        overlay_reference_slope(
+            ax=ax,
+            wave_config=wave_config,
+            data_series_list=data_series_list,
+        )
+        ax.set_ylim(wave_config.axis_y_range)
         annotate_axis.add_text(
             ax=ax,
             x_pos=0.05,
             y_pos=0.05,
             x_alignment="left",
             y_alignment="bottom",
-            label=wave["label"],
+            label=wave_config.wave_label,
         )
-        ax.label_outer()  ## with shared x, show tick labels only on the bottom panel
-    ## set the shared x-range now, with autoscale off, so no later `ax.plot()` call in the
-    ## shared-x group (matplotlib recomputes shared limits from all siblings on each new plot)
-    ## can silently revert it: coarser resolution (larger dx) to the left, finer to the right.
-    ## Must happen before `add_delta_x_axis` below, which reads this axis's final xlim.
-    x_min, x_max = axs[0, 0].get_xlim()
-    for ax in axs.flat:
-        ax.set_autoscalex_on(False)
-        ax.set_xlim(x_max, x_min)
-    ncells, cell_sizes = read_resolution_ladder(wave=WAVES[0])
-    set_resolution_ticks(ax=axs[-1, 0], ncells=ncells, cell_sizes=cell_sizes)
-    add_delta_x_axis(ax=axs[0, 0])
-    add_compute_legend(ax=axs[0, 0])
-    add_averaging_legend(ax=axs[1, 0])
-    add_interpolation_legend(ax=axs[2, 0])
-    fig.supylabel(FIELD_LABEL_Y, x=-0.02)
+    axs[0, 0].invert_xaxis()
+    add_emf_compute_scheme_legend(ax=axs[0, 0])
+    add_emf_averaging_scheme_legend(ax=axs[1, 0])
+    add_interpolation_scheme_legend(ax=axs[2, 0])
+    fig.supylabel(r"$\log_{10} \, \mathrm{error}$", x=-0.05)
     manage_plots.save_figure(
         fig=fig,
         fig_path=FIGURE_PATH,
         dpi=200,
     )
+
 
 ##
 ## === ENTRY POINT

@@ -16,8 +16,16 @@ from numpy.typing import NDArray
 
 ## personal
 from jormi.ww_data import fit_series
-from jormi.ww_io import csv_io, manage_io, manage_log
-from jormi.ww_plots import annotate_axis, manage_plots, style_plots
+from jormi.ww_io import (
+    csv_io,
+    manage_io,
+    manage_log,
+)
+from jormi.ww_plots import (
+    annotate_axis,
+    manage_plots,
+    style_plots,
+)
 from jormi.ww_types import box_positions
 from jormi.ww_validation import validate_arrays, validate_types
 
@@ -135,7 +143,7 @@ class InterpolationScheme(Enum):
 
 
 @dataclass(frozen=True)
-class SchemeSet:
+class Sim:
     emf_compute_scheme: EMFComputeScheme
     emf_averaging_scheme: EMFAveragingScheme
     interpolation_scheme: InterpolationScheme
@@ -153,7 +161,7 @@ class SchemeSet:
 
 @dataclass(frozen=True)
 class ConvergenceSeries:
-    scheme_set: SchemeSet
+    sim: Sim
     ncells: NDArray[numpy.float64]
     cell_size: NDArray[numpy.float64]
     error: NDArray[numpy.float64]
@@ -194,7 +202,7 @@ class ConvergenceSeries:
 
 ROOT_DIR: Path = Path(__file__).parents[3]
 DATASET_DIR: Path = ROOT_DIR / "datasets/problems"
-FIGURE_PATH: Path = ROOT_DIR / "figures/problems/wave-convergence/wave-convergence.png"
+FIGURE_PATH: Path = ROOT_DIR / "figures/problems/wave-convergence/grid-aligned-convergence.png"
 
 WAVE_CONFIGS: tuple[WaveConfig, ...] = (
     WaveConfig(
@@ -241,12 +249,12 @@ def load_data_series_list(
     for emf_compute_scheme in EMFComputeScheme:
         for emf_averaging_scheme in EMFAveragingScheme:
             for interpolation_scheme in InterpolationScheme:
-                scheme_set = SchemeSet(
+                sim = Sim(
                     emf_compute_scheme=emf_compute_scheme,
                     emf_averaging_scheme=emf_averaging_scheme,
                     interpolation_scheme=interpolation_scheme,
                 )
-                data_path = data_dir / scheme_set.as_tag / wave_config.wave_data_file_name
+                data_path = data_dir / sim.as_tag / wave_config.wave_data_file_name
                 if not data_path.is_file():
                     manage_log.log_warning(text=f"missing: {data_path}")
                     continue
@@ -256,7 +264,7 @@ def load_data_series_list(
                 )
                 data_series_list.append(
                     ConvergenceSeries(
-                        scheme_set=scheme_set,
+                        sim=sim,
                         ncells=numpy.asarray(data_table["nx"]),
                         cell_size=numpy.asarray(data_table["dx"]),
                         error=numpy.asarray(data_table["error"]),
@@ -271,9 +279,9 @@ def plot_wave_panel(
     data_series_list: list[ConvergenceSeries],
 ) -> None:
     for data_series in data_series_list:
-        emf_compute_scheme_style = data_series.scheme_set.emf_compute_scheme.value
-        emf_averaging_scheme_style = data_series.scheme_set.emf_averaging_scheme.value
-        interpolation_scheme_style = data_series.scheme_set.interpolation_scheme.value
+        emf_compute_scheme_style = data_series.sim.emf_compute_scheme.value
+        emf_averaging_scheme_style = data_series.sim.emf_averaging_scheme.value
+        interpolation_scheme_style = data_series.sim.interpolation_scheme.value
         ax.plot(
             numpy.log10(data_series.cell_size),
             numpy.log10(data_series.error),
@@ -298,22 +306,21 @@ def overlay_reference_slope(
     """Overlay a reference slope anchored halfway between the PPM and PPM-EP data series."""
     reference_slope: float = 2.0
     reference_anchor_ncells: int = 128
-    reference_scheme_set_ppm = SchemeSet(
+    reference_sim_ppm = Sim(
         emf_compute_scheme=EMFComputeScheme.Q26,
         emf_averaging_scheme=EMFAveragingScheme.B25,
         interpolation_scheme=InterpolationScheme.PPM,
     )
-    reference_scheme_set_ppm_ep = SchemeSet(
+    reference_sim_ppm_ep = Sim(
         emf_compute_scheme=EMFComputeScheme.Q26,
         emf_averaging_scheme=EMFAveragingScheme.B25,
         interpolation_scheme=InterpolationScheme.PPM_EP,
     )
     data_series_ppm = next(
-        data_series for data_series in data_series_list if data_series.scheme_set == reference_scheme_set_ppm
+        data_series for data_series in data_series_list if data_series.sim == reference_sim_ppm
     )
     data_series_ppm_ep = next(
-        data_series for data_series in data_series_list
-        if data_series.scheme_set == reference_scheme_set_ppm_ep
+        data_series for data_series in data_series_list if data_series.sim == reference_sim_ppm_ep
     )
     anchor_index = int(numpy.argmin(numpy.abs(data_series_ppm.ncells - reference_anchor_ncells)))
     x_anchor = numpy.log10(data_series_ppm.cell_size[anchor_index])

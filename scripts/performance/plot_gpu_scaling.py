@@ -60,15 +60,15 @@ class AveragingSchemeStyle:
 class AveragingScheme(Enum):
     LD04 = AveragingSchemeStyle(
         label="LD04",
-        marker="o",
         linestyle="-",
-        marker_size=90,
+        marker="o",
+        marker_size=9.5,
     )
     B25 = AveragingSchemeStyle(
         label="B25",
-        marker="D",
         linestyle="--",
-        marker_size=90,
+        marker="D",
+        marker_size=9.5,
     )
 
 
@@ -135,14 +135,15 @@ def plot_scaling_panel(
             alpha=0.5,
             zorder=compute_style.zorder,
         )
-        ax.scatter(
-            x=group["num_gpus"],
-            y=group["updates_per_s_per_gpu"],
-            c=compute_style.color,
-            s=avg_style.marker_size,
+        ax.plot(
+            group["num_gpus"],
+            group["updates_per_s_per_gpu"],
+            linestyle="None",
             marker=avg_style.marker,
-            edgecolors="black",
-            linewidths=1.5,
+            markersize=avg_style.marker_size,
+            markerfacecolor=compute_style.color,
+            markeredgecolor="black",
+            markeredgewidth=1.5,
             label=f"{compute_style.label} + {avg_style.label}",
             zorder=10 + compute_style.zorder,
         )
@@ -179,7 +180,7 @@ def configure_strong_axis(
         [
             f"$2^{{{round(numpy.log2(gpu_count))}}}$" if round(numpy.log2(gpu_count)) % 2 == 0 else ""
             for gpu_count in gpu_ticks
-        ]
+        ],
     )
     ## show a tick at every GPU count tested, but only label the ones where 512/N^(1/3) lands
     ## on an exact integer cells/GPU side length
@@ -195,7 +196,7 @@ def configure_strong_axis(
         [
             f"${round(TOTAL_CELLS_PER_SIDE / gpu_count ** (1.0 / 3.0))}^3$"
             if gpu_count in labeled_gpu_ticks else "" for gpu_count in gpu_ticks
-        ]
+        ],
     )
     top_ax.minorticks_off()
     top_ax.set_xlabel("cells / GPU")

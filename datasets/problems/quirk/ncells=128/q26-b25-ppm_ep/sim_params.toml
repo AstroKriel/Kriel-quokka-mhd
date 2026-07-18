@@ -7,7 +7,9 @@ quokka.bc = ["ext_dir", "periodic", "periodic"]
 ## resolution
 amr.n_cell = [128, 128, 8]
 amr.max_level = 0
-amr.max_grid_size = 32
+amr.max_grid_size_x = 32
+amr.max_grid_size_y = 32
+amr.max_grid_size_z = 32
 amr.blocking_factor_x = 16
 amr.blocking_factor_y = 16
 amr.blocking_factor_z = 8
@@ -17,13 +19,13 @@ amr.v = 1
 
 ## output
 checkpoint_interval = -1
-plotfile_interval = 50
+plotfile_interval = 25
 plotfile_prefix = "snapshots/plt"
 
 ## time integration
-cfl = 0.4
-stop_time = 0.4
-max_timesteps = 2000
+cfl = 0.2
+stop_time = 0.75
+max_timesteps = 5000
 
 ## hydro
 hydro.rk_integrator_order = 2

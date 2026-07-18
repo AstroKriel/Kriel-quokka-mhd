@@ -13,6 +13,7 @@ from pathlib import Path
 ## third-party
 import numpy
 import pandas
+from numpy.typing import NDArray
 
 ## personal
 from jormi.ww_io import manage_io
@@ -71,6 +72,14 @@ class AveragingScheme(Enum):
     )
 
 
+@dataclass(frozen=True)
+class ScalingSeries:
+    compute_scheme: ComputeScheme
+    averaging_scheme: AveragingScheme
+    num_gpus: NDArray[numpy.floating]
+    updates_per_s_per_gpu: NDArray[numpy.floating]
+
+
 ##
 ## === CONSTANTS
 ##
@@ -85,49 +94,41 @@ TOTAL_CELLS_PER_SIDE = 512
 
 def load_scaling_data(
     csv_path: Path,
-) -> pandas.DataFrame:
-    df = pandas.read_csv(csv_path)
-    df["num_gpus"] = pandas.to_numeric(
-        df["num_gpus"],
-        errors="coerce",
-    )
-    df["us_per_zone_update"] = pandas.to_numeric(
-        df["us_per_zone_update"],
-        errors="coerce",
-    )
-    df = df.dropna(subset=["num_gpus", "us_per_zone_update", "compute_scheme", "averaging_scheme"])
-    df["updates_per_s_per_gpu"] = 1.0 / (df["us_per_zone_update"] * df["num_gpus"])
-    compute_order = [scheme.name for scheme in ComputeScheme]
-    avg_order = [scheme.name for scheme in AveragingScheme]
-    df["compute_scheme"] = pandas.Categorical(
-        df["compute_scheme"],
-        categories=compute_order,
-        ordered=True,
-    )
-    df["averaging_scheme"] = pandas.Categorical(
-        df["averaging_scheme"],
-        categories=avg_order,
-        ordered=True,
-    )
-    return df.sort_values(["compute_scheme", "averaging_scheme", "num_gpus"])
+) -> list[ScalingSeries]:
+    data_frame = pandas.read_csv(csv_path)
+    series_list = []
+    for compute_scheme in ComputeScheme:
+        for averaging_scheme in AveragingScheme:
+            mask = (data_frame["compute_scheme"] == compute_scheme.name) & \
+                (data_frame["averaging_scheme"] == averaging_scheme.name)
+            subset = data_frame.loc[mask].sort_values(by="num_gpus")
+            if subset.empty:
+                continue
+            num_gpus = subset["num_gpus"].to_numpy(dtype=numpy.float64)
+            us_per_zone_update = subset["us_per_zone_update"].to_numpy(dtype=numpy.float64)
+            series_list.append(
+                ScalingSeries(
+                    compute_scheme=compute_scheme,
+                    averaging_scheme=averaging_scheme,
+                    num_gpus=num_gpus,
+                    updates_per_s_per_gpu=1.0 / (us_per_zone_update * num_gpus),
+                ),
+            )
+    return series_list
 
 
 def plot_scaling_panel(
     *,
     ax: manage_plots.PlotAxis,
-    df: pandas.DataFrame,
-    reference_value: Callable[[pandas.DataFrame], float],
+    series_list: list[ScalingSeries],
+    reference_value: Callable[[ScalingSeries], float],
     add_y_label: bool,
 ) -> None:
-    for group_key, group in df.groupby(
-            by=["compute_scheme", "averaging_scheme"],
-            sort=False,
-    ):
-        compute_name, avg_name = group_key  # pyright: ignore[reportGeneralTypeIssues]
-        compute_style = ComputeScheme[str(compute_name)].value
-        avg_style = AveragingScheme[str(avg_name)].value
+    for series in series_list:
+        compute_style = series.compute_scheme.value
+        avg_style = series.averaging_scheme.value
         ax.axhline(
-            y=reference_value(group),
+            y=reference_value(series),
             linestyle=avg_style.linestyle,
             linewidth=1.2,
             color=compute_style.color,
@@ -135,8 +136,8 @@ def plot_scaling_panel(
             zorder=compute_style.zorder,
         )
         ax.plot(
-            group["num_gpus"],
-            group["updates_per_s_per_gpu"],
+            series.num_gpus,
+            series.updates_per_s_per_gpu,
             linestyle="None",
             marker=avg_style.marker,
             markersize=avg_style.marker_size,
@@ -234,21 +235,20 @@ def main() -> None:
     strong_ax = axs[0, 0]
     weak_ax = axs[0, 1]
 
-    strong_df = load_scaling_data(datasets_dir / "strong_gpu_scaling.csv")
+    strong_series_list = load_scaling_data(datasets_dir / "strong_gpu_scaling.csv")
     plot_scaling_panel(
         ax=strong_ax,
-        df=strong_df,
-        reference_value=lambda group: float(group.sort_values("num_gpus")["updates_per_s_per_gpu"].iloc[0]),
+        series_list=strong_series_list,
+        reference_value=lambda series: float(series.updates_per_s_per_gpu[0]),
         add_y_label=True,
     )
     configure_strong_axis(ax=strong_ax)
 
-    weak_df = load_scaling_data(datasets_dir / "weak_gpu_scaling.csv")
+    weak_series_list = load_scaling_data(datasets_dir / "weak_gpu_scaling.csv")
     plot_scaling_panel(
         ax=weak_ax,
-        df=weak_df,
-        reference_value=lambda group:
-        float(group.loc[group["num_gpus"] == 1, "updates_per_s_per_gpu"].mean()),
+        series_list=weak_series_list,
+        reference_value=lambda series: float(series.updates_per_s_per_gpu[series.num_gpus == 1].mean()),
         add_y_label=False,
     )
     configure_weak_axis(ax=weak_ax)

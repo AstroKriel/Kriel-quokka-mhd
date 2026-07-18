@@ -142,7 +142,7 @@ SETUP_PARAMS: QuokkaSetupParams = QuokkaSetupParams(
 
 ROOT_DIR: Path = Path(__file__).parents[3]
 DATASET_DIR: Path = ROOT_DIR / "datasets/problems/ryu-jones-2a-shock-tube/ncells=512"
-FIGURE_PATH: Path = ROOT_DIR / "figures/problems/ryu-jones-2a-shock-tube/ncells=512/scheme_comparison.png"
+FIGURE_PATH: Path = ROOT_DIR / "figures/problems/ryu-jones-2a-shock-tube/ncells=512/scheme-comparison.png"
 
 MARKER_PLOT_KWARGS: dict[str, Any] = {
     "markerfacecolor": "none",
@@ -156,7 +156,7 @@ MARKER_PLOT_KWARGS: dict[str, Any] = {
 ##
 
 
-def get_scheme_set_tag(
+def get_sim_tag(
     *,
     emf_compute_scheme: EMFComputeScheme,
     emf_averaging_scheme: EMFAveragingScheme,
@@ -164,11 +164,11 @@ def get_scheme_set_tag(
     return f"{emf_compute_scheme.as_tag}-{emf_averaging_scheme.as_tag}-ppm_ep"
 
 
-def load_scheme_set_profiles(
+def load_sim_profiles(
     *,
-    scheme_set_dir: Path,
+    sim_dir: Path,
 ) -> ShockTubeProfiles:
-    extracted_dir = scheme_set_dir / "extracted"
+    extracted_dir = sim_dir / "extracted"
     density_path = next(extracted_dir.glob("density-axis=x_0-index=*.json"))
     index = density_path.stem.split("index=")[-1]
     density_profile = ScalarProfile.load_from_file(
@@ -232,12 +232,12 @@ def compute_exact_profiles() -> ShockTubeProfiles:
         magnetic_field_normal=SETUP_PARAMS.magnetic_field_normal,
         gamma=SETUP_PARAMS.gamma,
     )
-    example_scheme_set_dir = DATASET_DIR / "hlld" / get_scheme_set_tag(
+    example_sim_dir = DATASET_DIR / "hlld" / get_sim_tag(
         emf_compute_scheme=EMFComputeScheme.Q26,
         emf_averaging_scheme=EMFAveragingScheme.B25,
     )
     solution_time = ScalarProfile.load_from_file(
-        next((example_scheme_set_dir / "extracted").glob("density-axis=x_0-index=*.json")),
+        next((example_sim_dir / "extracted").glob("density-axis=x_0-index=*.json")),
     ).step_time
     sampled_domain: NDArray[numpy.floating] = numpy.linspace(0.0, 1.0, 2001)
     sampled_solution = exact_solution.sample_snapshot(
@@ -349,7 +349,6 @@ def add_zoom_inset(
     x_bounds: tuple[float, float],
     y_bounds: tuple[float, float],
 ) -> None:
-    """Add a zoomed inset of `ax`'s data."""
     inset_ax = ax.inset_axes((
         bounds.x_min,
         bounds.y_min,
@@ -383,7 +382,6 @@ def add_emf_compute_scheme_legend(
     *,
     ax: manage_plots.PlotAxis,
 ) -> None:
-    """No marker: colour alone already encodes compute in the data."""
     annotate_axis.add_custom_legend(
         ax=ax,
         artists=["o" for _ in EMFComputeScheme],
@@ -417,7 +415,6 @@ def add_llf_legend(
     *,
     ax: manage_plots.PlotAxis,
 ) -> None:
-    """Legend for the LLF validation run, shown as a marker matching the data style."""
     handle = mpl_line2d(
         [0],
         [0],
@@ -450,8 +447,8 @@ def add_llf_legend(
 def main() -> None:
     style_plots.set_theme()
     exact_profiles = compute_exact_profiles()
-    llf_profiles = load_scheme_set_profiles(
-        scheme_set_dir=DATASET_DIR / "llf" / get_scheme_set_tag(
+    llf_sim_profiles = load_sim_profiles(
+        sim_dir=DATASET_DIR / "llf" / get_sim_tag(
             emf_compute_scheme=EMFComputeScheme.Q26,
             emf_averaging_scheme=EMFAveragingScheme.B25,
         ),
@@ -473,7 +470,7 @@ def main() -> None:
     )
     plot_profiles(
         axs=axs,
-        profiles=llf_profiles,
+        profiles=llf_sim_profiles,
         plot_kwargs={
             **MARKER_PLOT_KWARGS,
             "marker": "s",
@@ -483,14 +480,14 @@ def main() -> None:
     )
     for emf_compute_scheme in EMFComputeScheme:
         for emf_averaging_scheme in EMFAveragingScheme:
-            scheme_set_dir = DATASET_DIR / "hlld" / get_scheme_set_tag(
+            sim_dir = DATASET_DIR / "hlld" / get_sim_tag(
                 emf_compute_scheme=emf_compute_scheme,
                 emf_averaging_scheme=emf_averaging_scheme,
             )
-            scheme_set_profiles = load_scheme_set_profiles(scheme_set_dir=scheme_set_dir)
+            sim_profiles = load_sim_profiles(sim_dir=sim_dir)
             plot_profiles(
                 axs=axs,
-                profiles=scheme_set_profiles,
+                profiles=sim_profiles,
                 plot_kwargs={
                     **MARKER_PLOT_KWARGS,
                     "marker": emf_averaging_scheme.value.marker,

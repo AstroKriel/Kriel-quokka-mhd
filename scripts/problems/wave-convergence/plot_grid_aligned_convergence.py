@@ -440,17 +440,19 @@ def main() -> None:
     for row_index, wave_config in enumerate(WAVE_CONFIGS):
         ax = axs[row_index, 0]
         data_series_list = load_data_series_list(wave_config=wave_config)
+        is_first_row: bool = row_index == 0
+        is_last_row: bool = row_index == len(WAVE_CONFIGS) - 1
         set_resolution_ticks(
             ax=ax,
             ncells=data_series_list[0].ncells,
             cell_sizes=data_series_list[0].cell_size,
-            show_tick_labels=(row_index == len(WAVE_CONFIGS) - 1),
-            show_axis_label=(row_index == len(WAVE_CONFIGS) - 1),
+            show_tick_labels=is_last_row,
+            show_axis_label=is_last_row,
         )
         add_delta_x_axis(
             ax=ax,
-            show_tick_labels=(row_index == 0),
-            show_axis_label=(row_index == 0),
+            show_tick_labels=is_first_row,
+            show_axis_label=is_first_row,
         )
         plot_wave_panel(
             ax=ax,
@@ -466,8 +468,8 @@ def main() -> None:
             ax=ax,
             x_pos=0.05,
             y_pos=0.05,
-            x_alignment="left",
-            y_alignment="bottom",
+            x_alignment=box_positions.Positions.Side.Left,
+            y_alignment=box_positions.Positions.Side.Bottom,
             label=wave_config.wave_label,
         )
     axs[0, 0].invert_xaxis()

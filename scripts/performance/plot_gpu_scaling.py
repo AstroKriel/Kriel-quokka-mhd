@@ -84,6 +84,7 @@ class ScalingSeries:
 ## === CONSTANTS
 ##
 
+## annotations
 STRONG_SCALING_PROBLEM_SIZE = 512
 
 ##

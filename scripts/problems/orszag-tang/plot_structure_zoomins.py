@@ -111,6 +111,7 @@ class ZoomRegion:
 ## === CONSTANTS
 ##
 
+## inputs and outputs
 ROOT_DIR = Path(__file__).parents[3]
 DATA_PATH: Path = (
     ROOT_DIR / "datasets/problems/orszag-tang/ncells=8192/q26-b25-ppm/extracted" /
@@ -118,8 +119,10 @@ DATA_PATH: Path = (
 )
 FIGURE_PATH: Path = ROOT_DIR / "figures/problems/orszag-tang/ncells=8192/q26-b25-ppm/structure-zoomins.png"
 
+## plotting details
 AXIS_BOUNDS: plot_data.AxisBounds = ((-0.5, 0.5), (-0.5, 0.5))
 
+## annotations
 ZOOM_REGIONS: tuple[ZoomRegion, ...] = (
     ZoomRegion(
         x_lo=0.0525,

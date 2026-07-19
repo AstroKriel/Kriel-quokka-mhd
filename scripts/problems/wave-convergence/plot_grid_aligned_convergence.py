@@ -200,10 +200,12 @@ class ConvergenceSeries:
 ## === CONSTANTS
 ##
 
+## inputs and outputs
 ROOT_DIR: Path = Path(__file__).parents[3]
 DATASET_DIR: Path = ROOT_DIR / "datasets/problems"
 FIGURE_PATH: Path = ROOT_DIR / "figures/problems/wave-convergence/grid-aligned-convergence.png"
 
+## per-wave details
 WAVE_CONFIGS: tuple[WaveConfig, ...] = (
     WaveConfig(
         wave_label="Alfvén (linear)",

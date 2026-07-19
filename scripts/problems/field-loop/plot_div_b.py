@@ -157,7 +157,6 @@ def plot_pdf_panel(
     ax.set_xlabel(
         r"$x \equiv \log_{10}|\nabla \cdot \vec{b}|$",
         fontsize=AXIS_LABEL_SIZE,
-        labelpad=15.0,
     )
     ax.set_ylabel(
         r"$\log_{10}\!\left(\mathrm{PDF}(x)\right)$",
@@ -166,10 +165,8 @@ def plot_pdf_panel(
     ax.set_xlim(-51, -13)
     ax.set_ylim(-2.3, 0.0)
     ax.tick_params(labelsize=TICK_LABEL_SIZE)
-    ax.yaxis.set_label_position("left")
-    ax.yaxis.tick_left()
-    ax.xaxis.set_label_position("top")
-    ax.xaxis.tick_top()
+    ax.yaxis.set_label_position("right")
+    ax.yaxis.tick_right()
     axis_width = SLICE_BOUNDS[0][1] - SLICE_BOUNDS[0][0]
     axis_height = SLICE_BOUNDS[1][1] - SLICE_BOUNDS[1][0]
     ax.set_box_aspect(axis_height / axis_width)
@@ -177,9 +174,9 @@ def plot_pdf_panel(
         ax=ax,
         palette=time_palette,
         label=r"$t / T_\mathrm{advect}$",
-        cbar_side="right",
-        cbar_thickness=0.065,
-        cbar_pad=0.02,
+        cbar_side="top",
+        cbar_thickness=0.075,
+        cbar_pad=0.01,
         label_size=AXIS_LABEL_SIZE,
         label_pad=17.5,
     )
@@ -215,9 +212,9 @@ def plot_slice_panel(
         ax=ax,
         palette=palette,
         label=r"$(\nabla \cdot \vec{b}) / 10^{-16}$",
-        cbar_side="right",
-        cbar_thickness=0.065,
-        cbar_pad=0.02,
+        cbar_side="top",
+        cbar_thickness=0.075,
+        cbar_pad=0.01,
         label_size=AXIS_LABEL_SIZE,
         label_pad=17.5,
     )
@@ -247,18 +244,19 @@ def plot_field_loop_divb(
     divb_slice: Slice,
 ) -> mpl_Figure:
     fig, axs = manage_plots.create_figure_grid(
-        num_rows=2,
-        num_cols=1,
-        axis_shape=(4.5, 7.0),
-        y_spacing=0.05,
-    )
-    plot_pdf_panel(
-        ax=axs[0, 0],
-        divb_series=divb_series,
+        num_rows=1,
+        num_cols=2,
+        axis_shape=(7.0, 4.5),
+        fig_scale=1.5,
+        x_spacing=0.05,
     )
     plot_slice_panel(
-        ax=axs[1, 0],
+        ax=axs[0, 0],
         divb_slice=divb_slice,
+    )
+    plot_pdf_panel(
+        ax=axs[0, 1],
+        divb_series=divb_series,
     )
     return fig
 

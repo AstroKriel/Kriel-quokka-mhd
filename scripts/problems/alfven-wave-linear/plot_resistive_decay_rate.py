@@ -36,14 +36,6 @@ class Snapshot:
 ROOT_DIR = Path(__file__).parents[3]
 DATASET_DIR = ROOT_DIR / "datasets/problems/alfven-wave-linear/correctness/resistive"
 FIGURE_PATH = ROOT_DIR / "figures/problems/alfven-wave-linear/resistive-decay-rate.png"
-NCELLS = 256
-SCHEME = "q26-b25-ppm_ep"
-PROFILE_AXIS = "x_0"
-DECAYING_COMPONENT = "x_2"  ## Alfven perturbation: transverse to both k and the background field
-
-## plotting details
-## resistive Alfven-wave decay: b_2(x, t) = b_amp * exp(-gamma * t) * sin(k * x)
-K_MODE = 2.0 * numpy.pi  ## one mode in a unit-length box
 
 ##
 ## === HELPER FUNCTIONS
@@ -62,23 +54,22 @@ def discover_eta_labels(
     return tuple(path.name.removeprefix("eta=") for path in eta_dirs)
 
 
-def load_component_snapshots(
+def load_perturbed_component_snapshots(
     *,
     eta_label: str,
-    component: str,
 ) -> list[Snapshot]:
-    """Load every snapshot of one magnetic-field component, sorted earliest to latest."""
-    extracted_dir = DATASET_DIR / f"eta={eta_label}" / f"ncells={NCELLS}" / SCHEME / "extracted"
+    extracted_dir = DATASET_DIR / f"eta={eta_label}" / "ncells=256" / "q26-b25-ppm_ep" / "extracted"
     snapshots = []
-    file_paths = sorted(extracted_dir.glob(f"magnetic-axis={PROFILE_AXIS}-index=*.json"))
+    file_paths = sorted(extracted_dir.glob("magnetic-axis=x_0-index=*.json"))
     for file_path in file_paths:
-        data = json_io.read_json_file_into_dict(file_path, verbose=False)
-        comp = data["field_comps"][component]
+        dataset = json_io.read_json_file_into_dict(file_path, verbose=False)
+        ## x_2: transverse to both k and the background field
+        perturbed_field_comp = dataset["field_comps"]["x_2"]
         snapshots.append(
             Snapshot(
-                time=data["step_time"],
-                position=numpy.asarray(comp["position"]),
-                field_value=numpy.asarray(comp["field_value"]),
+                time=dataset["step_time"],
+                position=numpy.asarray(perturbed_field_comp["position"]),
+                field_value=numpy.asarray(perturbed_field_comp["field_value"]),
             ),
         )
     return sorted(snapshots, key=lambda snapshot: snapshot.time)
@@ -88,14 +79,8 @@ def measure_decay_rate(
     *,
     eta_label: str,
 ) -> float:
-    """Measure gamma from a linear fit of ln(amplitude) vs time across every saved snapshot.
-
-    Using every snapshot (rather than just the first and last) averages over the oscillation in
-    the instantaneous peak amplitude and is far less sensitive to noise in any single snapshot.
-    """
-    snapshots = load_component_snapshots(
+    snapshots = load_perturbed_component_snapshots(
         eta_label=eta_label,
-        component=DECAYING_COMPONENT,
     )
     times = numpy.asarray([snapshot.time for snapshot in snapshots])
     amplitudes = numpy.asarray([numpy.max(numpy.abs(snapshot.field_value)) for snapshot in snapshots])
@@ -108,12 +93,11 @@ def plot_decay_rate_panel(
     ax: manage_plots.PlotAxis,
     eta_labels: tuple[str, ...],
 ) -> None:
-    """Plot the measured decay rate vs resistivity, against the analytic gamma = eta * k^2 / 2 line."""
-    etas = numpy.asarray([float(label) for label in eta_labels])
+    input_etas = numpy.asarray([float(label) for label in eta_labels])
     measured_gammas = numpy.asarray([measure_decay_rate(eta_label=label) for label in eta_labels])
-    analytic_gammas = etas * K_MODE**2 / 2.0
+    analytic_gammas = input_etas * (2.0 * numpy.pi)**2 / 2.0
     ax.plot(
-        numpy.log10(etas),
+        numpy.log10(input_etas),
         numpy.log10(analytic_gammas),
         color="black",
         linestyle=":",
@@ -122,7 +106,7 @@ def plot_decay_rate_panel(
         label=r"$\gamma = \eta k^2 / 2$",
     )
     ax.plot(
-        numpy.log10(etas),
+        numpy.log10(input_etas),
         numpy.log10(measured_gammas),
         color="black",
         marker="o",

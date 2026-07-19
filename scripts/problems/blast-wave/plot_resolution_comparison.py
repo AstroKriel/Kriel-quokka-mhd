@@ -49,8 +49,6 @@ TARGET_TIME = 0.05
 ## plotted quantity read as a compression ratio relative to the undisturbed medium, rather than
 ## an arbitrary-unit density value
 BACKGROUND_DENSITY = 1.0
-FIELD_LABEL = r"$\log_{10}(\rho / \rho_0)$"
-PALETTE_NAME = "cmr.copper_s"
 ## the computational domain is a cube [-0.5, 0.5]^3 in dimensionless units; we slice its midplane
 AXIS_BOUNDS: plot_data.AxisBounds = ((-0.5, 0.5), (-0.5, 0.5))
 MAJOR_TICK_STEP = 0.25
@@ -181,7 +179,7 @@ def main() -> None:
         max(upper_slice.log10_density.max(), lower_slice.log10_density.max()),
     )
     palette_config = add_color.SequentialConfig(
-        palette_name=PALETTE_NAME,
+        palette_name="cmr.copper_s",
         palette_range=(0.0, 1.0),
     )
     fig, ax = manage_plots.create_figure(
@@ -236,7 +234,7 @@ def main() -> None:
     add_color.add_colorbar(
         ax=ax,
         palette=palette,
-        label=FIELD_LABEL,
+        label=r"$\log_{10}(\rho / \rho_0)$",
         cbar_side="top",
         label_size=26,
     )

@@ -47,7 +47,6 @@ FIGURE_PATH = ROOT_DIR / "figures/problems/current-sheet/current-density-evoluti
 
 ## plotting details
 AXIS_BOUNDS: plot_data.AxisBounds = ((-0.5, 0.5), (-0.5, 0.5))
-PERCENTILE_BOUND = 99.9
 
 ##
 ## === HELPER FUNCTIONS
@@ -82,21 +81,20 @@ def load_data_slices() -> list[DataSlice]:
     return data_slices
 
 
-def compute_percentile_bound(
+def compute_upper_bound_value(
     *,
-    current_density: NDArray[numpy.floating],
+    slice_values: NDArray[numpy.floating],
 ) -> float:
-    """Return the 99.9th-percentile bound, falling back for sparse, degenerate data."""
-    absolute_current_density = numpy.abs(current_density)
-    bound = float(
+    absolute_slice_values = numpy.abs(slice_values)
+    upper_bound_value = float(
         numpy.nanpercentile(
-            absolute_current_density,
-            PERCENTILE_BOUND,
+            absolute_slice_values,
+            99.9,
         ),
     )
-    if bound == 0.0:
-        bound = float(numpy.nanmax(absolute_current_density))
-    return bound
+    if upper_bound_value == 0.0:
+        upper_bound_value = float(numpy.nanmax(absolute_slice_values))
+    return upper_bound_value
 
 
 def compute_signed_log10(
@@ -125,8 +123,7 @@ def main() -> None:
                 float(numpy.nanmin(data_slice.current_density)),
                 float(numpy.nanmax(data_slice.current_density)),
             ),
-        )
-        for data_slice in data_slices
+        ) for data_slice in data_slices
     ]
     palette_config = add_color.DivergingConfig(
         mid_value=0.0,
@@ -139,11 +136,11 @@ def main() -> None:
         x_spacing=0.05,
         y_spacing=0.05,
     )
-    shared_physical_bound = max(
-        compute_percentile_bound(current_density=data_slice.current_density) for data_slice in data_slices
+    shared_upper_bound_value = max(
+        compute_upper_bound_value(slice_values=data_slice.current_density) for data_slice in data_slices
     )
-    shared_log10_bound = float(numpy.log10(1.0 + shared_physical_bound))
-    shared_log10_range = (-shared_log10_bound, shared_log10_bound)
+    shared_log10_upper_bound_value = float(numpy.log10(1.0 + shared_upper_bound_value))
+    shared_log10_range = (-shared_log10_upper_bound_value, shared_log10_upper_bound_value)
     for panel_index, data_panel in enumerate(data_panels):
         row_index, col_index = divmod(panel_index, 2)
         ax = axs[row_index, col_index]

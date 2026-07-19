@@ -17,6 +17,7 @@ from matplotlib.lines import Line2D as mpl_line2d
 from numpy.typing import NDArray
 
 ## personal (local)
+from jormi.ww_io import manage_io
 from jormi.ww_plots import (
     annotate_axis,
     manage_plots,
@@ -355,6 +356,10 @@ def add_llf_legend(
 
 def main() -> None:
     style_plots.set_theme()
+    manage_io.create_directory(
+        directory=FIGURE_PATH.parent,
+        verbose=False,
+    )
     reference_sim_dir = DATASET_DIR / "ncells=8192/hlld" / get_sim_tag(
         emf_compute_scheme=EMFComputeScheme.Q26,
         emf_averaging_scheme=EMFAveragingScheme.B25,

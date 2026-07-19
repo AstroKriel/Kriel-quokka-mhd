@@ -143,7 +143,7 @@ class InterpolationScheme(Enum):
 
 
 @dataclass(frozen=True)
-class Sim:
+class Simulation:
     emf_compute_scheme: EMFComputeScheme
     emf_averaging_scheme: EMFAveragingScheme
     interpolation_scheme: InterpolationScheme
@@ -161,7 +161,7 @@ class Sim:
 
 @dataclass(frozen=True)
 class ConvergenceSeries:
-    sim: Sim
+    sim: Simulation
     ncells: NDArray[numpy.float64]
     cell_size: NDArray[numpy.float64]
     error: NDArray[numpy.float64]
@@ -240,16 +240,16 @@ WAVE_CONFIGS: tuple[WaveConfig, ...] = (
 ##
 
 
-def load_data_series_list(
+def load_grouped_data_series(
     *,
     wave_config: WaveConfig,
 ) -> list[ConvergenceSeries]:
     data_dir = DATASET_DIR / wave_config.wave_data_dir
-    data_series_list: list[ConvergenceSeries] = []
+    grouped_data_series: list[ConvergenceSeries] = []
     for emf_compute_scheme in EMFComputeScheme:
         for emf_averaging_scheme in EMFAveragingScheme:
             for interpolation_scheme in InterpolationScheme:
-                sim = Sim(
+                sim = Simulation(
                     emf_compute_scheme=emf_compute_scheme,
                     emf_averaging_scheme=emf_averaging_scheme,
                     interpolation_scheme=interpolation_scheme,
@@ -262,7 +262,7 @@ def load_data_series_list(
                     data_path,
                     verbose=False,
                 )
-                data_series_list.append(
+                grouped_data_series.append(
                     ConvergenceSeries(
                         sim=sim,
                         ncells=numpy.asarray(data_table["nx"]),
@@ -270,15 +270,15 @@ def load_data_series_list(
                         error=numpy.asarray(data_table["error"]),
                     ),
                 )
-    return data_series_list
+    return grouped_data_series
 
 
 def plot_wave_panel(
     *,
     ax: manage_plots.PlotAxis,
-    data_series_list: list[ConvergenceSeries],
+    grouped_data_series: list[ConvergenceSeries],
 ) -> None:
-    for data_series in data_series_list:
+    for data_series in grouped_data_series:
         emf_compute_scheme_style = data_series.sim.emf_compute_scheme.value
         emf_averaging_scheme_style = data_series.sim.emf_averaging_scheme.value
         interpolation_scheme_style = data_series.sim.interpolation_scheme.value
@@ -301,26 +301,26 @@ def overlay_reference_slope(
     *,
     ax: manage_plots.PlotAxis,
     wave_config: WaveConfig,
-    data_series_list: list[ConvergenceSeries],
+    grouped_data_series: list[ConvergenceSeries],
 ) -> None:
     """Overlay a reference slope anchored halfway between the PPM and PPM-EP data series."""
     reference_slope: float = 2.0
     reference_anchor_ncells: int = 128
-    reference_sim_ppm = Sim(
+    reference_sim_ppm = Simulation(
         emf_compute_scheme=EMFComputeScheme.Q26,
         emf_averaging_scheme=EMFAveragingScheme.B25,
         interpolation_scheme=InterpolationScheme.PPM,
     )
-    reference_sim_ppm_ep = Sim(
+    reference_sim_ppm_ep = Simulation(
         emf_compute_scheme=EMFComputeScheme.Q26,
         emf_averaging_scheme=EMFAveragingScheme.B25,
         interpolation_scheme=InterpolationScheme.PPM_EP,
     )
     data_series_ppm = next(
-        data_series for data_series in data_series_list if data_series.sim == reference_sim_ppm
+        data_series for data_series in grouped_data_series if data_series.sim == reference_sim_ppm
     )
     data_series_ppm_ep = next(
-        data_series for data_series in data_series_list if data_series.sim == reference_sim_ppm_ep
+        data_series for data_series in grouped_data_series if data_series.sim == reference_sim_ppm_ep
     )
     anchor_index = int(numpy.argmin(numpy.abs(data_series_ppm.ncells - reference_anchor_ncells)))
     x_anchor = numpy.log10(data_series_ppm.cell_size[anchor_index])
@@ -433,6 +433,7 @@ def add_interpolation_scheme_legend(
 
 def main() -> None:
     style_plots.set_theme()
+    manage_log.set_block_width_mode(manage_log.BlockWidthMode.PRACTICAL)
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,
@@ -446,13 +447,13 @@ def main() -> None:
     )
     for row_index, wave_config in enumerate(WAVE_CONFIGS):
         ax = axs[row_index, 0]
-        data_series_list = load_data_series_list(wave_config=wave_config)
+        grouped_data_series = load_grouped_data_series(wave_config=wave_config)
         is_first_row: bool = row_index == 0
         is_last_row: bool = row_index == len(WAVE_CONFIGS) - 1
         set_resolution_ticks(
             ax=ax,
-            ncells=data_series_list[0].ncells,
-            cell_sizes=data_series_list[0].cell_size,
+            ncells=grouped_data_series[0].ncells,
+            cell_sizes=grouped_data_series[0].cell_size,
             show_tick_labels=is_last_row,
             show_axis_label=is_last_row,
         )
@@ -463,12 +464,12 @@ def main() -> None:
         )
         plot_wave_panel(
             ax=ax,
-            data_series_list=data_series_list,
+            grouped_data_series=grouped_data_series,
         )
         overlay_reference_slope(
             ax=ax,
             wave_config=wave_config,
-            data_series_list=data_series_list,
+            grouped_data_series=grouped_data_series,
         )
         ax.set_ylim(wave_config.axis_y_range)
         annotate_axis.add_text(

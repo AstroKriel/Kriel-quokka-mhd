@@ -17,7 +17,7 @@ from matplotlib.lines import Line2D as mpl_line2d
 from numpy.typing import NDArray
 
 ## personal (local)
-from jormi.ww_io import manage_io
+from jormi.ww_io import manage_io, manage_log
 from jormi.ww_plots import (
     annotate_axis,
     manage_plots,
@@ -252,19 +252,36 @@ def plot_profiles(
     )
 
 
+def build_axis_bounds(
+    *,
+    x_lo: float,
+    x_hi: float,
+    y_lo: float,
+    y_hi: float,
+) -> manage_plots.AxisBounds:
+    return manage_plots.AxisBounds(
+        x_min=x_lo,
+        y_min=y_lo,
+        x_width=x_hi - x_lo,
+        y_width=y_hi - y_lo,
+    )
+
+
 def add_zoom_inset(
     *,
     ax: manage_plots.PlotAxis,
-    bounds: manage_plots.AxisBounds,
-    x_bounds: tuple[float, float],
-    y_bounds: tuple[float, float],
+    axis_bounds: manage_plots.AxisBounds,
+    x_range: tuple[float, float],
+    y_range: tuple[float, float],
 ) -> None:
-    inset_ax = ax.inset_axes((
-        bounds.x_min,
-        bounds.y_min,
-        bounds.x_width,
-        bounds.y_width,
-    ))
+    inset_ax = ax.inset_axes(
+        (
+            axis_bounds.x_min,
+            axis_bounds.y_min,
+            axis_bounds.x_width,
+            axis_bounds.y_width,
+        )
+    )
     for line in ax.get_lines():
         inset_ax.plot(
             line.get_xdata(),
@@ -279,8 +296,8 @@ def add_zoom_inset(
             linewidth=line.get_linewidth(),
             zorder=line.get_zorder(),
         )
-    inset_ax.set_xlim(x_bounds)
-    inset_ax.set_ylim(y_bounds)
+    inset_ax.set_xlim(x_range)
+    inset_ax.set_ylim(y_range)
     inset_ax.set_xticks([])
     inset_ax.set_yticks([])
     for spine in inset_ax.spines.values():
@@ -355,6 +372,7 @@ def add_llf_legend(
 
 
 def main() -> None:
+    manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
     style_plots.set_theme()
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
@@ -417,25 +435,25 @@ def main() -> None:
             )
     add_zoom_inset(
         ax=axs[1, 0],
-        bounds=manage_plots.AxisBounds(
-            x_min=0.675,
-            y_min=0.425,
-            x_width=0.975 - 0.675,
-            y_width=0.965 - 0.425,
+        axis_bounds=build_axis_bounds(
+            x_lo=0.675,
+            x_hi=0.975,
+            y_lo=0.425,
+            y_hi=0.965,
         ),
-        x_bounds=(0.625, 0.85),
-        y_bounds=(-0.31, -0.19),
+        x_range=(0.625, 0.85),
+        y_range=(-0.31, -0.19),
     )
     add_zoom_inset(
         ax=axs[1, 1],
-        bounds=manage_plots.AxisBounds(
-            x_min=0.05,
-            y_min=0.3,
-            x_width=0.5 - 0.05,
-            y_width=0.925 - 0.3,
+        axis_bounds=build_axis_bounds(
+            x_lo=0.05,
+            x_hi=0.5,
+            y_lo=0.3,
+            y_hi=0.925,
         ),
-        x_bounds=(0.55, 0.65),
-        y_bounds=(1.4, 1.55),
+        x_range=(0.55, 0.65),
+        y_range=(1.4, 1.55),
     )
     add_emf_compute_scheme_legend(ax=axs[0, 0])
     add_emf_averaging_scheme_legend(ax=axs[0, 1])

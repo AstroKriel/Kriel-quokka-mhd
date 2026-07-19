@@ -16,7 +16,13 @@ from numpy.typing import NDArray
 from jormi.ww_arrays import compute_array_stats
 from jormi.ww_arrays.mask_2d_arrays import QuadrantMasks2D
 from jormi.ww_io import manage_io, manage_log
-from jormi.ww_plots import add_color, annotate_axis, manage_plots, plot_data, style_plots
+from jormi.ww_plots import (
+    add_color,
+    annotate_axis,
+    manage_plots,
+    plot_data,
+    style_plots,
+)
 from jormi.ww_types import box_positions
 
 ##
@@ -31,13 +37,13 @@ DATASET_SLICE_GLOB = "magnetic_energy-slice=x_2-index=*.npz"
 DATASET_TIME_NAME = "magnetic_energy-vi_evolution.json"
 FIGURE_PATH = ROOT_DIR / "figures/problems/balsara-vortex/resolution-comparison.png"
 
-## colormap and value scaling
+## plotting details
+AXIS_BOUNDS: plot_data.AxisBounds = ((-5.0, 5.0), (-5.0, 5.0))
 PALETTE_NAME = "cmr.horizon_r"
 PALETTE_RANGE = (0.0, 1.0)
 VALUE_RANGE = (-10.3, -4.3)
 
-## physical domain and vortex geometry
-AXIS_BOUNDS: plot_data.AxisBounds = ((-5.0, 5.0), (-5.0, 5.0))
+## annotations
 REFERENCE_RADIUS = 2.5
 NUM_ORBITS = 3
 

@@ -88,24 +88,33 @@ class FigureGrid:
 
 @dataclass(frozen=True)
 class ZoomRegion:
+    """A square zoom-in region: `width` gives both the x- and y-extent, from `x_lo`/`y_lo`."""
+
     x_lo: float
     y_lo: float
-    x_hi: float
-    y_hi: float
+    width: float
 
     def __post_init__(
         self,
     ) -> None:
-        validate_types.ensure_ordered_pair(
-            (self.x_lo, self.x_hi),
-            param_name="<x_lo, x_hi>",
-            strict_ordering=True,
+        validate_types.ensure_finite_float(
+            param=self.width,
+            param_name="width",
+            require_positive=True,
+            allow_zero=False,
         )
-        validate_types.ensure_ordered_pair(
-            (self.y_lo, self.y_hi),
-            param_name="<y_lo, y_hi>",
-            strict_ordering=True,
-        )
+
+    @property
+    def x_hi(
+        self,
+    ) -> float:
+        return self.x_lo + self.width
+
+    @property
+    def y_hi(
+        self,
+    ) -> float:
+        return self.y_lo + self.width
 
 
 ##
@@ -124,21 +133,19 @@ FIGURE_PATH: Path = ROOT_DIR / "figures/problems/orszag-tang/ncells=8192/q26-b25
 AXIS_BOUNDS: plot_data.AxisBounds = ((-0.5, 0.5), (-0.5, 0.5))
 MAIN_MAJOR_TICK_STEP = 0.25
 MAIN_MINOR_TICK_STEP = 0.05
-MAIN_LABELED_TICK_VALUES = (-0.5, -0.25, 0, 0.25, 0.5)
+MAIN_LABELED_TICK_VALUES = (-0.25, 0.25)
 
 ## annotations
 ZOOM_REGIONS: tuple[ZoomRegion, ...] = (
     ZoomRegion(
         x_lo=0.0525,
         y_lo=-0.080875,
-        x_hi=0.135,
-        y_hi=0.001625,
+        width=0.0825,
     ),
     ZoomRegion(
         x_lo=0.2725,
         y_lo=-0.2485,
-        x_hi=0.4225,
-        y_hi=-0.0985,
+        width=0.15,
     ),
 )
 

@@ -92,6 +92,7 @@ STRONG_SCALING_PROBLEM_SIZE = 512
 
 
 def load_scaling_series(
+    *,
     csv_path: Path,
 ) -> list[ScalingSeries]:
     full_data_frame = pandas.read_csv(csv_path)
@@ -231,19 +232,23 @@ def main() -> None:
     fig, axs = manage_plots.create_figure_grid(
         num_rows=1,
         num_cols=2,
-        x_spacing=0.15,
+        x_spacing=0.05,
         share_y=True,
     )
     strong_scaling_ax = axs[0, 0]
-    weak_scaling_ax = axs[0, 1]
-    grouped_strong_scaling_series = load_scaling_series(datasets_dir / "strong_gpu_scaling.csv")
+    grouped_strong_scaling_series = load_scaling_series(
+        csv_path=datasets_dir / "strong_gpu_scaling.csv",
+    )
     plot_scaling_panel(
         ax=strong_scaling_ax,
         grouped_scaling_series=grouped_strong_scaling_series,
         add_y_label=True,
     )
     annotate_strong_scaling_axis(ax=strong_scaling_ax)
-    grouped_weak_scaling_series = load_scaling_series(datasets_dir / "weak_gpu_scaling.csv")
+    weak_scaling_ax = axs[0, 1]
+    grouped_weak_scaling_series = load_scaling_series(
+        csv_path=datasets_dir / "weak_gpu_scaling.csv",
+    )
     plot_scaling_panel(
         ax=weak_scaling_ax,
         grouped_scaling_series=grouped_weak_scaling_series,

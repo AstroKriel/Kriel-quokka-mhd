@@ -130,12 +130,12 @@ def estimate_energy_conservation_per_orbit(
     Energy loss compounds geometrically orbit-to-orbit, so the per-orbit rate is the `NUM_ORBITS`-th
     root of the total retained fraction, not that total fraction divided by `NUM_ORBITS`.
     """
-    vi_path = data_dir / DATASET_TIME_NAME
-    with vi_path.open() as file:
-        vi_data = json.load(file)
-    vi_values = vi_data["vi_values"]
-    total_retention_fraction = vi_values[-1] / vi_values[0]
-    return total_retention_fraction**(1.0 / NUM_ORBITS)
+    data_path = data_dir / DATASET_TIME_NAME
+    with data_path.open() as file:
+        dataset = json.load(file)
+    dataset_values = dataset["vi_values"]
+    energy_conservation_fraction = dataset_values[-1] / dataset_values[0]
+    return energy_conservation_fraction**(1.0 / NUM_ORBITS)
 
 
 def plot_slice_quadrants(
@@ -356,7 +356,7 @@ def main() -> None:
         ),
         value_range=VALUE_RANGE,
     )
-    add_color.add_colorbar(
+    cbar = add_color.add_colorbar(
         ax=ax,
         palette=palette,
         label=r"$\log_{10}(b^2 / 2)$",
@@ -364,6 +364,7 @@ def main() -> None:
         label_size=32,
         label_pad=24.0,
     )
+    cbar.ax.tick_params(labelsize=24)
     manage_plots.save_figure(
         fig=fig,
         fig_path=FIGURE_PATH,

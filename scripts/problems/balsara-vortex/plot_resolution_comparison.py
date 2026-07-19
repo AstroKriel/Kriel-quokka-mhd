@@ -10,11 +10,12 @@ from pathlib import Path
 
 ## third-party
 import numpy
+from numpy.typing import NDArray
 
 ## personal
 from jormi.ww_arrays import compute_array_stats
 from jormi.ww_arrays.mask_2d_arrays import QuadrantMasks2D
-from jormi.ww_io import manage_io
+from jormi.ww_io import manage_io, manage_log
 from jormi.ww_plots import add_color, annotate_axis, manage_plots, plot_data, style_plots
 from jormi.ww_types import box_positions
 
@@ -35,7 +36,7 @@ PALETTE_RANGE = (0.0, 1.0)
 VALUE_RANGE = (-10.3, -4.3)
 
 ## the vortex is centred on the domain and has a characteristic core radius of 1 (\citet{Balsara04a})
-AXIS_BOUNDS = ((-5.0, 5.0), (-5.0, 5.0))
+AXIS_BOUNDS: plot_data.AxisBounds = ((-5.0, 5.0), (-5.0, 5.0))
 VORTEX_CORE_RADIUS = 2.5
 
 ROOT_DIR = Path(__file__).parents[3]
@@ -47,39 +48,25 @@ FIGURE_PATH = ROOT_DIR / "figures/problems/balsara-vortex/balsara-vortex.png"
 ##
 
 
-def find_first_slice_path(
+def find_slice_paths(
     *,
     extracted_dir: Path,
-) -> Path:
-    """Return the earliest slice (t = 0, the initial condition) in `extracted_dir`."""
+) -> list[Path]:
+    """Return every slice in `extracted_dir`, sorted earliest (t = 0) to latest."""
     slice_paths = sorted(
         extracted_dir.glob(SLICE_GLOB),
         key=lambda path: int(path.stem.split("index=")[-1].split("-")[0]),
     )
     if not slice_paths:
         raise FileNotFoundError(f"no slice matching `{SLICE_GLOB}` found in: {extracted_dir}")
-    return slice_paths[0]
-
-
-def find_last_slice_path(
-    *,
-    extracted_dir: Path,
-) -> Path:
-    """Return the latest slice (t = 30 sqrt(2), after 3 diagonal crossings) in `extracted_dir`."""
-    slice_paths = sorted(
-        extracted_dir.glob(SLICE_GLOB),
-        key=lambda path: int(path.stem.split("index=")[-1].split("-")[0]),
-    )
-    if not slice_paths:
-        raise FileNotFoundError(f"no slice matching `{SLICE_GLOB}` found in: {extracted_dir}")
-    return slice_paths[-1]
+    return slice_paths
 
 
 def upsample_by_block_replication(
     *,
-    array_2d: numpy.ndarray,
+    array_2d: NDArray[numpy.floating],
     target_num_cells: int,
-) -> numpy.ndarray:
+) -> NDArray[numpy.floating]:
     """Block-replicate a coarser array up to `target_num_cells`, with no interpolation."""
     num_rows, num_cols = array_2d.shape
     if (num_rows == target_num_cells) and (num_cols == target_num_cells):
@@ -91,8 +78,8 @@ def upsample_by_block_replication(
 
 def compute_centroid(
     *,
-    array_2d: numpy.ndarray,
-    axis_bounds: tuple[tuple[float, float], tuple[float, float]],
+    array_2d: NDArray[numpy.floating],
+    axis_bounds: plot_data.AxisBounds,
 ) -> tuple[float, float]:
     """Mass-weighted centroid of a positive-definite field, in physical (x, y) units."""
     num_rows, num_cols = array_2d.shape
@@ -110,16 +97,19 @@ def compute_centroid(
 
 def recenter_via_periodic_shift(
     *,
-    array_2d: numpy.ndarray,
-    axis_bounds: tuple[tuple[float, float], tuple[float, float]],
-) -> numpy.ndarray:
+    array_2d: NDArray[numpy.floating],
+    axis_bounds: plot_data.AxisBounds,
+) -> NDArray[numpy.floating]:
     """Undo a small, uniform positional drift by applying a sub-pixel periodic shift.
 
     The vortex is advected an exact integer number of domain-lengths, so it should return to its
     initial centroid; any residual offset (a small numerical dispersion effect, not a resolution
     dependent one) is removed here via a Fourier-space shift, exact for periodic, band-limited data.
     """
-    centroid_x, centroid_y = compute_centroid(array_2d=array_2d, axis_bounds=axis_bounds)
+    centroid_x, centroid_y = compute_centroid(
+        array_2d=array_2d,
+        axis_bounds=axis_bounds,
+    )
     num_rows, num_cols = array_2d.shape
     cell_size_x = (axis_bounds[0][1] - axis_bounds[0][0]) / num_cols
     cell_size_y = (axis_bounds[1][1] - axis_bounds[1][0]) / num_rows
@@ -151,16 +141,16 @@ def compute_retention_fraction_per_orbit(
         vi_data = json.load(file)
     vi_values = vi_data["vi_values"]
     total_retention_fraction = vi_values[-1] / vi_values[0]
-    return total_retention_fraction ** (1.0 / NUM_ORBITS)
+    return total_retention_fraction**(1.0 / NUM_ORBITS)
 
 
 def compose_quadrants(
     *,
-    top_left: numpy.ndarray,
-    top_right: numpy.ndarray,
-    bottom_left: numpy.ndarray,
-    bottom_right: numpy.ndarray,
-) -> numpy.ndarray:
+    top_left: NDArray[numpy.floating],
+    top_right: NDArray[numpy.floating],
+    bottom_left: NDArray[numpy.floating],
+    bottom_right: NDArray[numpy.floating],
+) -> NDArray[numpy.floating]:
     """Combine four arrays into one, each clipped to its own corner via `QuadrantMasks2D`."""
     num_rows, num_cols = top_left.shape
     Corner = box_positions.Positions.Corner
@@ -182,7 +172,7 @@ def compose_quadrants(
 
 def add_reference_circle(
     *,
-    ax,
+    ax: manage_plots.PlotAxis,
 ) -> None:
     theta = numpy.linspace(0.0, 2.0 * numpy.pi, 200)
     ax.plot(
@@ -196,7 +186,7 @@ def add_reference_circle(
 
 def add_advection_arrow(
     *,
-    ax,
+    ax: manage_plots.PlotAxis,
 ) -> None:
     direction_component = 1.0 / numpy.sqrt(2.0)
     arrow_start_radius = VORTEX_CORE_RADIUS
@@ -248,25 +238,29 @@ def add_advection_arrow(
 
 
 def main() -> None:
+    manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
     style_plots.set_theme()
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
     extracted_dirs = {
-        num_cells: DATASET_DIR / f"ncells={num_cells}/q26-b25-ppm_ep/extracted" for num_cells in RESOLUTIONS
+        num_cells: DATASET_DIR / f"ncells={num_cells}/q26-b25-ppm_ep/extracted"
+        for num_cells in RESOLUTIONS
     }
     initial_slices = {
-        num_cells: upsample_by_block_replication(
-            array_2d=numpy.load(find_first_slice_path(extracted_dir=extracted_dir))["sarray_2d"],
+        num_cells:
+        upsample_by_block_replication(
+            array_2d=numpy.load(find_slice_paths(extracted_dir=extracted_dir)[0])["sarray_2d"],
             target_num_cells=COMMON_NUM_CELLS,
         )
         for num_cells, extracted_dir in extracted_dirs.items()
     }
     final_slices = {
-        num_cells: upsample_by_block_replication(
+        num_cells:
+        upsample_by_block_replication(
             array_2d=recenter_via_periodic_shift(
-                array_2d=numpy.load(find_last_slice_path(extracted_dir=extracted_dir))["sarray_2d"],
+                array_2d=numpy.load(find_slice_paths(extracted_dir=extracted_dir)[-1])["sarray_2d"],
                 axis_bounds=AXIS_BOUNDS,
             ),
             target_num_cells=COMMON_NUM_CELLS,
@@ -296,11 +290,22 @@ def main() -> None:
         data_format="ij",
         axis_bounds=AXIS_BOUNDS,
         cbar_bounds=VALUE_RANGE,
-        palette_config=add_color.SequentialConfig(palette_name=PALETTE_NAME, palette_range=PALETTE_RANGE),
+        palette_config=add_color.SequentialConfig(
+            palette_name=PALETTE_NAME,
+            palette_range=PALETTE_RANGE,
+        ),
         add_cbar=False,
     )
-    ax.axhline(0.0, color="black", linewidth=0.6)
-    ax.axvline(0.0, color="black", linewidth=0.6)
+    ax.axhline(
+        0.0,
+        color="black",
+        linewidth=0.6,
+    )
+    ax.axvline(
+        0.0,
+        color="black",
+        linewidth=0.6,
+    )
     add_reference_circle(ax=ax)
     add_advection_arrow(ax=ax)
     ax.set_xticks([])
@@ -311,7 +316,8 @@ def main() -> None:
             x_pos=x_pos,
             y_pos=0.965,
             label=RESOLUTION_LABELS[num_cells],
-            x_alignment=box_positions.Positions.Side.Left if x_pos < 0.5 else box_positions.Positions.Side.Right,
+            x_alignment=box_positions.Positions.Side.Left
+            if x_pos < 0.5 else box_positions.Positions.Side.Right,
             y_alignment=box_positions.Positions.Side.Top,
             text_size=24,
             text_color="black",
@@ -322,7 +328,7 @@ def main() -> None:
             ax=ax,
             x_pos=x_pos,
             y_pos=0.025,
-            label=f"conserve\n{100.0 * retention_fractions_per_orbit[num_cells]:.1f}\\% / orbit",
+            label=f"conserves\n{100.0 * retention_fractions_per_orbit[num_cells]:.1f}\\% / orbit",
             x_alignment=(
                 box_positions.Positions.Side.Left if x_pos < 0.5 else box_positions.Positions.Side.Right
             ),
@@ -350,7 +356,10 @@ def main() -> None:
         va="top",
     )
     palette = add_color.make_palette(
-        config=add_color.SequentialConfig(palette_name=PALETTE_NAME, palette_range=PALETTE_RANGE),
+        config=add_color.SequentialConfig(
+            palette_name=PALETTE_NAME,
+            palette_range=PALETTE_RANGE,
+        ),
         value_range=VALUE_RANGE,
     )
     add_color.add_colorbar(

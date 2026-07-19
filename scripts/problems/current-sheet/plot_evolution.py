@@ -10,6 +10,7 @@ from pathlib import Path
 
 ## third-party
 import numpy
+from matplotlib.ticker import FuncFormatter, MultipleLocator
 from numpy.typing import NDArray
 
 ## personal
@@ -47,6 +48,9 @@ FIGURE_PATH = ROOT_DIR / "figures/problems/current-sheet/current-density-evoluti
 
 ## plotting details
 AXIS_BOUNDS: plot_data.AxisBounds = ((-0.5, 0.5), (-0.5, 0.5))
+MAJOR_TICK_STEP = 0.25
+MINOR_TICK_STEP = 0.05
+LABELED_TICK_VALUES = (-0.25, 0.25)
 
 ##
 ## === HELPER FUNCTIONS
@@ -103,6 +107,15 @@ def compute_signed_log10(
     return numpy.sign(current_density) * numpy.log10(1.0 + numpy.abs(current_density))
 
 
+def format_domain_tick(
+    tick_value: float,
+    _tick_position: int,
+) -> str:
+    """Label only `LABELED_TICK_VALUES`; every other major tick is drawn unlabeled."""
+    is_labeled = any(numpy.isclose(tick_value, labeled_value) for labeled_value in LABELED_TICK_VALUES)
+    return f"{tick_value:.2f}" if is_labeled else ""
+
+
 ##
 ## === PROGRAM MAIN
 ##
@@ -129,9 +142,11 @@ def main() -> None:
         mid_value=0.0,
         palette_name="bwr",
     )
+    num_rows = 2
+    num_cols = 2
     fig, axs = manage_plots.create_figure_grid(
-        num_rows=2,
-        num_cols=2,
+        num_rows=num_rows,
+        num_cols=num_cols,
         axis_shape=(3, 3),
         x_spacing=0.05,
         y_spacing=0.05,
@@ -140,16 +155,16 @@ def main() -> None:
         compute_upper_bound_value(slice_values=data_slice.current_density) for data_slice in data_slices
     )
     shared_log10_upper_bound_value = float(numpy.log10(1.0 + shared_upper_bound_value))
-    shared_log10_range = (-shared_log10_upper_bound_value, shared_log10_upper_bound_value)
+    shared_log10_bounds = (-shared_log10_upper_bound_value, shared_log10_upper_bound_value)
     for panel_index, data_panel in enumerate(data_panels):
-        row_index, col_index = divmod(panel_index, 2)
+        row_index, col_index = divmod(panel_index, num_cols)
         ax = axs[row_index, col_index]
         plot_data.plot_2d_array(
             ax=ax,
             array_2d=compute_signed_log10(data_panel.data_slice.current_density),
             data_format="xy",
             axis_bounds=AXIS_BOUNDS,
-            cbar_bounds=shared_log10_range,
+            cbar_bounds=shared_log10_bounds,
             palette_config=palette_config,
             add_cbar=False,
         )
@@ -165,7 +180,7 @@ def main() -> None:
             box_alpha=0.0,
         )
         ax.text(
-            0.86,
+            0.9,
             0.5,
             rf"$j_z \in [{data_panel.data_range[0]:.1f},\ {data_panel.data_range[1]:.1f}]$",
             transform=ax.transAxes,
@@ -176,11 +191,17 @@ def main() -> None:
             fontsize=16,
             color="black",
         )
-        ax.set_xticks([])
-        ax.set_yticks([])
+        for axis in (ax.xaxis, ax.yaxis):
+            axis.set_major_locator(MultipleLocator(MAJOR_TICK_STEP))
+            axis.set_minor_locator(MultipleLocator(MINOR_TICK_STEP))
+            axis.set_major_formatter(FuncFormatter(format_domain_tick))
+        ax.tick_params(
+            labelbottom=(row_index == num_rows - 1),
+            labelleft=(col_index == 0),
+        )
     palette = add_color.make_palette(
         config=palette_config,
-        value_range=shared_log10_range,
+        value_range=shared_log10_bounds,
     )
     ## one shared colorbar spanning the full width of the grid
     top_left_bounds = axs[0, 0].get_position()

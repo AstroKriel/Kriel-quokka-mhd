@@ -23,25 +23,21 @@ from jormi.ww_types import box_positions
 ## === CONFIGURATION
 ##
 
-RESOLUTIONS = (64, 128)  ## 64^2 -> left half, 128^2 -> right half
-RESOLUTION_LABELS = {64: r"$64^2$", 128: r"$128^2$"}
-## common canvas resolution the two datasets are combined onto (the coarser dataset is upsampled
-## by block replication, since it is only ever shown clipped to its own quadrant, never resampled)
-COMMON_NUM_CELLS = max(RESOLUTIONS)
+ROOT_DIR = Path(__file__).parents[3]
+DATASET_DIR = ROOT_DIR / "datasets/problems/balsara-vortex"
+DATASET_SLICE_GLOB = "magnetic_energy-slice=x_2-index=*.npz"
+DATASET_TIME_NAME = "magnetic_energy-vi_evolution.json"
+FIGURE_PATH = ROOT_DIR / "figures/problems/balsara-vortex/resolution-comparison.png"
 
-SLICE_GLOB = "magnetic_energy-slice=x_2-index=*.npz"
-FIELD_LABEL = r"$\log_{10}(b^2 / 2)$"
+RESOLUTIONS = (64, 128)
+
 PALETTE_NAME = "cmr.horizon_r"
 PALETTE_RANGE = (0.0, 1.0)
 VALUE_RANGE = (-10.3, -4.3)
 
-## the vortex is centred on the domain and has a characteristic core radius of 1 (\citet{Balsara04a})
 AXIS_BOUNDS: plot_data.AxisBounds = ((-5.0, 5.0), (-5.0, 5.0))
-VORTEX_CORE_RADIUS = 2.5
-
-ROOT_DIR = Path(__file__).parents[3]
-DATASET_DIR = ROOT_DIR / "datasets/problems/balsara-vortex"
-FIGURE_PATH = ROOT_DIR / "figures/problems/balsara-vortex/balsara-vortex.png"
+REFERENCE_RADIUS = 2.5
+NUM_ORBITS = 3
 
 ##
 ## === HELPER FUNCTIONS
@@ -50,24 +46,24 @@ FIGURE_PATH = ROOT_DIR / "figures/problems/balsara-vortex/balsara-vortex.png"
 
 def find_slice_paths(
     *,
-    extracted_dir: Path,
+    data_dir: Path,
 ) -> list[Path]:
-    """Return every slice in `extracted_dir`, sorted earliest (t = 0) to latest."""
+    """Return every slice in `data_dir`, sorted earliest (t = 0) to latest."""
     slice_paths = sorted(
-        extracted_dir.glob(SLICE_GLOB),
+        data_dir.glob(DATASET_SLICE_GLOB),
         key=lambda path: int(path.stem.split("index=")[-1].split("-")[0]),
     )
     if not slice_paths:
-        raise FileNotFoundError(f"no slice matching `{SLICE_GLOB}` found in: {extracted_dir}")
+        raise FileNotFoundError(f"no slice matching `{DATASET_SLICE_GLOB}` found in: {data_dir}")
     return slice_paths
 
 
-def upsample_by_block_replication(
+def upsample_slice(
     *,
     array_2d: NDArray[numpy.floating],
     target_num_cells: int,
 ) -> NDArray[numpy.floating]:
-    """Block-replicate a coarser array up to `target_num_cells`, with no interpolation."""
+    """Block-replicate a coarser array up to `target_num_cells` (not interpolation)."""
     num_rows, num_cols = array_2d.shape
     if (num_rows == target_num_cells) and (num_cols == target_num_cells):
         return array_2d
@@ -76,7 +72,7 @@ def upsample_by_block_replication(
     return numpy.kron(array_2d, numpy.ones((scale_row, scale_col)))
 
 
-def compute_centroid(
+def compute_centroid_position(
     *,
     array_2d: NDArray[numpy.floating],
     axis_bounds: plot_data.AxisBounds,
@@ -100,13 +96,14 @@ def recenter_via_periodic_shift(
     array_2d: NDArray[numpy.floating],
     axis_bounds: plot_data.AxisBounds,
 ) -> NDArray[numpy.floating]:
-    """Undo a small, uniform positional drift by applying a sub-pixel periodic shift.
-
-    The vortex is advected an exact integer number of domain-lengths, so it should return to its
-    initial centroid; any residual offset (a small numerical dispersion effect, not a resolution
-    dependent one) is removed here via a Fourier-space shift, exact for periodic, band-limited data.
     """
-    centroid_x, centroid_y = compute_centroid(
+    Undo a small, uniform positional drift by applying a sub-pixel periodic shift.
+
+    While the advecting vortex travels an exact integer number of domain-lengths, and therefore
+    returns to its starting position, there is a small residual offset due to numerical dispersion effects,
+    which we remove via a Fourier-space shift, which is exact for periodic, band-limited data.
+    """
+    centroid_x, centroid_y = compute_centroid_position(
         array_2d=array_2d,
         axis_bounds=axis_bounds,
     )
@@ -123,20 +120,17 @@ def recenter_via_periodic_shift(
     return numpy.fft.ifft2(numpy.fft.fft2(array_2d) * phase_ramp).real
 
 
-## the vortex advects diagonally across the periodic domain this many times over the run
-NUM_ORBITS = 3
-
-
-def compute_retention_fraction_per_orbit(
+def estimate_energy_conservation_per_orbit(
     *,
-    extracted_dir: Path,
+    data_dir: Path,
 ) -> float:
-    """Per-orbit fraction of the initial (volume-integrated) magnetic energy retained.
+    """
+    Per-orbit fraction of the initial (volume-integrated) magnetic energy retained.
 
     Energy loss compounds geometrically orbit-to-orbit, so the per-orbit rate is the `NUM_ORBITS`-th
     root of the total retained fraction, not that total fraction divided by `NUM_ORBITS`.
     """
-    vi_path = extracted_dir / "magnetic_energy-vi_evolution.json"
+    vi_path = data_dir / DATASET_TIME_NAME
     with vi_path.open() as file:
         vi_data = json.load(file)
     vi_values = vi_data["vi_values"]
@@ -144,14 +138,13 @@ def compute_retention_fraction_per_orbit(
     return total_retention_fraction**(1.0 / NUM_ORBITS)
 
 
-def compose_quadrants(
+def plot_slice_quadrants(
     *,
     top_left: NDArray[numpy.floating],
     top_right: NDArray[numpy.floating],
     bottom_left: NDArray[numpy.floating],
     bottom_right: NDArray[numpy.floating],
 ) -> NDArray[numpy.floating]:
-    """Combine four arrays into one, each clipped to its own corner via `QuadrantMasks2D`."""
     num_rows, num_cols = top_left.shape
     Corner = box_positions.Positions.Corner
     composite = numpy.zeros_like(top_left)
@@ -176,8 +169,8 @@ def add_reference_circle(
 ) -> None:
     theta = numpy.linspace(0.0, 2.0 * numpy.pi, 200)
     ax.plot(
-        VORTEX_CORE_RADIUS * numpy.cos(theta),
-        VORTEX_CORE_RADIUS * numpy.sin(theta),
+        REFERENCE_RADIUS * numpy.cos(theta),
+        REFERENCE_RADIUS * numpy.sin(theta),
         color="black",
         linestyle="--",
         linewidth=1.0,
@@ -189,9 +182,9 @@ def add_advection_arrow(
     ax: manage_plots.PlotAxis,
 ) -> None:
     direction_component = 1.0 / numpy.sqrt(2.0)
-    arrow_start_radius = VORTEX_CORE_RADIUS
-    arrow_end_radius = VORTEX_CORE_RADIUS + 1.25
-    label_anchor_radius = VORTEX_CORE_RADIUS + 0.2
+    arrow_start_radius = REFERENCE_RADIUS
+    arrow_end_radius = REFERENCE_RADIUS + 1.25
+    label_anchor_radius = REFERENCE_RADIUS + 0.2
     label_anchor = label_anchor_radius * direction_component
     label_offset = 0.35
     advection_label_offset = label_offset + 0.15
@@ -244,46 +237,44 @@ def main() -> None:
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
-    extracted_dirs = {
+    data_dirs_lookup = {
         num_cells: DATASET_DIR / f"ncells={num_cells}/q26-b25-ppm_ep/extracted"
         for num_cells in RESOLUTIONS
     }
-    initial_slices = {
+    highest_resolution = max(RESOLUTIONS)
+    left_side_resolution, right_side_resolution = RESOLUTIONS
+    first_snapshot_lookup = {
         num_cells:
-        upsample_by_block_replication(
-            array_2d=numpy.load(find_slice_paths(extracted_dir=extracted_dir)[0])["sarray_2d"],
-            target_num_cells=COMMON_NUM_CELLS,
+        upsample_slice(
+            array_2d=numpy.load(find_slice_paths(data_dir=data_dir)[0])["sarray_2d"],
+            target_num_cells=highest_resolution,
         )
-        for num_cells, extracted_dir in extracted_dirs.items()
+        for num_cells, data_dir in data_dirs_lookup.items()
     }
-    final_slices = {
+    final_snapshot_lookup = {
         num_cells:
-        upsample_by_block_replication(
+        upsample_slice(
             array_2d=recenter_via_periodic_shift(
-                array_2d=numpy.load(find_slice_paths(extracted_dir=extracted_dir)[-1])["sarray_2d"],
+                array_2d=numpy.load(find_slice_paths(data_dir=data_dir)[-1])["sarray_2d"],
                 axis_bounds=AXIS_BOUNDS,
             ),
-            target_num_cells=COMMON_NUM_CELLS,
+            target_num_cells=highest_resolution,
         )
-        for num_cells, extracted_dir in extracted_dirs.items()
+        for num_cells, data_dir in data_dirs_lookup.items()
     }
-    retention_fractions_per_orbit = {
-        num_cells: compute_retention_fraction_per_orbit(extracted_dir=extracted_dir)
-        for num_cells, extracted_dir in extracted_dirs.items()
+    energy_conservation_lookup = {
+        num_cells: estimate_energy_conservation_per_orbit(data_dir=data_dir)
+        for num_cells, data_dir in data_dirs_lookup.items()
     }
-    left_res, right_res = RESOLUTIONS
-    composite = compose_quadrants(
-        top_left=final_slices[left_res],
-        top_right=final_slices[right_res],
-        bottom_left=initial_slices[left_res],
-        bottom_right=initial_slices[right_res],
+    composite = plot_slice_quadrants(
+        top_left=final_snapshot_lookup[left_side_resolution],
+        top_right=final_snapshot_lookup[right_side_resolution],
+        bottom_left=first_snapshot_lookup[left_side_resolution],
+        bottom_right=first_snapshot_lookup[right_side_resolution],
     )
-    fig, axs = manage_plots.create_figure_grid(
-        num_rows=1,
-        num_cols=1,
-        axis_shape=(8, 8),
+    fig, ax = manage_plots.create_figure(
+        axis_shape=(7, 7),
     )
-    ax = axs[0, 0]
     plot_data.plot_2d_array(
         ax=ax,
         array_2d=compute_array_stats.compute_safe_log10(composite),
@@ -310,12 +301,15 @@ def main() -> None:
     add_advection_arrow(ax=ax)
     ax.set_xticks([])
     ax.set_yticks([])
-    for x_pos, num_cells in ((0.025, left_res), (0.975, right_res)):
+    for x_pos, num_cells in (
+        (0.025, left_side_resolution),
+        (0.975, right_side_resolution),
+    ):
         annotate_axis.add_text(
             ax=ax,
             x_pos=x_pos,
             y_pos=0.965,
-            label=RESOLUTION_LABELS[num_cells],
+            label=rf"${num_cells}^2$",
             x_alignment=box_positions.Positions.Side.Left
             if x_pos < 0.5 else box_positions.Positions.Side.Right,
             y_alignment=box_positions.Positions.Side.Top,
@@ -323,12 +317,12 @@ def main() -> None:
             text_color="black",
             box_alpha=0.0,
         )
-    for x_pos, num_cells in ((0.025, left_res), (0.975, right_res)):
+    for x_pos, num_cells in ((0.025, left_side_resolution), (0.975, right_side_resolution)):
         annotate_axis.add_text(
             ax=ax,
             x_pos=x_pos,
             y_pos=0.025,
-            label=f"conserves\n{100.0 * retention_fractions_per_orbit[num_cells]:.1f}\\% / orbit",
+            label=f"conserves\n{100.0 * energy_conservation_lookup[num_cells]:.1f}\\% / orbit",
             x_alignment=(
                 box_positions.Positions.Side.Left if x_pos < 0.5 else box_positions.Positions.Side.Right
             ),
@@ -365,7 +359,7 @@ def main() -> None:
     add_color.add_colorbar(
         ax=ax,
         palette=palette,
-        label=FIELD_LABEL,
+        label=r"$\log_{10}(b^2 / 2)$",
         cbar_side="right",
         label_size=32,
         label_pad=24.0,

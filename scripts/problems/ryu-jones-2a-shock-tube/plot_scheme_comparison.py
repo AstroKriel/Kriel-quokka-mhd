@@ -18,7 +18,7 @@ from numpy.typing import NDArray
 
 ## personal (local)
 from aegir import exact_solution, mhd_state
-from jormi.ww_io import manage_io
+from jormi.ww_io import manage_io, manage_log
 from jormi.ww_plots import (
     annotate_axis,
     manage_plots,
@@ -446,6 +446,7 @@ def add_llf_legend(
 
 
 def main() -> None:
+    manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
     style_plots.set_theme()
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,

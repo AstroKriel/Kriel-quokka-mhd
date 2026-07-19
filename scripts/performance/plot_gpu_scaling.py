@@ -5,7 +5,6 @@
 ##
 
 ## stdlib
-from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -25,24 +24,24 @@ from jormi.ww_plots import manage_plots, style_plots
 
 
 @dataclass(frozen=True)
-class ComputeSchemeStyle:
+class EMFComputeSchemeStyle:
     label: str
     color: str
     zorder: int
 
 
-class ComputeScheme(Enum):
-    Q26 = ComputeSchemeStyle(
+class EMFComputeScheme(Enum):
+    Q26 = EMFComputeSchemeStyle(
         label="Q26",
         color="gold",
         zorder=3,
     )
-    B25 = ComputeSchemeStyle(
+    B25 = EMFComputeSchemeStyle(
         label="B25",
         color="cornflowerblue",
         zorder=2,
     )
-    FS18 = ComputeSchemeStyle(
+    FS18 = EMFComputeSchemeStyle(
         label="FS18",
         color="forestgreen",
         zorder=1,
@@ -50,21 +49,21 @@ class ComputeScheme(Enum):
 
 
 @dataclass(frozen=True)
-class AveragingSchemeStyle:
+class EMFAveragingSchemeStyle:
     label: str
     marker: str
     linestyle: str
     marker_size: float
 
 
-class AveragingScheme(Enum):
-    LD04 = AveragingSchemeStyle(
+class EMFAveragingScheme(Enum):
+    LD04 = EMFAveragingSchemeStyle(
         label="LD04",
         linestyle="-",
         marker="o",
         marker_size=9.5,
     )
-    B25 = AveragingSchemeStyle(
+    B25 = EMFAveragingSchemeStyle(
         label="B25",
         linestyle="--",
         marker="D",
@@ -74,78 +73,82 @@ class AveragingScheme(Enum):
 
 @dataclass(frozen=True)
 class ScalingSeries:
-    compute_scheme: ComputeScheme
-    averaging_scheme: AveragingScheme
+    emf_compute_scheme: EMFComputeScheme
+    emf_averaging_scheme: EMFAveragingScheme
     num_gpus: NDArray[numpy.floating]
     updates_per_s_per_gpu: NDArray[numpy.floating]
+    reference_value: float
 
 
 ##
 ## === CONSTANTS
 ##
 
-## strong scaling uses a fixed total problem size of 512^3 cells (see paper sec:performance:speed)
-TOTAL_CELLS_PER_SIDE = 512
+STRONG_SCALING_PROBLEM_SIZE = 512
 
 ##
 ## === HELPER FUNCTIONS
 ##
 
 
-def load_scaling_data(
+def load_scaling_series(
     csv_path: Path,
 ) -> list[ScalingSeries]:
-    data_frame = pandas.read_csv(csv_path)
-    series_list = []
-    for compute_scheme in ComputeScheme:
-        for averaging_scheme in AveragingScheme:
-            mask = (data_frame["compute_scheme"] == compute_scheme.name) & \
-                (data_frame["averaging_scheme"] == averaging_scheme.name)
-            subset = data_frame.loc[mask].sort_values(by="num_gpus")
-            if subset.empty:
+    full_data_frame = pandas.read_csv(csv_path)
+    scaling_series_list = []
+    for emf_compute_scheme in EMFComputeScheme:
+        for emf_averaging_scheme in EMFAveragingScheme:
+            scheme_mask = (
+                (full_data_frame["compute_scheme"] == emf_compute_scheme.name) &
+                (full_data_frame["averaging_scheme"] == emf_averaging_scheme.name)
+            )
+            subset_data_frame = full_data_frame.loc[scheme_mask].sort_values(by="num_gpus")
+            if subset_data_frame.empty:
                 continue
-            num_gpus = subset["num_gpus"].to_numpy(dtype=numpy.float64)
-            us_per_zone_update = subset["us_per_zone_update"].to_numpy(dtype=numpy.float64)
-            series_list.append(
+            num_gpus = subset_data_frame["num_gpus"].to_numpy(dtype=numpy.float64)
+            us_per_zone_update = subset_data_frame["us_per_zone_update"].to_numpy(dtype=numpy.float64)
+            updates_per_s_per_gpu = 1.0 / (us_per_zone_update * num_gpus)
+            scaling_series_list.append(
                 ScalingSeries(
-                    compute_scheme=compute_scheme,
-                    averaging_scheme=averaging_scheme,
+                    emf_compute_scheme=emf_compute_scheme,
+                    emf_averaging_scheme=emf_averaging_scheme,
                     num_gpus=num_gpus,
-                    updates_per_s_per_gpu=1.0 / (us_per_zone_update * num_gpus),
+                    updates_per_s_per_gpu=updates_per_s_per_gpu,
+                    ## perfect scaling reference: the throughput measured at the smallest GPU count tested
+                    reference_value=float(updates_per_s_per_gpu[0]),
                 ),
             )
-    return series_list
+    return scaling_series_list
 
 
 def plot_scaling_panel(
     *,
     ax: manage_plots.PlotAxis,
-    series_list: list[ScalingSeries],
-    reference_value: Callable[[ScalingSeries], float],
+    scaling_series_list: list[ScalingSeries],
     add_y_label: bool,
 ) -> None:
-    for series in series_list:
-        compute_style = series.compute_scheme.value
-        avg_style = series.averaging_scheme.value
+    for series in scaling_series_list:
+        emf_compute_scheme_style = series.emf_compute_scheme.value
+        emf_averaging_scheme_style = series.emf_averaging_scheme.value
         ax.axhline(
-            y=reference_value(series),
-            linestyle=avg_style.linestyle,
+            y=series.reference_value,
+            linestyle=emf_averaging_scheme_style.linestyle,
             linewidth=1.2,
-            color=compute_style.color,
+            color=emf_compute_scheme_style.color,
             alpha=0.5,
-            zorder=compute_style.zorder,
+            zorder=emf_compute_scheme_style.zorder,
         )
         ax.plot(
             series.num_gpus,
             series.updates_per_s_per_gpu,
             linestyle="None",
-            marker=avg_style.marker,
-            markersize=avg_style.marker_size,
-            markerfacecolor=compute_style.color,
+            marker=emf_averaging_scheme_style.marker,
+            markersize=emf_averaging_scheme_style.marker_size,
+            markerfacecolor=emf_compute_scheme_style.color,
             markeredgecolor="black",
             markeredgewidth=1.5,
-            label=f"{compute_style.label} + {avg_style.label}",
-            zorder=10 + compute_style.zorder,
+            label=f"{emf_compute_scheme_style.label} + {emf_averaging_scheme_style.label}",
+            zorder=10 + emf_compute_scheme_style.zorder,
         )
     ax.set_xlabel("GPUs")
     if add_y_label:
@@ -165,7 +168,7 @@ def plot_scaling_panel(
     ax.minorticks_off()
 
 
-def configure_strong_axis(
+def annotate_strong_scaling_axis(
     *,
     ax: manage_plots.PlotAxis,
 ) -> None:
@@ -194,7 +197,7 @@ def configure_strong_axis(
     top_ax.set_xticks(gpu_ticks)
     top_ax.set_xticklabels(
         [
-            f"${round(TOTAL_CELLS_PER_SIDE / gpu_count ** (1.0 / 3.0))}^3$"
+            f"${round(STRONG_SCALING_PROBLEM_SIZE / gpu_count ** (1.0 / 3.0))}^3$"
             if gpu_count in labeled_gpu_ticks else "" for gpu_count in gpu_ticks
         ],
     )
@@ -202,7 +205,7 @@ def configure_strong_axis(
     top_ax.set_xlabel("cells / GPU")
 
 
-def configure_weak_axis(
+def annotate_weak_scaling_axis(
     *,
     ax: manage_plots.PlotAxis,
 ) -> None:
@@ -225,7 +228,6 @@ def main() -> None:
     datasets_dir = Path(__file__).parents[2] / "datasets" / "performance"
     figures_dir = Path(__file__).parents[2] / "figures" / "performance"
     manage_io.create_directory(figures_dir)
-
     fig, axs = manage_plots.create_figure_grid(
         num_rows=1,
         num_cols=2,
@@ -234,25 +236,20 @@ def main() -> None:
     )
     strong_ax = axs[0, 0]
     weak_ax = axs[0, 1]
-
-    strong_series_list = load_scaling_data(datasets_dir / "strong_gpu_scaling.csv")
+    strong_series_list = load_scaling_series(datasets_dir / "strong_gpu_scaling.csv")
     plot_scaling_panel(
         ax=strong_ax,
-        series_list=strong_series_list,
-        reference_value=lambda series: float(series.updates_per_s_per_gpu[0]),
+        scaling_series_list=strong_series_list,
         add_y_label=True,
     )
-    configure_strong_axis(ax=strong_ax)
-
-    weak_series_list = load_scaling_data(datasets_dir / "weak_gpu_scaling.csv")
+    annotate_strong_scaling_axis(ax=strong_ax)
+    weak_series_list = load_scaling_series(datasets_dir / "weak_gpu_scaling.csv")
     plot_scaling_panel(
         ax=weak_ax,
-        series_list=weak_series_list,
-        reference_value=lambda series: float(series.updates_per_s_per_gpu[series.num_gpus == 1].mean()),
+        scaling_series_list=weak_series_list,
         add_y_label=False,
     )
-    configure_weak_axis(ax=weak_ax)
-
+    annotate_weak_scaling_axis(ax=weak_ax)
     manage_plots.save_figure(
         fig=fig,
         fig_path=figures_dir / "gpu_scaling.png",

@@ -38,18 +38,11 @@ class DensitySlice:
 ROOT_DIR = Path(__file__).parents[3]
 DATASET_DIR = ROOT_DIR / "datasets/problems/blast-wave"
 FIGURE_PATH = ROOT_DIR / "figures/problems/blast-wave/resolution-comparison.png"
-## fixed recommended scheme (Q26 + Balsara2025b, PPM-EP); only resolution varies, so the split
-## shows whether the resolved shock structure is grid-converged and free of artefacts
 NCELLS_UPPER = 128
 NCELLS_LOWER = 512
 TARGET_TIME = 0.05
 
 ## plotting details
-## normalising by the ambient background density (rho_0 = 1 in the initial condition) makes the
-## plotted quantity read as a compression ratio relative to the undisturbed medium, rather than
-## an arbitrary-unit density value
-BACKGROUND_DENSITY = 1.0
-## the computational domain is a cube [-0.5, 0.5]^3 in dimensionless units; we slice its midplane
 AXIS_BOUNDS: plot_data.AxisBounds = ((-0.5, 0.5), (-0.5, 0.5))
 MAJOR_TICK_STEP = 0.25
 MINOR_TICK_STEP = 0.05
@@ -88,43 +81,33 @@ def load_density_slice(
     with numpy.load(slice_path) as data:
         return DensitySlice(
             step_time=float(data["step_time"]),
-            log10_density=numpy.log10(data["sarray_2d"] / BACKGROUND_DENSITY),
+            log10_density=numpy.log10(data["sarray_2d"]),
         )
 
 
-def upsample_to_match(
+def upsample_slice(
     *,
-    coarse_array: NDArray[numpy.floating],
-    fine_array: NDArray[numpy.floating],
+    array_2d: NDArray[numpy.floating],
+    target_num_cells: int,
 ) -> NDArray[numpy.floating]:
-    """Block-replicate `coarse_array` so its shape matches `fine_array`'s (an integer multiple).
+    """Block-replicate a coarser array up to `target_num_cells` (not interpolation)."""
+    num_rows, num_cols = array_2d.shape
+    if (num_rows == target_num_cells) and (num_cols == target_num_cells):
+        return array_2d
+    scale_row = target_num_cells // num_rows
+    scale_col = target_num_cells // num_cols
+    return numpy.kron(array_2d, numpy.ones((scale_row, scale_col)))
 
-    Nearest-neighbour replication (rather than interpolation) is deliberate: it keeps every
-    coarse cell visually blocky at the fine grid's pixel scale, so the resolution difference
-    between the two panels stays visible rather than being smoothed away.
-    """
-    factor = fine_array.shape[0] // coarse_array.shape[0]
-    return numpy.kron(coarse_array, numpy.ones((factor, factor)))
 
-
-def compose_resolution_split(
+def combine_arrays_split_diagonally(
     *,
     upper_array: NDArray[numpy.floating],
     lower_array: NDArray[numpy.floating],
 ) -> NDArray[numpy.floating]:
-    """Combine two resolutions' density fields into one array, split across the main diagonal.
-
-    The blast-wave initial condition (a spherical overpressure) and background field
-    b = (b, b, 0) are both invariant under swapping x_0 and x_1, so the converged solution
-    satisfies rho(x_0, x_1) = rho(x_1, x_0): each run's own field is already mirror-symmetric
-    about the main diagonal, so one triangular half per run is sufficient to show it in full,
-    freeing the other half to show the other resolution directly alongside it.
-    """
-    if upper_array.shape != lower_array.shape:
-        upper_array = upsample_to_match(
-            coarse_array=upper_array,
-            fine_array=lower_array,
-        )
+    upper_array = upsample_slice(
+        array_2d=upper_array,
+        target_num_cells=lower_array.shape[0],
+    )
     num_rows, num_cols = upper_array.shape
     upper_mask = DiagonalMasks2D.get_mask_above_main_diagonal(
         num_rows=num_rows,
@@ -185,7 +168,7 @@ def main() -> None:
     fig, ax = manage_plots.create_figure(
         axis_shape=(6, 6),
     )
-    composite = compose_resolution_split(
+    composite = combine_arrays_split_diagonally(
         upper_array=upper_slice.log10_density,
         lower_array=lower_slice.log10_density,
     )

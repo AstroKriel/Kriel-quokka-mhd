@@ -13,6 +13,8 @@ import numpy
 from numpy.typing import NDArray
 
 ## personal
+from jormi.ww_data import fit_series
+from jormi.ww_data.series_types import GaussianSeries
 from jormi.ww_io import json_io, manage_io, manage_log
 from jormi.ww_plots import manage_plots, style_plots
 
@@ -84,8 +86,13 @@ def measure_decay_rate(
     )
     times = numpy.asarray([snapshot.time for snapshot in snapshots])
     amplitudes = numpy.asarray([numpy.max(numpy.abs(snapshot.field_value)) for snapshot in snapshots])
-    slope, _ = numpy.polyfit(times, numpy.log(amplitudes), deg=1)
-    return -slope
+    fit_summary = fit_series.fit_linear_model(
+        gaussian_series=GaussianSeries(
+            x_values=times,
+            y_values=numpy.log(amplitudes),
+        ),
+    )
+    return -fit_summary.slope.value
 
 
 def plot_decay_rate_panel(

@@ -10,6 +10,7 @@ from pathlib import Path
 
 ## third-party
 import numpy
+from matplotlib.figure import Figure as mpl_Figure
 from numpy.typing import NDArray
 
 ## personal
@@ -35,23 +36,18 @@ class Slice:
 
 ## inputs and outputs
 ROOT_DIR = Path(__file__).parents[3]
-DATASET_DIR = ROOT_DIR / "datasets/problems/field-loop/ncells=128/q26-b25-ppm_ep"
-EXTRACTED_DIR = DATASET_DIR / "extracted"
-FIGURE_PATH = ROOT_DIR / "figures/problems/field-loop/field-loop.png"
+DATASET_DIR = ROOT_DIR / "datasets/problems/field-loop/ncells=128/q26-b25-ppm_ep" / "extracted"
 DIVB_GLOB = "magnetic_divergence-slice=x_2-index=*.npz"
+FIGURE_PATH = ROOT_DIR / "figures/problems/field-loop/div-b.png"
 TARGET_TIME = 1.5
 
 ## plotting details
-PERCENTILE_BOUND = 99.9
 NUM_PDF_BINS = 50
-PDF_BOUNDS = (-70.0, -10.0)
 NUM_PDF_TIMES = 10
 TICK_LABEL_SIZE = 20
 AXIS_LABEL_SIZE = 25
-AXIS_BOUNDS: plot_data.AxisBounds = ((-1.0, 1.0), (-0.578125, 0.578125))
-## one full advection period: the time for the loop to cross the domain once along x_0, at the
-## advection velocity v_0 = sin(pi/3) set by the problem generator (testFieldLoop.cpp)
-ADVECTION_PERIOD = (AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]) / numpy.sin(numpy.pi / 3.0)
+SLICE_BOUNDS: plot_data.AxisBounds = ((-1.0, 1.0), (-0.578125, 0.578125))
+ADVECTION_PERIOD = (SLICE_BOUNDS[0][1] - SLICE_BOUNDS[0][0]) / numpy.sin(numpy.pi / 3.0)
 
 ##
 ## === HELPER FUNCTIONS
@@ -64,9 +60,9 @@ def find_slice_near_time(
     target_time: float,
 ) -> Path:
     """Return the saved slice nearest `target_time`."""
-    slice_paths = sorted(EXTRACTED_DIR.glob(file_glob))
+    slice_paths = sorted(DATASET_DIR.glob(file_glob))
     if not slice_paths:
-        raise FileNotFoundError(f"no slice matching `{file_glob}` found in: {EXTRACTED_DIR}")
+        raise FileNotFoundError(f"no slice matching `{file_glob}` found in: {DATASET_DIR}")
     return min(
         slice_paths,
         key=lambda path: abs(float(numpy.load(path)["step_time"]) - target_time),
@@ -93,26 +89,120 @@ def compute_symmetric_bounds(
     bound = float(
         numpy.nanpercentile(
             numpy.abs(field),
-            PERCENTILE_BOUND,
+            99.9,
         ),
     )
     return (-bound, bound)
 
 
-def plot_slice(
+def compute_log10_absolute_divb(
+    *,
+    sarray_2d: NDArray[numpy.floating],
+) -> NDArray[numpy.floating]:
+    """Drop zero/non-finite cells (outside the loop), then take log10 of the magnitude."""
+    nonzero_finite = numpy.isfinite(sarray_2d) & (sarray_2d != 0.0)
+    return numpy.log10(numpy.abs(sarray_2d[nonzero_finite]))
+
+
+##
+## === PANEL FUNCTIONS
+##
+
+
+def plot_pdf_panel(
     *,
     ax: manage_plots.PlotAxis,
-    field: NDArray[numpy.floating],
-    cbar_bounds: tuple[float, float],
-    palette_config: add_color.SequentialConfig | add_color.DivergingConfig,
-    cbar_label: str,
+    divb_series: tuple[Slice, ...],
 ) -> None:
-    """Plot one field-loop slice with a separate colorbar."""
+    """Plot the div-b PDF at `NUM_PDF_TIMES` times, sampled evenly across the run."""
+    finite_slices = [
+        divb_slice for divb_slice in divb_series
+        if numpy.any(numpy.isfinite(divb_slice.sarray_2d) & (divb_slice.sarray_2d != 0.0))
+    ]
+    sampled_indices = numpy.linspace(0, len(finite_slices) - 1, NUM_PDF_TIMES, dtype=int)
+    sampled_slices = [finite_slices[index] for index in sampled_indices]
+    pdf_bin_edges = numpy.linspace(-70, -10, NUM_PDF_BINS + 1)
+    pdf_bin_centers = 0.5 * (pdf_bin_edges[:-1] + pdf_bin_edges[1:])
+    time_palette = add_color.make_palette(
+        config=add_color.SequentialConfig(
+            palette_name="cmr.bubblegum",
+            palette_range=(0.15, 0.95),
+        ),
+        value_range=(
+            divb_series[0].step_time / ADVECTION_PERIOD,
+            divb_series[-1].step_time / ADVECTION_PERIOD,
+        ),
+    )
+    for sample_slice in sampled_slices:
+        log10_absolute_divb = compute_log10_absolute_divb(sarray_2d=sample_slice.sarray_2d)
+        estimated_pdf = compute_array_stats.estimate_pdf(
+            values=log10_absolute_divb,
+            bin_centers=pdf_bin_centers,
+        )
+        log10_pdf = numpy.ma.log10(
+            numpy.ma.masked_less_equal(
+                estimated_pdf.densities,
+                0.0,
+            ),
+        )
+        finite_pdf = numpy.isfinite(log10_pdf)
+        curve_color = time_palette.mpl_cmap(time_palette.mpl_norm(sample_slice.step_time / ADVECTION_PERIOD))
+        ax.step(
+            estimated_pdf.bin_centers[finite_pdf],
+            log10_pdf[finite_pdf],
+            where="mid",
+            color=curve_color,
+            linewidth=2.0,
+        )
+    ax.set_xlabel(
+        r"$x \equiv \log_{10}|\nabla \cdot \vec{b}|$",
+        fontsize=AXIS_LABEL_SIZE,
+        labelpad=15.0,
+    )
+    ax.set_ylabel(
+        r"$\log_{10}\!\left(\mathrm{PDF}(x)\right)$",
+        fontsize=AXIS_LABEL_SIZE,
+    )
+    ax.set_xlim(-51, -13)
+    ax.set_ylim(-2.3, 0.0)
+    ax.tick_params(labelsize=TICK_LABEL_SIZE)
+    ax.yaxis.set_label_position("left")
+    ax.yaxis.tick_left()
+    ax.xaxis.set_label_position("top")
+    ax.xaxis.tick_top()
+    axis_width = SLICE_BOUNDS[0][1] - SLICE_BOUNDS[0][0]
+    axis_height = SLICE_BOUNDS[1][1] - SLICE_BOUNDS[1][0]
+    ax.set_box_aspect(axis_height / axis_width)
+    time_cbar = add_color.add_colorbar(
+        ax=ax,
+        palette=time_palette,
+        label=r"$t / T_\mathrm{advect}$",
+        cbar_side="right",
+        cbar_thickness=0.065,
+        cbar_pad=0.02,
+        label_size=AXIS_LABEL_SIZE,
+        label_pad=17.5,
+    )
+    time_cbar.ax.tick_params(labelsize=TICK_LABEL_SIZE)
+
+
+def plot_slice_panel(
+    *,
+    ax: manage_plots.PlotAxis,
+    divb_slice: Slice,
+) -> None:
+    """Plot the div-b slice nearest `TARGET_TIME`, with a colorbar and a time label."""
+    palette_config = add_color.DivergingConfig(
+        mid_value=0.0,
+        palette_name="bwr",
+    )
+    scaled_field = divb_slice.sarray_2d / 1.0e-16
+    cbar_bounds = compute_symmetric_bounds(field=scaled_field)
     plot_data.plot_2d_array(
         ax=ax,
-        array_2d=field,
+        array_2d=scaled_field,
         data_format="xy",
-        axis_bounds=AXIS_BOUNDS,
+        axis_bounds=SLICE_BOUNDS,
         cbar_bounds=cbar_bounds,
         palette_config=palette_config,
         add_cbar=False,
@@ -124,13 +214,53 @@ def plot_slice(
     cbar = add_color.add_colorbar(
         ax=ax,
         palette=palette,
-        label=cbar_label,
+        label=r"$(\nabla \cdot \vec{b}) / 10^{-16}$",
         cbar_side="right",
         cbar_thickness=0.065,
         cbar_pad=0.02,
         label_size=AXIS_LABEL_SIZE,
+        label_pad=17.5,
     )
     cbar.ax.tick_params(labelsize=TICK_LABEL_SIZE)
+    ax.set_xlabel(
+        r"$x_0$",
+        fontsize=AXIS_LABEL_SIZE,
+        labelpad=10.0,
+    )
+    ax.set_ylabel(r"$x_1$", fontsize=AXIS_LABEL_SIZE)
+    annotate_axis.add_text(
+        ax=ax,
+        x_pos=0.5,
+        y_pos=0.05,
+        label=rf"$t / T_\mathrm{{advect}} = {divb_slice.step_time / ADVECTION_PERIOD:.2f}$",
+        x_alignment=box_positions.Positions.Center.Center,
+        y_alignment=box_positions.Positions.Side.Bottom,
+        text_size=TICK_LABEL_SIZE,
+        text_color="black",
+        box_alpha=0.0,
+    )
+
+
+def plot_field_loop_divb(
+    *,
+    divb_series: tuple[Slice, ...],
+    divb_slice: Slice,
+) -> mpl_Figure:
+    fig, axs = manage_plots.create_figure_grid(
+        num_rows=2,
+        num_cols=1,
+        axis_shape=(4.5, 7.0),
+        y_spacing=0.05,
+    )
+    plot_pdf_panel(
+        ax=axs[0, 0],
+        divb_series=divb_series,
+    )
+    plot_slice_panel(
+        ax=axs[1, 0],
+        divb_slice=divb_slice,
+    )
+    return fig
 
 
 ##
@@ -145,133 +275,20 @@ def main() -> None:
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
-
-    divb_paths = sorted(EXTRACTED_DIR.glob(DIVB_GLOB))
+    divb_paths = sorted(DATASET_DIR.glob(DIVB_GLOB))
     if not divb_paths:
-        raise FileNotFoundError(f"no slice matching `{DIVB_GLOB}` found in: {EXTRACTED_DIR}")
-    divb_series = [load_slice(slice_path=divb_path) for divb_path in divb_paths]
-
+        raise FileNotFoundError(f"no slice matching `{DIVB_GLOB}` found in: {DATASET_DIR}")
+    divb_series = tuple(load_slice(slice_path=divb_path) for divb_path in divb_paths)
     divb_slice = load_slice(
         slice_path=find_slice_near_time(
             file_glob=DIVB_GLOB,
             target_time=TARGET_TIME,
         ),
     )
-
-    fig, axs = manage_plots.create_figure_grid(
-        num_rows=2,
-        num_cols=1,
-        axis_shape=(4.625, 7.0),
-        y_spacing=0.05,
+    fig = plot_field_loop_divb(
+        divb_series=divb_series,
+        divb_slice=divb_slice,
     )
-    ax_pdf = axs[0, 0]
-    ax_divb = axs[1, 0]
-
-    log10_absolute_divb_series = [
-        (
-            divb_slice.step_time,
-            numpy.log10(
-                numpy.abs(
-                    divb_slice.sarray_2d[numpy.isfinite(divb_slice.sarray_2d)
-                                         & (divb_slice.sarray_2d != 0.0)],
-                ),
-            ),
-        )
-        for divb_slice in divb_series
-        if numpy.any(numpy.isfinite(divb_slice.sarray_2d) & (divb_slice.sarray_2d != 0.0))
-    ]
-    sampled_time_indices = numpy.linspace(
-        0,
-        len(log10_absolute_divb_series) - 1,
-        NUM_PDF_TIMES,
-        dtype=int,
-    )
-    log10_absolute_divb_series = [log10_absolute_divb_series[index] for index in sampled_time_indices]
-    pdf_bin_edges = numpy.linspace(PDF_BOUNDS[0], PDF_BOUNDS[1], NUM_PDF_BINS + 1)
-    pdf_bin_centers = 0.5 * (pdf_bin_edges[:-1] + pdf_bin_edges[1:])
-    time_palette = add_color.make_palette(
-        config=add_color.SequentialConfig(
-            palette_name="cmr.bubblegum",
-            palette_range=(0.15, 0.95),
-        ),
-        value_range=(
-            divb_series[0].step_time / ADVECTION_PERIOD,
-            divb_series[-1].step_time / ADVECTION_PERIOD,
-        ),
-    )
-    for step_time, log10_absolute_divb in log10_absolute_divb_series:
-        estimated_pdf = compute_array_stats.estimate_pdf(
-            values=log10_absolute_divb,
-            bin_centers=pdf_bin_centers,
-        )
-        log10_pdf = numpy.ma.log10(
-            numpy.ma.masked_less_equal(
-                estimated_pdf.densities,
-                0.0,
-            ),
-        )
-        finite_pdf = numpy.isfinite(log10_pdf)
-        curve_color = time_palette.mpl_cmap(time_palette.mpl_norm(step_time / ADVECTION_PERIOD))
-        ax_pdf.step(
-            estimated_pdf.bin_centers[finite_pdf],
-            log10_pdf[finite_pdf],
-            where="mid",
-            color=curve_color,
-            linewidth=2.0,
-        )
-    ax_pdf.set_xlabel(
-        r"$x \equiv \log_{10}|\nabla \cdot \vec{b}|$",
-        fontsize=AXIS_LABEL_SIZE,
-    )
-    ax_pdf.set_ylabel(
-        r"$\log_{10}\!\left(\mathrm{PDF}(x)\right)$",
-        fontsize=AXIS_LABEL_SIZE,
-    )
-    ax_pdf.set_ylim(-2.5, 0.0)
-    ax_pdf.tick_params(labelsize=TICK_LABEL_SIZE)
-    ax_pdf.yaxis.set_label_position("left")
-    ax_pdf.yaxis.tick_left()
-    ax_pdf.xaxis.set_label_position("top")
-    ax_pdf.xaxis.tick_top()
-    axis_width = AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]
-    axis_height = AXIS_BOUNDS[1][1] - AXIS_BOUNDS[1][0]
-    ax_pdf.set_box_aspect(axis_height / axis_width)
-    time_cbar = add_color.add_colorbar(
-        ax=ax_pdf,
-        palette=time_palette,
-        label=r"$t / T_\mathrm{advect}$",
-        cbar_side="right",
-        cbar_thickness=0.065,
-        cbar_pad=0.02,
-        label_size=AXIS_LABEL_SIZE,
-    )
-    time_cbar.ax.tick_params(labelsize=TICK_LABEL_SIZE)
-
-    divb_palette_config = add_color.DivergingConfig(
-        mid_value=0.0,
-        palette_name="bwr",
-    )
-    plot_slice(
-        ax=ax_divb,
-        field=divb_slice.sarray_2d / 1.0e-16,
-        cbar_bounds=compute_symmetric_bounds(field=divb_slice.sarray_2d / 1.0e-16),
-        palette_config=divb_palette_config,
-        cbar_label=r"$(\nabla \cdot \vec{b}) / 10^{-16}$",
-    )
-    ax_divb.set_xlabel(r"$x_0$", fontsize=AXIS_LABEL_SIZE)
-    ax_divb.set_ylabel(r"$x_1$", fontsize=AXIS_LABEL_SIZE)
-    annotate_axis.add_text(
-        ax=ax_divb,
-        x_pos=0.5,
-        y_pos=0.95,
-        label=rf"$t / T_\mathrm{{advect}} = {divb_slice.step_time / ADVECTION_PERIOD:.2f}$",
-        x_alignment=box_positions.Positions.Center.Center,
-        y_alignment=box_positions.Positions.Side.Top,
-        text_size=TICK_LABEL_SIZE,
-        text_color="black",
-        box_alpha=0.0,
-    )
-
     manage_plots.save_figure(
         fig=fig,
         fig_path=FIGURE_PATH,

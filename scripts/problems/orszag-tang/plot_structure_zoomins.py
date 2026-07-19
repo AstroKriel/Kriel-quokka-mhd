@@ -15,13 +15,24 @@ from matplotlib import patches as mpl_patches
 from matplotlib import pyplot as mpl_plot
 
 from matplotlib.figure import Figure as mpl_Figure
-from matplotlib.ticker import AutoMinorLocator, FuncFormatter, MultipleLocator
+from matplotlib.ticker import (
+    AutoMinorLocator,
+    FuncFormatter,
+    MultipleLocator,
+)
 from numpy.typing import NDArray
 
 ## personal
 from jormi.ww_arrays import compute_array_stats
 from jormi.ww_io import manage_io, manage_log
-from jormi.ww_plots import add_color, manage_plots, plot_data, style_plots
+from jormi.ww_plots import (
+    add_color,
+    annotate_axis,
+    manage_plots,
+    plot_data,
+    style_plots,
+)
+from jormi.ww_types import box_positions
 from jormi.ww_validation import validate_types
 
 ##
@@ -61,7 +72,7 @@ class FigureGrid:
         )
         self.claimed = numpy.zeros((self.num_rows, self.num_cols), dtype=numpy.bool_)
 
-    def add_field_axis(
+    def plot(
         self,
         *,
         row_slice: slice,
@@ -133,18 +144,19 @@ FIGURE_PATH: Path = ROOT_DIR / "figures/problems/orszag-tang/ncells=8192/q26-b25
 AXIS_BOUNDS: plot_data.AxisBounds = ((-0.5, 0.5), (-0.5, 0.5))
 MAIN_MAJOR_TICK_STEP = 0.25
 MAIN_MINOR_TICK_STEP = 0.05
-MAIN_LABELED_TICK_VALUES = (-0.25, 0.25)
+MAIN_LABELED_TICK_VALUES_X = (-0.5, -0.25, 0, 0.25)
+MAIN_LABELED_TICK_VALUES_Y = (-0.5, -0.25, 0, 0.25, 0.5)
 
 ## annotations
 ZOOM_REGIONS: tuple[ZoomRegion, ...] = (
     ZoomRegion(
-        x_lo=0.0525,
-        y_lo=-0.080875,
-        width=0.0825,
+        x_lo=0.05,
+        y_lo=-0.075,
+        width=0.08,
     ),
     ZoomRegion(
-        x_lo=0.2725,
-        y_lo=-0.2485,
+        x_lo=0.275,
+        y_lo=-0.25,
         width=0.15,
     ),
 )
@@ -197,30 +209,51 @@ def plot_sarray_2d(
     bounded_slice: BoundedSlice,
     add_cbar: bool,
 ) -> None:
-    field_config = add_color.SequentialConfig(
+    palette_config = add_color.SequentialConfig(
         palette_name="cmr.wildfire_r",
         palette_range=(0.2, 1.0),
     )
     field_label = r"$\log_{10} \left( \Delta x \, |\nabla \times \vec{b}| \right)$"
+    cbar_bounds = (-3.0, -1.25)
     plot_data.plot_2d_array(
         ax=ax,
         array_2d=bounded_slice.sarray_2d,
         data_format="xy",
         axis_bounds=bounded_slice.axis_bounds,
-        cbar_bounds=(-3.0, -1.25),
-        palette_config=field_config,
-        add_cbar=add_cbar,
-        cbar_label=field_label if add_cbar else None,
-        cbar_side="top",
+        cbar_bounds=cbar_bounds,
+        palette_config=palette_config,
+        add_cbar=False,
     )
+    if add_cbar:
+        palette = add_color.make_palette(
+            config=palette_config,
+            value_range=cbar_bounds,
+        )
+        add_color.add_colorbar(
+            ax=ax,
+            palette=palette,
+            label=field_label,
+            cbar_side="top",
+            label_pad=15.0,
+            label_size=22,
+        )
 
 
-def format_main_tick(
+def format_main_ticks_x(
     tick_value: float,
     _tick_position: int,
 ) -> str:
     """Label only `MAIN_LABELED_TICK_VALUES`; every other major tick is drawn unlabeled."""
-    is_labeled = any(numpy.isclose(tick_value, labeled_value) for labeled_value in MAIN_LABELED_TICK_VALUES)
+    is_labeled = any(numpy.isclose(tick_value, labeled_value) for labeled_value in MAIN_LABELED_TICK_VALUES_X)
+    return f"{tick_value:.2f}" if is_labeled else ""
+
+
+def format_main_ticks_y(
+    tick_value: float,
+    _tick_position: int,
+) -> str:
+    """Label only `MAIN_LABELED_TICK_VALUES`; every other major tick is drawn unlabeled."""
+    is_labeled = any(numpy.isclose(tick_value, labeled_value) for labeled_value in MAIN_LABELED_TICK_VALUES_Y)
     return f"{tick_value:.2f}" if is_labeled else ""
 
 
@@ -231,7 +264,8 @@ def configure_main_ticks(
     for axis in (ax.xaxis, ax.yaxis):
         axis.set_major_locator(MultipleLocator(MAIN_MAJOR_TICK_STEP))
         axis.set_minor_locator(MultipleLocator(MAIN_MINOR_TICK_STEP))
-        axis.set_major_formatter(FuncFormatter(format_main_tick))
+    ax.xaxis.set_major_formatter(FuncFormatter(format_main_ticks_x))
+    ax.yaxis.set_major_formatter(FuncFormatter(format_main_ticks_y))
     ax.tick_params(
         which="both",
         color="white",
@@ -261,9 +295,28 @@ def configure_zoomin_ticks(
     )
 
 
+def add_time_label(
+    *,
+    ax: manage_plots.PlotAxis,
+    step_time: float,
+) -> None:
+    annotate_axis.add_text(
+        ax=ax,
+        x_pos=0.95,
+        y_pos=0.95,
+        label=rf"$t = {step_time:.2f}$",
+        x_alignment=box_positions.Positions.Side.Right,
+        y_alignment=box_positions.Positions.Side.Top,
+        text_size=24,
+        text_color="white",
+        box_alpha=0.0,
+    )
+
+
 def plot_structures(
     *,
     bounded_slice: BoundedSlice,
+    step_time: float,
 ) -> mpl_Figure:
     num_zoomin_rows = len(ZOOM_REGIONS)
     num_zoomin_cols = 1
@@ -280,13 +333,17 @@ def plot_structures(
             cell_size_inches * num_rows,
         ),
     )
-    main_ax = fig_grid.add_field_axis(
+    main_ax = fig_grid.plot(
         row_slice=slice(0, num_main_rows),
         col_slice=slice(0, num_main_cols),
         bounded_slice=bounded_slice,
         add_cbar=True,
     )
     configure_main_ticks(ax=main_ax)
+    add_time_label(
+        ax=main_ax,
+        step_time=step_time,
+    )
     for region_index, zoom_region in enumerate(ZOOM_REGIONS):
         grid_row_start = region_index
         grid_row_end = region_index + 1
@@ -294,7 +351,7 @@ def plot_structures(
             bounded_slice=bounded_slice,
             zoom_region=zoom_region,
         )
-        zoom_ax = fig_grid.add_field_axis(
+        zoom_ax = fig_grid.plot(
             row_slice=slice(grid_row_start, grid_row_end),
             col_slice=slice(num_main_cols, num_cols),
             bounded_slice=cropped_field,
@@ -324,14 +381,19 @@ def main() -> None:
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
-    sarray_2d = numpy.load(DATA_PATH)["sarray_2d"]
+    with numpy.load(DATA_PATH) as data:
+        sarray_2d = data["sarray_2d"]
+        step_time = float(data["step_time"])
     cell_size = (AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]) / sarray_2d.shape[0]
     log10_scaled_sarray_2d = compute_array_stats.compute_safe_log10(cell_size * numpy.abs(sarray_2d))
     bounded_slice = BoundedSlice(
         sarray_2d=log10_scaled_sarray_2d,
         axis_bounds=AXIS_BOUNDS,
     )
-    fig = plot_structures(bounded_slice=bounded_slice)
+    fig = plot_structures(
+        bounded_slice=bounded_slice,
+        step_time=step_time,
+    )
     manage_plots.save_figure(
         fig=fig,
         fig_path=FIGURE_PATH,

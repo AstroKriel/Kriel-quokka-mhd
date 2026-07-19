@@ -40,10 +40,6 @@ NCELLS = 256
 SCHEME = "q26-b25-ppm_ep"
 PROFILE_AXIS = "x_0"
 DECAYING_COMPONENT = "x_2"  ## Alfven perturbation: transverse to both k and the background field
-## log-spaced resistivity sweep at fixed resolution; dataset directories are keyed by this exact
-## string (not a reformatted float), since e.g. "1e-05" does not match the on-disk directory name
-## "0.00001"
-ETA_LABELS = ("0.00001", "0.0000316", "0.0001", "0.000316", "0.001", "0.00316", "0.01", "0.0316")
 
 ## plotting details
 ## resistive Alfven-wave decay: b_2(x, t) = b_amp * exp(-gamma * t) * sin(k * x)
@@ -52,6 +48,18 @@ K_MODE = 2.0 * numpy.pi  ## one mode in a unit-length box
 ##
 ## === HELPER FUNCTIONS
 ##
+
+
+def discover_eta_labels(
+    *,
+    dataset_dir: Path,
+) -> tuple[str, ...]:
+    """Return every `eta=<label>` directory under `dataset_dir`, sorted by resistivity value."""
+    eta_dirs = sorted(
+        dataset_dir.glob("eta=*"),
+        key=lambda path: float(path.name.removeprefix("eta=")),
+    )
+    return tuple(path.name.removeprefix("eta=") for path in eta_dirs)
 
 
 def load_component_snapshots(
@@ -98,10 +106,11 @@ def measure_decay_rate(
 def plot_decay_rate_panel(
     *,
     ax: manage_plots.PlotAxis,
+    eta_labels: tuple[str, ...],
 ) -> None:
     """Plot the measured decay rate vs resistivity, against the analytic gamma = eta * k^2 / 2 line."""
-    etas = numpy.asarray([float(label) for label in ETA_LABELS])
-    measured_gammas = numpy.asarray([measure_decay_rate(eta_label=label) for label in ETA_LABELS])
+    etas = numpy.asarray([float(label) for label in eta_labels])
+    measured_gammas = numpy.asarray([measure_decay_rate(eta_label=label) for label in eta_labels])
     analytic_gammas = etas * K_MODE**2 / 2.0
     ax.plot(
         numpy.log10(etas),
@@ -135,12 +144,16 @@ def main() -> None:
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
+    eta_labels = discover_eta_labels(dataset_dir=DATASET_DIR)
     fig, axs = manage_plots.create_figure_grid(
         num_rows=1,
         num_cols=1,
         axis_shape=(5, 6),
     )
-    plot_decay_rate_panel(ax=axs[0, 0])
+    plot_decay_rate_panel(
+        ax=axs[0, 0],
+        eta_labels=eta_labels,
+    )
     axs[0, 0].set_xlabel(r"$\log_{10}\ (\mathrm{input}\ \eta)$")
     axs[0, 0].set_ylabel(r"$\log_{10}\ (\mathrm{measured}\ \gamma)$")
     axs[0, 0].legend(

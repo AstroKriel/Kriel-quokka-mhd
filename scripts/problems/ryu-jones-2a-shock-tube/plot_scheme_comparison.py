@@ -135,16 +135,17 @@ class QuokkaSetupParams:
 ## === CONSTANTS
 ##
 
+## inputs and outputs
+ROOT_DIR: Path = Path(__file__).parents[3]
+DATASET_DIR: Path = ROOT_DIR / "datasets/problems/ryu-jones-2a-shock-tube/ncells=512"
+FIGURE_PATH: Path = ROOT_DIR / "figures/problems/ryu-jones-2a-shock-tube/ncells=512/scheme-comparison.png"
 SETUP_PARAMS: QuokkaSetupParams = QuokkaSetupParams(
     discontinuity_position=0.5,
     magnetic_field_normal=0.5641895835477562,
     gamma=5.0 / 3.0,
 )
 
-ROOT_DIR: Path = Path(__file__).parents[3]
-DATASET_DIR: Path = ROOT_DIR / "datasets/problems/ryu-jones-2a-shock-tube/ncells=512"
-FIGURE_PATH: Path = ROOT_DIR / "figures/problems/ryu-jones-2a-shock-tube/ncells=512/scheme-comparison.png"
-
+## plotting details
 MARKER_PLOT_KWARGS: dict[str, Any] = {
     "markerfacecolor": "none",
     "markersize": 6,

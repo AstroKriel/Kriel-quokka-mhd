@@ -103,10 +103,12 @@ class ShockTubeProfiles:
 ## === CONSTANTS
 ##
 
+## inputs and outputs
 ROOT_DIR: Path = Path(__file__).parents[3]
 DATASET_DIR: Path = ROOT_DIR / "datasets/problems/brio-wu-shock-tube"
 FIGURE_PATH: Path = ROOT_DIR / "figures/problems/brio-wu-shock-tube/ncells=256/scheme-comparison.png"
 
+## plotting details
 MARKER_PLOT_KWARGS: dict[str, Any] = {
     "markerfacecolor": "none",
     "markersize": 6,
@@ -280,7 +282,7 @@ def add_zoom_inset(
             axis_bounds.y_min,
             axis_bounds.x_width,
             axis_bounds.y_width,
-        )
+        ),
     )
     for line in ax.get_lines():
         inset_ax.plot(

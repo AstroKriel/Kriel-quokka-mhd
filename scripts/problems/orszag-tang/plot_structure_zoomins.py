@@ -124,7 +124,7 @@ FIGURE_PATH: Path = ROOT_DIR / "figures/problems/orszag-tang/ncells=8192/q26-b25
 AXIS_BOUNDS: plot_data.AxisBounds = ((-0.5, 0.5), (-0.5, 0.5))
 MAIN_MAJOR_TICK_STEP = 0.25
 MAIN_MINOR_TICK_STEP = 0.05
-MAIN_LABELED_TICK_VALUES = (-0.25, 0.25)
+MAIN_LABELED_TICK_VALUES = (-0.5, -0.25, 0, 0.25, 0.5)
 
 ## annotations
 ZOOM_REGIONS: tuple[ZoomRegion, ...] = (
@@ -226,6 +226,8 @@ def configure_main_ticks(
         axis.set_minor_locator(MultipleLocator(MAIN_MINOR_TICK_STEP))
         axis.set_major_formatter(FuncFormatter(format_main_tick))
     ax.tick_params(
+        which="both",
+        color="white",
         labelbottom=True,
         labeltop=False,
         labelleft=True,
@@ -243,6 +245,8 @@ def configure_zoomin_ticks(
     for axis in (ax.xaxis, ax.yaxis):
         axis.set_minor_locator(AutoMinorLocator())
     ax.tick_params(
+        which="both",
+        color="white",
         labelbottom=label_bottom,
         labeltop=label_top,
         labelleft=False,

@@ -95,7 +95,7 @@ def load_scaling_series(
     csv_path: Path,
 ) -> list[ScalingSeries]:
     full_data_frame = pandas.read_csv(csv_path)
-    scaling_series_list = []
+    grouped_scaling_series = []
     for emf_compute_scheme in EMFComputeScheme:
         for emf_averaging_scheme in EMFAveragingScheme:
             scheme_mask = (
@@ -108,7 +108,7 @@ def load_scaling_series(
             num_gpus = subset_data_frame["num_gpus"].to_numpy(dtype=numpy.float64)
             us_per_zone_update = subset_data_frame["us_per_zone_update"].to_numpy(dtype=numpy.float64)
             updates_per_s_per_gpu = 1.0 / (us_per_zone_update * num_gpus)
-            scaling_series_list.append(
+            grouped_scaling_series.append(
                 ScalingSeries(
                     emf_compute_scheme=emf_compute_scheme,
                     emf_averaging_scheme=emf_averaging_scheme,
@@ -118,16 +118,16 @@ def load_scaling_series(
                     reference_value=float(updates_per_s_per_gpu[0]),
                 ),
             )
-    return scaling_series_list
+    return grouped_scaling_series
 
 
 def plot_scaling_panel(
     *,
     ax: manage_plots.PlotAxis,
-    scaling_series_list: list[ScalingSeries],
+    grouped_scaling_series: list[ScalingSeries],
     add_y_label: bool,
 ) -> None:
-    for series in scaling_series_list:
+    for series in grouped_scaling_series:
         emf_compute_scheme_style = series.emf_compute_scheme.value
         emf_averaging_scheme_style = series.emf_averaging_scheme.value
         ax.axhline(
@@ -234,22 +234,22 @@ def main() -> None:
         x_spacing=0.15,
         share_y=True,
     )
-    strong_ax = axs[0, 0]
-    weak_ax = axs[0, 1]
-    strong_series_list = load_scaling_series(datasets_dir / "strong_gpu_scaling.csv")
+    strong_scaling_ax = axs[0, 0]
+    weak_scaling_ax = axs[0, 1]
+    grouped_strong_scaling_series = load_scaling_series(datasets_dir / "strong_gpu_scaling.csv")
     plot_scaling_panel(
-        ax=strong_ax,
-        scaling_series_list=strong_series_list,
+        ax=strong_scaling_ax,
+        grouped_scaling_series=grouped_strong_scaling_series,
         add_y_label=True,
     )
-    annotate_strong_scaling_axis(ax=strong_ax)
-    weak_series_list = load_scaling_series(datasets_dir / "weak_gpu_scaling.csv")
+    annotate_strong_scaling_axis(ax=strong_scaling_ax)
+    grouped_weak_scaling_series = load_scaling_series(datasets_dir / "weak_gpu_scaling.csv")
     plot_scaling_panel(
-        ax=weak_ax,
-        scaling_series_list=weak_series_list,
+        ax=weak_scaling_ax,
+        grouped_scaling_series=grouped_weak_scaling_series,
         add_y_label=False,
     )
-    annotate_weak_scaling_axis(ax=weak_ax)
+    annotate_weak_scaling_axis(ax=weak_scaling_ax)
     manage_plots.save_figure(
         fig=fig,
         fig_path=figures_dir / "gpu_scaling.png",

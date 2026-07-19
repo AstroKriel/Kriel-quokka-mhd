@@ -23,18 +23,20 @@ from jormi.ww_types import box_positions
 ## === CONFIGURATION
 ##
 
+## dataset paths and file layout
 ROOT_DIR = Path(__file__).parents[3]
 DATASET_DIR = ROOT_DIR / "datasets/problems/balsara-vortex"
+DATASET_RESOLUTIONS = (64, 128)
 DATASET_SLICE_GLOB = "magnetic_energy-slice=x_2-index=*.npz"
 DATASET_TIME_NAME = "magnetic_energy-vi_evolution.json"
 FIGURE_PATH = ROOT_DIR / "figures/problems/balsara-vortex/resolution-comparison.png"
 
-RESOLUTIONS = (64, 128)
-
+## colormap and value scaling
 PALETTE_NAME = "cmr.horizon_r"
 PALETTE_RANGE = (0.0, 1.0)
 VALUE_RANGE = (-10.3, -4.3)
 
+## physical domain and vortex geometry
 AXIS_BOUNDS: plot_data.AxisBounds = ((-5.0, 5.0), (-5.0, 5.0))
 REFERENCE_RADIUS = 2.5
 NUM_ORBITS = 3
@@ -239,10 +241,10 @@ def main() -> None:
     )
     data_dirs_lookup = {
         num_cells: DATASET_DIR / f"ncells={num_cells}/q26-b25-ppm_ep/extracted"
-        for num_cells in RESOLUTIONS
+        for num_cells in DATASET_RESOLUTIONS
     }
-    highest_resolution = max(RESOLUTIONS)
-    left_side_resolution, right_side_resolution = RESOLUTIONS
+    highest_resolution = max(DATASET_RESOLUTIONS)
+    left_side_resolution, right_side_resolution = DATASET_RESOLUTIONS
     first_snapshot_lookup = {
         num_cells:
         upsample_slice(

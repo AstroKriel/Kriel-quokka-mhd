@@ -15,6 +15,7 @@ from matplotlib import patches as mpl_patches
 from matplotlib import pyplot as mpl_plot
 
 from matplotlib.figure import Figure as mpl_Figure
+from matplotlib.ticker import AutoMinorLocator, FuncFormatter, MultipleLocator
 from numpy.typing import NDArray
 
 ## personal
@@ -121,6 +122,9 @@ FIGURE_PATH: Path = ROOT_DIR / "figures/problems/orszag-tang/ncells=8192/q26-b25
 
 ## plotting details
 AXIS_BOUNDS: plot_data.AxisBounds = ((-0.5, 0.5), (-0.5, 0.5))
+MAIN_MAJOR_TICK_STEP = 0.25
+MAIN_MINOR_TICK_STEP = 0.05
+MAIN_LABELED_TICK_VALUES = (-0.25, 0.25)
 
 ## annotations
 ZOOM_REGIONS: tuple[ZoomRegion, ...] = (
@@ -202,8 +206,48 @@ def plot_sarray_2d(
         cbar_label=field_label if add_cbar else None,
         cbar_side="top",
     )
-    ax.set_xticks([])
-    ax.set_yticks([])
+
+
+def format_main_tick(
+    tick_value: float,
+    _tick_position: int,
+) -> str:
+    """Label only `MAIN_LABELED_TICK_VALUES`; every other major tick is drawn unlabeled."""
+    is_labeled = any(numpy.isclose(tick_value, labeled_value) for labeled_value in MAIN_LABELED_TICK_VALUES)
+    return f"{tick_value:.2f}" if is_labeled else ""
+
+
+def configure_main_ticks(
+    *,
+    ax: manage_plots.PlotAxis,
+) -> None:
+    for axis in (ax.xaxis, ax.yaxis):
+        axis.set_major_locator(MultipleLocator(MAIN_MAJOR_TICK_STEP))
+        axis.set_minor_locator(MultipleLocator(MAIN_MINOR_TICK_STEP))
+        axis.set_major_formatter(FuncFormatter(format_main_tick))
+    ax.tick_params(
+        labelbottom=True,
+        labeltop=False,
+        labelleft=True,
+        labelright=False,
+    )
+
+
+def configure_zoomin_ticks(
+    *,
+    ax: manage_plots.PlotAxis,
+    label_bottom: bool,
+    label_top: bool,
+) -> None:
+    """Add automatic domain ticks (each zoom region's extent is too small for a fixed step)."""
+    for axis in (ax.xaxis, ax.yaxis):
+        axis.set_minor_locator(AutoMinorLocator())
+    ax.tick_params(
+        labelbottom=label_bottom,
+        labeltop=label_top,
+        labelleft=False,
+        labelright=True,
+    )
 
 
 def plot_structures(
@@ -231,6 +275,7 @@ def plot_structures(
         bounded_slice=bounded_slice,
         add_cbar=True,
     )
+    configure_main_ticks(ax=main_ax)
     for region_index, zoom_region in enumerate(ZOOM_REGIONS):
         grid_row_start = region_index
         grid_row_end = region_index + 1
@@ -238,11 +283,16 @@ def plot_structures(
             bounded_slice=bounded_slice,
             zoom_region=zoom_region,
         )
-        fig_grid.add_field_axis(
+        zoom_ax = fig_grid.add_field_axis(
             row_slice=slice(grid_row_start, grid_row_end),
             col_slice=slice(num_main_cols, num_cols),
             bounded_slice=cropped_field,
             add_cbar=False,
+        )
+        configure_zoomin_ticks(
+            ax=zoom_ax,
+            label_bottom=(region_index == len(ZOOM_REGIONS) - 1),
+            label_top=(region_index == 0),
         )
         overlay_zoomin_box(
             ax=main_ax,

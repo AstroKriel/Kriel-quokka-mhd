@@ -18,6 +18,7 @@ from numpy.typing import NDArray
 
 ## personal (local)
 from aegir import exact_solution, mhd_state
+from jormi.ww_io import manage_io
 from jormi.ww_plots import (
     annotate_axis,
     manage_plots,
@@ -446,6 +447,10 @@ def add_llf_legend(
 
 def main() -> None:
     style_plots.set_theme()
+    manage_io.create_directory(
+        directory=FIGURE_PATH.parent,
+        verbose=False,
+    )
     exact_profiles = compute_exact_profiles()
     llf_sim_profiles = load_sim_profiles(
         sim_dir=DATASET_DIR / "llf" / get_sim_tag(

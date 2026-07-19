@@ -38,18 +38,10 @@ class DensitySlice:
 ROOT_DIR = Path(__file__).parents[3]
 DATASET_DIR = ROOT_DIR / "datasets/problems/blast-wave"
 FIGURE_PATH = ROOT_DIR / "figures/problems/blast-wave/resolution-comparison.png"
-## fixed recommended scheme (Q26 + Balsara2025b, PPM-EP); only resolution varies, so each split
-## shows whether the resolved shock structure is grid-converged and free of artefacts. Consecutive
-## pairs (rather than every combination) form a convergence ladder: each panel is its own diagonal
-## split, so three resolutions need two panels, not one -- the exact mirror symmetry only supports
-## a two-way split per panel.
-NCELLS_VALUES = (128, 512)
-NCELLS_PAIRS = tuple(
-    zip(
-        NCELLS_VALUES[:-1],
-        NCELLS_VALUES[1:],
-    ),
-)
+## fixed recommended scheme (Q26 + Balsara2025b, PPM-EP); only resolution varies, so the split
+## shows whether the resolved shock structure is grid-converged and free of artefacts
+NCELLS_UPPER = 128
+NCELLS_LOWER = 512
 TARGET_TIME = 0.05
 
 ## plotting details
@@ -155,7 +147,6 @@ def format_domain_tick(
 def configure_domain_ticks(
     *,
     ax: manage_plots.PlotAxis,
-    label_left: bool,
 ) -> None:
     for axis in (ax.xaxis, ax.yaxis):
         axis.set_major_locator(MultipleLocator(MAJOR_TICK_STEP))
@@ -166,7 +157,7 @@ def configure_domain_ticks(
         color="white",
         labelbottom=True,
         labeltop=False,
-        labelleft=label_left,
+        labelleft=True,
         labelright=False,
     )
 
@@ -183,74 +174,67 @@ def main() -> None:
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
-    density_slices = {ncells: load_density_slice(ncells=ncells) for ncells in NCELLS_VALUES}
+    upper_slice = load_density_slice(ncells=NCELLS_UPPER)
+    lower_slice = load_density_slice(ncells=NCELLS_LOWER)
     shared_value_range = (
-        min(density_slice.log10_density.min() for density_slice in density_slices.values()),
-        max(density_slice.log10_density.max() for density_slice in density_slices.values()),
+        min(upper_slice.log10_density.min(), lower_slice.log10_density.min()),
+        max(upper_slice.log10_density.max(), lower_slice.log10_density.max()),
     )
     palette_config = add_color.SequentialConfig(
         palette_name=PALETTE_NAME,
         palette_range=(0.0, 1.0),
     )
-    fig, axs = manage_plots.create_figure_grid(
-        num_rows=1,
-        num_cols=len(NCELLS_PAIRS),
+    fig, ax = manage_plots.create_figure(
         axis_shape=(6, 6),
-        x_spacing=0.05,
     )
-    for panel_index, (ncells_upper, ncells_lower) in enumerate(NCELLS_PAIRS):
-        ax = axs[0, panel_index]
-        composite = compose_resolution_split(
-            upper_array=density_slices[ncells_upper].log10_density,
-            lower_array=density_slices[ncells_lower].log10_density,
-        )
-        plot_data.plot_2d_array(
-            ax=ax,
-            array_2d=composite,
-            data_format="xy",
-            axis_bounds=AXIS_BOUNDS,
-            cbar_bounds=shared_value_range,
-            palette_config=palette_config,
-            add_cbar=False,
-        )
-        ax.plot(
-            [AXIS_BOUNDS[0][0], AXIS_BOUNDS[0][1]],
-            [AXIS_BOUNDS[1][0], AXIS_BOUNDS[1][1]],
-            color="white",
-            linewidth=0.6,
-        )
-        annotate_axis.add_text(
-            ax=ax,
-            x_pos=0.05,
-            y_pos=0.95,
-            label=rf"${ncells_upper}^3$",
-            x_alignment=box_positions.Positions.Side.Left,
-            y_alignment=box_positions.Positions.Side.Top,
-            text_size=26,
-            text_color="white",
-            box_alpha=0.0,
-        )
-        annotate_axis.add_text(
-            ax=ax,
-            x_pos=0.95,
-            y_pos=0.05,
-            label=rf"${ncells_lower}^3$",
-            x_alignment=box_positions.Positions.Side.Right,
-            y_alignment=box_positions.Positions.Side.Bottom,
-            text_size=26,
-            text_color="white",
-            box_alpha=0.0,
-        )
-        configure_domain_ticks(
-            ax=ax,
-            label_left=(panel_index == 0),
-        )
+    composite = compose_resolution_split(
+        upper_array=upper_slice.log10_density,
+        lower_array=lower_slice.log10_density,
+    )
+    plot_data.plot_2d_array(
+        ax=ax,
+        array_2d=composite,
+        data_format="xy",
+        axis_bounds=AXIS_BOUNDS,
+        cbar_bounds=shared_value_range,
+        palette_config=palette_config,
+        add_cbar=False,
+    )
+    ax.plot(
+        [AXIS_BOUNDS[0][0], AXIS_BOUNDS[0][1]],
+        [AXIS_BOUNDS[1][0], AXIS_BOUNDS[1][1]],
+        color="white",
+        linewidth=0.6,
+    )
+    annotate_axis.add_text(
+        ax=ax,
+        x_pos=0.05,
+        y_pos=0.95,
+        label=rf"${NCELLS_UPPER}^3$",
+        x_alignment=box_positions.Positions.Side.Left,
+        y_alignment=box_positions.Positions.Side.Top,
+        text_size=26,
+        text_color="white",
+        box_alpha=0.0,
+    )
+    annotate_axis.add_text(
+        ax=ax,
+        x_pos=0.95,
+        y_pos=0.05,
+        label=rf"${NCELLS_LOWER}^3$",
+        x_alignment=box_positions.Positions.Side.Right,
+        y_alignment=box_positions.Positions.Side.Bottom,
+        text_size=26,
+        text_color="white",
+        box_alpha=0.0,
+    )
+    configure_domain_ticks(ax=ax)
     palette = add_color.make_palette(
         config=palette_config,
         value_range=shared_value_range,
     )
     add_color.add_colorbar(
-        ax=axs[0, -1],
+        ax=ax,
         palette=palette,
         label=FIELD_LABEL,
         cbar_side="top",

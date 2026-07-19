@@ -164,8 +164,8 @@ def main() -> None:
         axis_shape=(4.625, 7.0),
         y_spacing=0.05,
     )
-    ax_divb = axs[0, 0]
-    ax_pdf = axs[1, 0]
+    ax_pdf = axs[0, 0]
+    ax_divb = axs[1, 0]
 
     log10_absolute_divb_series = [
         (
@@ -231,6 +231,8 @@ def main() -> None:
     ax_pdf.tick_params(labelsize=TICK_LABEL_SIZE)
     ax_pdf.yaxis.set_label_position("left")
     ax_pdf.yaxis.tick_left()
+    ax_pdf.xaxis.set_label_position("top")
+    ax_pdf.xaxis.tick_top()
     axis_width = AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]
     axis_height = AXIS_BOUNDS[1][1] - AXIS_BOUNDS[1][0]
     ax_pdf.set_box_aspect(axis_height / axis_width)
@@ -256,11 +258,8 @@ def main() -> None:
         palette_config=divb_palette_config,
         cbar_label=r"$(\nabla \cdot \vec{b}) / 10^{-16}$",
     )
+    ax_divb.set_xlabel(r"$x_0$", fontsize=AXIS_LABEL_SIZE)
     ax_divb.set_ylabel(r"$x_1$", fontsize=AXIS_LABEL_SIZE)
-    ax_divb.tick_params(
-        axis="x",
-        labelbottom=False,
-    )
     annotate_axis.add_text(
         ax=ax_divb,
         x_pos=0.5,

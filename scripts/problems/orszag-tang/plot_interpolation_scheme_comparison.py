@@ -39,11 +39,11 @@ class InterpolationSchemeStyle:
 class InterpolationScheme(Enum):
     PPM = InterpolationSchemeStyle(
         label="PPM",
-        color="blue",
+        color="#DC5664",
     )
     PPM_EP = InterpolationSchemeStyle(
         label="PPM-EP",
-        color="red",
+        color="#56DCCE",
     )
 
     @property

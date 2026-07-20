@@ -10,6 +10,7 @@ from pathlib import Path
 
 ## third-party
 import numpy
+from matplotlib.colorbar import Colorbar as mpl_Colorbar
 from matplotlib.ticker import FuncFormatter, MultipleLocator
 from numpy.typing import NDArray
 
@@ -47,6 +48,9 @@ AXIS_BOUNDS: plot_data.AxisBounds = ((-0.5, 0.5), (-0.5, 0.5))
 MAJOR_TICK_STEP = 0.25
 MINOR_TICK_STEP = 0.05
 LABELED_TICK_VALUES = (-0.25, 0.25)
+CBAR_BOUNDS = (-0.8, 0.5)
+CONTOUR_LEVELS = (-0.0075, 0.0075)
+CONTOUR_COLORS = ("blue", "red")
 
 ##
 ## === HELPER FUNCTIONS
@@ -116,6 +120,61 @@ def combine_arrays_split_diagonally(
     return numpy.where(upper_mask, upper_array, lower_array)
 
 
+def overlay_contours(
+    *,
+    ax: manage_plots.PlotAxis,
+    slice_2d: NDArray[numpy.floating],
+) -> None:
+    num_rows, num_cols = slice_2d.shape
+    grid_x, grid_y = numpy.meshgrid(
+        numpy.linspace(AXIS_BOUNDS[0][0], AXIS_BOUNDS[0][1], num_cols),
+        numpy.linspace(AXIS_BOUNDS[1][0], AXIS_BOUNDS[1][1], num_rows),
+    )
+    ax.contour(
+        grid_x,
+        grid_y,
+        slice_2d.T,
+        levels=list(CONTOUR_LEVELS),
+        colors=list(CONTOUR_COLORS),
+        linestyles="solid",
+        linewidths=1.0,
+        alpha=0.35,
+        zorder=1,
+    )
+
+
+def mark_contour_levels_on_cbar(
+    *,
+    cbar: mpl_Colorbar,
+) -> None:
+    for level, color in zip(CONTOUR_LEVELS, CONTOUR_COLORS, strict=True):
+        cbar.ax.axvline(
+            x=level,
+            color=color,
+            linewidth=1.0,
+            zorder=10,
+        )
+
+
+def compute_zero_centred_palette_range(
+    *,
+    value_range: tuple[float, float],
+) -> tuple[float, float]:
+    """
+    Return a `palette_range` that puts `value=0` at the colormap's own centre (0.5) via a single
+    linear map (no piecewise/stretched norm): the palette end on the smaller-magnitude side of
+    zero is pulled in from its natural extreme (0.0 or 1.0); the larger-magnitude side keeps its
+    full extreme.
+    """
+    value_lo, value_hi = value_range
+    if not (value_lo < 0.0 < value_hi):
+        raise ValueError(f"`value_range` must straddle zero, got {value_range}.")
+    zero_fraction = -value_lo / (value_hi - value_lo)
+    if zero_fraction >= 0.5:
+        return (0.0, 0.5 / zero_fraction)
+    return ((0.5 - zero_fraction) / (1.0 - zero_fraction), 1.0)
+
+
 def format_domain_tick(
     tick_value: float,
     _tick_position: int,
@@ -135,7 +194,7 @@ def configure_domain_ticks(
         axis.set_major_formatter(FuncFormatter(format_domain_tick))
     ax.tick_params(
         which="both",
-        color="white",
+        color="black",
         labelbottom=True,
         labeltop=False,
         labelleft=True,
@@ -157,13 +216,9 @@ def main() -> None:
     )
     upper_slice = load_density_slice(ncells=NCELLS_UPPER)
     lower_slice = load_density_slice(ncells=NCELLS_LOWER)
-    shared_value_range = (
-        min(upper_slice.log10_density.min(), lower_slice.log10_density.min()),
-        max(upper_slice.log10_density.max(), lower_slice.log10_density.max()),
-    )
     palette_config = add_color.SequentialConfig(
-        palette_name="cmr.copper_s",
-        palette_range=(0.0, 1.0),
+        palette_name="twilight_shifted",
+        palette_range=compute_zero_centred_palette_range(value_range=CBAR_BOUNDS),
     )
     fig, ax = manage_plots.create_figure(
         axis_shape=(6, 6),
@@ -177,9 +232,13 @@ def main() -> None:
         array_2d=composite,
         data_format="xy",
         axis_bounds=AXIS_BOUNDS,
-        cbar_bounds=shared_value_range,
+        cbar_bounds=CBAR_BOUNDS,
         palette_config=palette_config,
         add_cbar=False,
+    )
+    overlay_contours(
+        ax=ax,
+        slice_2d=composite,
     )
     ax.plot(
         [AXIS_BOUNDS[0][0], AXIS_BOUNDS[0][1]],
@@ -195,7 +254,7 @@ def main() -> None:
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Side.Top,
         text_size=26,
-        text_color="white",
+        text_color="black",
         box_alpha=0.0,
     )
     annotate_axis.add_text(
@@ -206,21 +265,22 @@ def main() -> None:
         x_alignment=box_positions.Positions.Side.Right,
         y_alignment=box_positions.Positions.Side.Bottom,
         text_size=26,
-        text_color="white",
+        text_color="black",
         box_alpha=0.0,
     )
     configure_domain_ticks(ax=ax)
     palette = add_color.make_palette(
         config=palette_config,
-        value_range=shared_value_range,
+        value_range=CBAR_BOUNDS,
     )
-    add_color.add_colorbar(
+    cbar = add_color.add_colorbar(
         ax=ax,
         palette=palette,
         label=r"$\log_{10}(\rho / \rho_0)$",
         cbar_side="top",
         label_size=26,
     )
+    mark_contour_levels_on_cbar(cbar=cbar)
     manage_plots.save_figure(
         fig=fig,
         fig_path=FIGURE_PATH,

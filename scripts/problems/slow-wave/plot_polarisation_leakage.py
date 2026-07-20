@@ -92,7 +92,7 @@ def main() -> None:
     fig, axs = manage_plots.create_figure_grid(
         num_rows=1,
         num_cols=1,
-        axis_shape=(5, 6),
+        axis_shape=(4.5, 6),
         fig_scale=0.9,
     )
     ax = axs[0, 0]
@@ -123,7 +123,7 @@ def main() -> None:
     annotate_axis.add_text(
         ax=ax,
         x_pos=0.975,
-        y_pos=0.775,
+        y_pos=0.75,
         label=rf"${tail_ave:.2f} \pm {tail_std:.2f}$",
         x_alignment=box_positions.Positions.Side.Right,
         y_alignment=box_positions.Positions.Center.Center,
@@ -137,6 +137,7 @@ def main() -> None:
         r"\dfrac{\int (b_2 - \langle b_2 \rangle)^2 \mathrm{d}x_0}"
         r"{\int (b_0 - \langle b_0 \rangle)^2 \mathrm{d}x_0}"
         r"\right)$",
+        fontsize=23,
     )
     manage_plots.save_figure(
         fig=fig,

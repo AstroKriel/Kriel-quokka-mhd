@@ -16,7 +16,8 @@ from numpy.typing import NDArray
 
 ## personal
 from jormi.ww_io import manage_io, manage_log
-from jormi.ww_plots import manage_plots, style_plots
+from jormi.ww_plots import annotate_axis, manage_plots, style_plots
+from jormi.ww_types import box_positions
 
 ##
 ## === DATA STRUCTURES
@@ -219,6 +220,39 @@ def annotate_weak_scaling_axis(
     ax.set_xticklabels([f"$2^{{{round(numpy.log2(gpu_count))}}}$" for gpu_count in gpu_ticks])
 
 
+def add_emf_compute_scheme_legend(
+    *,
+    ax: manage_plots.PlotAxis,
+) -> None:
+    annotate_axis.add_custom_legend(
+        ax=ax,
+        artists=["o" for _ in EMFComputeScheme],
+        labels=[scheme.value.label for scheme in EMFComputeScheme],
+        colors=[scheme.value.color for scheme in EMFComputeScheme],
+        marker_size=0,
+        text_color="markerfacecolor",
+        marker_first=False,  # put the (invisible) handle after the text, so text hugs the left edge
+        anchor_point=(0.0, 0.0),
+        anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
+    )
+
+
+def add_emf_averaging_scheme_legend(
+    *,
+    ax: manage_plots.PlotAxis,
+) -> None:
+    annotate_axis.add_custom_legend(
+        ax=ax,
+        artists=[scheme.value.marker for scheme in EMFAveragingScheme],
+        labels=[scheme.value.label for scheme in EMFAveragingScheme],
+        colors=["black" for _ in EMFAveragingScheme],
+        marker_size=7,
+        text_color="black",
+        anchor_point=(0.0, 0.0),
+        anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
+    )
+
+
 ##
 ## === PROGRAM MAIN
 ##
@@ -246,6 +280,7 @@ def main() -> None:
         add_y_label=True,
     )
     annotate_strong_scaling_axis(ax=strong_scaling_ax)
+    add_emf_compute_scheme_legend(ax=strong_scaling_ax)
     weak_scaling_ax = axs[0, 1]
     grouped_weak_scaling_series = load_scaling_series(
         csv_path=datasets_dir / "weak_gpu_scaling.csv",
@@ -256,6 +291,7 @@ def main() -> None:
         add_y_label=False,
     )
     annotate_weak_scaling_axis(ax=weak_scaling_ax)
+    add_emf_averaging_scheme_legend(ax=weak_scaling_ax)
     manage_plots.save_figure(
         fig=fig,
         fig_path=figures_dir / "gpu_scaling.png",

@@ -10,6 +10,7 @@ from pathlib import Path
 
 ## third-party
 import numpy
+from matplotlib import patches as mpl_patches
 from matplotlib.figure import Figure as mpl_Figure
 from numpy.typing import NDArray
 
@@ -48,6 +49,14 @@ TICK_LABEL_SIZE = 20
 AXIS_LABEL_SIZE = 25
 SLICE_BOUNDS: plot_data.AxisBounds = ((-1.0, 1.0), (-0.578125, 0.578125))
 ADVECTION_PERIOD = (SLICE_BOUNDS[0][1] - SLICE_BOUNDS[0][0]) / numpy.sin(numpy.pi / 3.0)
+
+## annotations
+AMR_REGION_BOUNDS: plot_data.AxisBounds = ((0.4, 0.6), (-0.23125, 0.23125))
+## the loop is centred on the origin at t=0, with radius R_0=0.3 (testFieldLoop.cpp)
+LOOP_INITIAL_CENTER = (0.0, 0.0)
+LOOP_INITIAL_RADIUS = 0.3
+## advection velocity projected onto the x_0-x_1 plane, from u=(sin(pi/3), cos(pi/3), 1)
+ADVECTION_DIRECTION = (numpy.sin(numpy.pi / 3.0), numpy.cos(numpy.pi / 3.0))
 
 ##
 ## === HELPER FUNCTIONS
@@ -102,6 +111,45 @@ def compute_log10_absolute_divb(
     """Drop zero/non-finite cells (outside the loop), then take log10 of the magnitude."""
     nonzero_finite = numpy.isfinite(sarray_2d) & (sarray_2d != 0.0)
     return numpy.log10(numpy.abs(sarray_2d[nonzero_finite]))
+
+
+def add_advection_arrow(
+    *,
+    ax: manage_plots.PlotAxis,
+) -> None:
+    arrow_start = (
+        LOOP_INITIAL_CENTER[0] + LOOP_INITIAL_RADIUS * ADVECTION_DIRECTION[0],
+        LOOP_INITIAL_CENTER[1] + LOOP_INITIAL_RADIUS * ADVECTION_DIRECTION[1],
+    )
+    arrow_length = 0.25
+    arrow_end = (
+        arrow_start[0] + arrow_length * ADVECTION_DIRECTION[0],
+        arrow_start[1] + arrow_length * ADVECTION_DIRECTION[1],
+    )
+    ax.annotate(
+        "",
+        xy=arrow_end,
+        xytext=arrow_start,
+        arrowprops={
+            "arrowstyle": "-|>",
+            "color": "red",
+            "linewidth": 1.5,
+            "mutation_scale": 15.0,
+            "shrinkA": 0.0,
+            "shrinkB": 0.0,
+        },
+    )
+    ax.text(
+        arrow_start[0] + 0.025,
+        arrow_start[1] + 0.05,
+        "advection",
+        ha="left",
+        va="bottom",
+        color="red",
+        rotation=30.0,
+        rotation_mode="anchor",
+        fontsize=TICK_LABEL_SIZE,
+    )
 
 
 ##
@@ -162,7 +210,7 @@ def plot_pdf_panel(
         r"$\log_{10}\!\left(\mathrm{PDF}(x)\right)$",
         fontsize=AXIS_LABEL_SIZE,
     )
-    ax.set_xlim(-51, -13)
+    ax.set_xlim(-52, -13)
     ax.set_ylim(-2.3, 0.0)
     ax.tick_params(labelsize=TICK_LABEL_SIZE)
     ax.yaxis.set_label_position("right")
@@ -175,7 +223,7 @@ def plot_pdf_panel(
         palette=time_palette,
         label=r"$t / T_\mathrm{advect}$",
         cbar_side="top",
-        cbar_thickness=0.075,
+        cbar_thickness=0.1,
         cbar_pad=0.01,
         label_size=AXIS_LABEL_SIZE,
         label_pad=17.5,
@@ -191,7 +239,8 @@ def plot_slice_panel(
     """Plot the div-b slice nearest `TARGET_TIME`, with a colorbar and a time label."""
     palette_config = add_color.DivergingConfig(
         mid_value=0.0,
-        palette_name="bwr",
+        palette_name="cmr.prinsenvlag",
+        palette_range=(0.15, 0.85),
     )
     scaled_field = divb_slice.sarray_2d / 1.0e-16
     cbar_bounds = compute_symmetric_bounds(field=scaled_field)
@@ -211,14 +260,49 @@ def plot_slice_panel(
     cbar = add_color.add_colorbar(
         ax=ax,
         palette=palette,
-        label=r"$(\nabla \cdot \vec{b}) / 10^{-16}$",
+        label=r"$10^{16} (\nabla \cdot \vec{b})$",
         cbar_side="top",
-        cbar_thickness=0.075,
+        cbar_thickness=0.1,
         cbar_pad=0.01,
         label_size=AXIS_LABEL_SIZE,
         label_pad=17.5,
     )
     cbar.ax.tick_params(labelsize=TICK_LABEL_SIZE)
+    ax.add_patch(
+        mpl_patches.Circle(
+            LOOP_INITIAL_CENTER,
+            LOOP_INITIAL_RADIUS,
+            fill=False,
+            edgecolor="red",
+            linestyle=":",
+            linewidth=1.25,
+        ),
+    )
+    (amr_x_lo, amr_x_hi), (amr_y_lo, amr_y_hi) = AMR_REGION_BOUNDS
+    ax.add_patch(
+        mpl_patches.Rectangle(
+            (amr_x_lo, amr_y_lo),
+            amr_x_hi - amr_x_lo,
+            amr_y_hi - amr_y_lo,
+            fill=False,
+            edgecolor="blue",
+            linestyle="--",
+            linewidth=1.25,
+        ),
+    )
+    add_advection_arrow(ax=ax)
+    annotate_axis.add_text(
+        ax=ax,
+        x_pos=0.825,
+        y_pos=0.5,
+        label=r"\shortstack{refinement\\region}",
+        rotate_deg=90.0,
+        x_alignment=box_positions.Positions.Side.Left,
+        y_alignment=box_positions.Positions.Center.Center,
+        text_size=TICK_LABEL_SIZE,
+        text_color="blue",
+        box_alpha=0.0,
+    )
     ax.set_xlabel(
         r"$x_0$",
         fontsize=AXIS_LABEL_SIZE,

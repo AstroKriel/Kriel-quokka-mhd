@@ -11,8 +11,9 @@ from pathlib import Path
 import numpy
 
 ## personal
-from jormi.ww_io import json_io, manage_io
-from jormi.ww_plots import manage_plots, style_plots
+from jormi.ww_io import json_io, manage_io, manage_log
+from jormi.ww_plots import manage_plots, style_plots, annotate_axis
+from jormi.ww_types import box_positions
 
 ##
 ## === CONFIGURATION
@@ -33,7 +34,7 @@ SPURIOUS_COMPONENT = "x_2"
 
 ROOT_DIR = Path(__file__).parents[3]
 DATASET_DIR = ROOT_DIR / "datasets/problems/slow-wave/correctness/nx=1-ny=2-nz=3"
-FIGURE_PATH = ROOT_DIR / "figures/problems/slow-wave/oblique.png"
+FIGURE_PATH = ROOT_DIR / "figures/problems/slow-wave/polarisation-leakage.png"
 
 ##
 ## === HELPER FUNCTIONS
@@ -76,6 +77,7 @@ def load_energy_time_series(
 
 
 def main() -> None:
+    manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
     style_plots.set_theme()
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
@@ -83,41 +85,65 @@ def main() -> None:
     )
     times, primary_energy = load_energy_time_series(component=PRIMARY_COMPONENT)
     _, spurious_energy = load_energy_time_series(component=SPURIOUS_COMPONENT)
+    log10_leakage_ratio = numpy.log10(spurious_energy / primary_energy)
+    tail = log10_leakage_ratio[len(log10_leakage_ratio) // 2:]
+    tail_ave = tail.mean()
+    tail_std = tail.std()
     fig, axs = manage_plots.create_figure_grid(
         num_rows=1,
         num_cols=1,
         axis_shape=(5, 6),
+        fig_scale=0.9,
     )
     ax = axs[0, 0]
     ax.plot(
         times,
-        primary_energy,
+        log10_leakage_ratio,
         color="black",
         marker="o",
-        markersize=6,
-        linewidth=1.2,
-        zorder=1,
-        label=r"$b_0$ (primary polarisation)",
+        markersize=8,
+        linewidth=1.0,
+        zorder=2,
     )
-    ax.plot(
-        times,
-        spurious_energy,
-        color="firebrick",
-        marker="o",
-        markersize=6,
-        linewidth=1.2,
-        zorder=1,
-        label=r"$b_2$ (should be zero)",
+    ax.axhspan(
+        tail_ave - tail_std,
+        tail_ave + tail_std,
+        color="black",
+        alpha=0.15,
+        linewidth=0.0,
+        zorder=0,
     )
-    ax.set_yscale("log")
+    ax.axhline(
+        tail_ave,
+        color="black",
+        linestyle=":",
+        linewidth=1.5,
+        zorder=1,
+    )
+    annotate_axis.add_text(
+        ax=ax,
+        x_pos=0.975,
+        y_pos=0.775,
+        label=rf"${tail_ave:.2f} \pm {tail_std:.2f}$",
+        x_alignment=box_positions.Positions.Side.Right,
+        y_alignment=box_positions.Positions.Center.Center,
+        text_size=20,
+        text_color="black",
+    )
+    ax.set_ylim((-10, -6))
     ax.set_xlabel(r"$t$")
-    ax.set_ylabel(r"$\int (b_i - \langle b_i \rangle)^2\ \mathrm{d}x_0$")
-    ax.legend(loc="center right", frameon=False)
+    ax.set_ylabel(
+        r"$\log_{10}\!\left("
+        r"\dfrac{\int (b_2 - \langle b_2 \rangle)^2 \mathrm{d}x_0}"
+        r"{\int (b_0 - \langle b_0 \rangle)^2 \mathrm{d}x_0}"
+        r"\right)$",
+    )
     manage_plots.save_figure(
         fig=fig,
         fig_path=FIGURE_PATH,
         dpi=200,
     )
+
 
 ##
 ## === ENTRY POINT

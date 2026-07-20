@@ -344,12 +344,28 @@ def plot_profiles(
     )
 
 
+def build_axis_bounds(
+    *,
+    x_lo: float,
+    x_hi: float,
+    y_lo: float,
+    y_hi: float,
+) -> manage_plots.AxisBounds:
+    return manage_plots.AxisBounds(
+        x_min=x_lo,
+        y_min=y_lo,
+        x_width=x_hi - x_lo,
+        y_width=y_hi - y_lo,
+    )
+
+
 def add_zoom_inset(
     *,
     ax: manage_plots.PlotAxis,
     bounds: manage_plots.AxisBounds,
     x_bounds: tuple[float, float],
     y_bounds: tuple[float, float],
+    color: str,
 ) -> None:
     inset_ax = ax.inset_axes((
         bounds.x_min,
@@ -376,8 +392,8 @@ def add_zoom_inset(
     inset_ax.set_xticks([])
     inset_ax.set_yticks([])
     for spine in inset_ax.spines.values():
-        spine.set_edgecolor("red")
-    ax.indicate_inset_zoom(inset_ax, edgecolor="red")
+        spine.set_edgecolor(color)
+    ax.indicate_inset_zoom(inset_ax, edgecolor=color)
 
 
 def add_emf_compute_scheme_legend(
@@ -504,25 +520,27 @@ def main() -> None:
             )
     add_zoom_inset(
         ax=axs[1, 1],
-        bounds=manage_plots.AxisBounds(
-            x_min=0.4,
-            y_min=0.05,
-            x_width=0.85 - 0.4,
-            y_width=0.7 - 0.05,
+        bounds=build_axis_bounds(
+            x_lo=0.4,
+            x_hi=0.85,
+            y_lo=0.05,
+            y_hi=0.6,
         ),
         x_bounds=(0.45, 0.75),
         y_bounds=(4.3, 4.6),
+        color="lightgrey",
     )
     add_zoom_inset(
         ax=axs[3, 0],
-        bounds=manage_plots.AxisBounds(
-            x_min=0.05,
-            y_min=0.05,
-            x_width=0.45 - 0.05,
-            y_width=0.75 - 0.05,
+        bounds=build_axis_bounds(
+            x_lo=0.05,
+            x_hi=0.45,
+            y_lo=0.05,
+            y_hi=0.75,
         ),
         x_bounds=(0.5, 0.75),
         y_bounds=(0.15, 0.35),
+        color="lightgrey",
     )
     add_emf_compute_scheme_legend(ax=axs[0, 0])
     add_emf_averaging_scheme_legend(ax=axs[0, 1])

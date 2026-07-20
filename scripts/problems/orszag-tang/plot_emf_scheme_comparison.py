@@ -61,11 +61,11 @@ class EMFComputeScheme(Enum):
 class EMFAveragingScheme(Enum):
     LD04 = EMFAveragingSchemeStyle(
         label="LD04",
-        color="blue",
+        color="#DC5664",
     )
     B25 = EMFAveragingSchemeStyle(
         label="B25",
-        color="red",
+        color="#56DCCE",
     )
 
     @property

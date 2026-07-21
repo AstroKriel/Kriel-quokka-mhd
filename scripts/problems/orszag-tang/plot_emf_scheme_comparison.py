@@ -42,7 +42,7 @@ class EMFAveragingSchemeStyle:
 
 
 @dataclass(frozen=True)
-class InterpolationSchemeStyle:
+class ReconstructionSchemeStyle:
     label: str
 
 
@@ -75,10 +75,10 @@ class EMFAveragingScheme(Enum):
         return self.name.lower()
 
 
-class InterpolationScheme(Enum):
-    PLM = InterpolationSchemeStyle(label="PLM")
-    PPM = InterpolationSchemeStyle(label="PPM")
-    PPM_EP = InterpolationSchemeStyle(label="PPM-EP")
+class ReconstructionScheme(Enum):
+    PLM = ReconstructionSchemeStyle(label="PLM")
+    PPM = ReconstructionSchemeStyle(label="PPM")
+    PPM_EP = ReconstructionSchemeStyle(label="PPM-EP")
 
     @property
     def as_tag(
@@ -91,7 +91,7 @@ class InterpolationScheme(Enum):
 class Simulation:
     emf_compute_scheme: EMFComputeScheme
     emf_averaging_scheme: EMFAveragingScheme
-    interpolation_scheme: InterpolationScheme
+    reconstruction_scheme: ReconstructionScheme
 
     @property
     def as_tag(
@@ -100,7 +100,7 @@ class Simulation:
         return (
             f"{self.emf_compute_scheme.as_tag}-"
             f"{self.emf_averaging_scheme.as_tag}-"
-            f"{self.interpolation_scheme.as_tag}"
+            f"{self.reconstruction_scheme.as_tag}"
         )
 
 
@@ -300,10 +300,10 @@ def main() -> None:
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
-    interpolation_schemes = list(InterpolationScheme)
+    reconstruction_schemes = list(ReconstructionScheme)
     emf_compute_schemes = list(EMFComputeScheme)
     fig, axs = manage_plots.create_figure_grid(
-        num_rows=len(interpolation_schemes),
+        num_rows=len(reconstruction_schemes),
         num_cols=len(emf_compute_schemes),
         axis_shape=(4, 4),
         x_spacing=0.02,
@@ -311,18 +311,18 @@ def main() -> None:
         share_x=True,
         share_y=True,
     )
-    for row_index, interpolation_scheme in enumerate(interpolation_schemes):
+    for row_index, reconstruction_scheme in enumerate(reconstruction_schemes):
         for col_index, emf_compute_scheme in enumerate(emf_compute_schemes):
             ax = axs[row_index, col_index]
             ld04_sim = Simulation(
                 emf_compute_scheme=emf_compute_scheme,
                 emf_averaging_scheme=EMFAveragingScheme.LD04,
-                interpolation_scheme=interpolation_scheme,
+                reconstruction_scheme=reconstruction_scheme,
             )
             b25_sim = Simulation(
                 emf_compute_scheme=emf_compute_scheme,
                 emf_averaging_scheme=EMFAveragingScheme.B25,
-                interpolation_scheme=interpolation_scheme,
+                reconstruction_scheme=reconstruction_scheme,
             )
             ld04_log10_sarray_slice = load_log10_sarray_slice(
                 sim=ld04_sim,
@@ -364,7 +364,7 @@ def main() -> None:
             if row_index == 0:
                 ax.set_title(emf_compute_scheme.value.label)
             if col_index == 0:
-                ax.set_ylabel(interpolation_scheme.value.label)
+                ax.set_ylabel(reconstruction_scheme.value.label)
     manage_plots.save_figure(
         fig=fig,
         fig_path=FIGURE_PATH,

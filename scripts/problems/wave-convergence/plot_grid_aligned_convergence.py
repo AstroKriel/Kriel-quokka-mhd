@@ -73,7 +73,7 @@ class EMFAveragingSchemeStyle:
 
 
 @dataclass(frozen=True)
-class InterpolationSchemeStyle:
+class ReconstructionSchemeStyle:
     linestyle: str
     label: str
 
@@ -121,16 +121,16 @@ class EMFAveragingScheme(Enum):
         return self.name.lower()
 
 
-class InterpolationScheme(Enum):
-    PLM = InterpolationSchemeStyle(
+class ReconstructionScheme(Enum):
+    PLM = ReconstructionSchemeStyle(
         linestyle=":",
         label="PLM",
     )
-    PPM = InterpolationSchemeStyle(
+    PPM = ReconstructionSchemeStyle(
         linestyle="--",
         label="PPM",
     )
-    PPM_EP = InterpolationSchemeStyle(
+    PPM_EP = ReconstructionSchemeStyle(
         linestyle="-",
         label="PPM-EP",
     )
@@ -146,7 +146,7 @@ class InterpolationScheme(Enum):
 class Simulation:
     emf_compute_scheme: EMFComputeScheme
     emf_averaging_scheme: EMFAveragingScheme
-    interpolation_scheme: InterpolationScheme
+    reconstruction_scheme: ReconstructionScheme
 
     @property
     def as_tag(
@@ -155,7 +155,7 @@ class Simulation:
         return (
             f"{self.emf_compute_scheme.as_tag}-"
             f"{self.emf_averaging_scheme.as_tag}-"
-            f"{self.interpolation_scheme.as_tag}"
+            f"{self.reconstruction_scheme.as_tag}"
         )
 
 
@@ -250,11 +250,11 @@ def load_grouped_data_series(
     grouped_data_series: list[ConvergenceSeries] = []
     for emf_compute_scheme in EMFComputeScheme:
         for emf_averaging_scheme in EMFAveragingScheme:
-            for interpolation_scheme in InterpolationScheme:
+            for reconstruction_scheme in ReconstructionScheme:
                 sim = Simulation(
                     emf_compute_scheme=emf_compute_scheme,
                     emf_averaging_scheme=emf_averaging_scheme,
-                    interpolation_scheme=interpolation_scheme,
+                    reconstruction_scheme=reconstruction_scheme,
                 )
                 data_path = data_dir / sim.as_tag / wave_config.wave_data_file_name
                 if not data_path.is_file():
@@ -283,7 +283,7 @@ def plot_wave_panel(
     for data_series in grouped_data_series:
         emf_compute_scheme_style = data_series.sim.emf_compute_scheme.value
         emf_averaging_scheme_style = data_series.sim.emf_averaging_scheme.value
-        interpolation_scheme_style = data_series.sim.interpolation_scheme.value
+        reconstruction_scheme_style = data_series.sim.reconstruction_scheme.value
         ax.plot(
             numpy.log10(data_series.cell_size),
             numpy.log10(data_series.error),
@@ -293,7 +293,7 @@ def plot_wave_panel(
             markerfacecolor="none",
             markeredgecolor=emf_compute_scheme_style.color,
             markeredgewidth=1.5,
-            linestyle=interpolation_scheme_style.linestyle,
+            linestyle=reconstruction_scheme_style.linestyle,
             linewidth=1.5,
             zorder=emf_compute_scheme_style.zorder,
         )
@@ -311,12 +311,12 @@ def overlay_reference_slope(
     reference_sim_ppm = Simulation(
         emf_compute_scheme=EMFComputeScheme.Q26,
         emf_averaging_scheme=EMFAveragingScheme.B25,
-        interpolation_scheme=InterpolationScheme.PPM,
+        reconstruction_scheme=ReconstructionScheme.PPM,
     )
     reference_sim_ppm_ep = Simulation(
         emf_compute_scheme=EMFComputeScheme.Q26,
         emf_averaging_scheme=EMFAveragingScheme.B25,
-        interpolation_scheme=InterpolationScheme.PPM_EP,
+        reconstruction_scheme=ReconstructionScheme.PPM_EP,
     )
     data_series_ppm = next(
         data_series for data_series in grouped_data_series if data_series.sim == reference_sim_ppm
@@ -412,15 +412,15 @@ def add_emf_averaging_scheme_legend(
     )
 
 
-def add_interpolation_scheme_legend(
+def add_reconstruction_scheme_legend(
     *,
     ax: manage_plots.PlotAxis,
 ) -> None:
     annotate_axis.add_custom_legend(
         ax=ax,
-        artists=[scheme.value.linestyle for scheme in InterpolationScheme],
-        labels=[scheme.value.label for scheme in InterpolationScheme],
-        colors=["black" for _ in InterpolationScheme],
+        artists=[scheme.value.linestyle for scheme in ReconstructionScheme],
+        labels=[scheme.value.label for scheme in ReconstructionScheme],
+        colors=["black" for _ in ReconstructionScheme],
         line_width=1.2,
         text_color="black",
         anchor_point=(1.0, 1.0),
@@ -485,7 +485,7 @@ def main() -> None:
     axs[0, 0].invert_xaxis()
     add_emf_compute_scheme_legend(ax=axs[0, 0])
     add_emf_averaging_scheme_legend(ax=axs[1, 0])
-    add_interpolation_scheme_legend(ax=axs[2, 0])
+    add_reconstruction_scheme_legend(ax=axs[2, 0])
     fig.supylabel(r"$\log_{10} \, \mathrm{error}$", x=-0.05)
     manage_plots.save_figure(
         fig=fig,

@@ -31,17 +31,17 @@ from jormi.ww_validation import validate_box_positions
 
 
 @dataclass(frozen=True)
-class InterpolationSchemeStyle:
+class ReconstructionSchemeStyle:
     label: str
     color: str
 
 
-class InterpolationScheme(Enum):
-    PPM = InterpolationSchemeStyle(
+class ReconstructionScheme(Enum):
+    PPM = ReconstructionSchemeStyle(
         label="PPM",
         color="#DC5664",
     )
-    PPM_EP = InterpolationSchemeStyle(
+    PPM_EP = ReconstructionSchemeStyle(
         label="PPM-EP",
         color="#56DCCE",
     )
@@ -60,7 +60,7 @@ class InterpolationScheme(Enum):
 ## inputs and outputs
 ROOT_DIR: Path = Path(__file__).parents[3]
 DATASET_DIR: Path = ROOT_DIR / "datasets/problems/orszag-tang/ncells=4096"
-FIGURE_PATH: Path = ROOT_DIR / "figures/problems/orszag-tang/ncells=4096/interpolation-scheme-comparison.png"
+FIGURE_PATH: Path = ROOT_DIR / "figures/problems/orszag-tang/ncells=4096/reconstruction-scheme-comparison.png"
 FILE_NAME_GLOB = "current_density_magnitude-slice=x_2-index=*.npz"
 TARGET_TIME = 0.85
 
@@ -89,10 +89,10 @@ def find_slice_near_time(
 
 def load_log10_sarray_slice(
     *,
-    interpolation_scheme: InterpolationScheme,
+    reconstruction_scheme: ReconstructionScheme,
     target_time: float,
 ) -> NDArray[numpy.floating]:
-    sim_dir = DATASET_DIR / f"q26-b25-{interpolation_scheme.as_tag}"
+    sim_dir = DATASET_DIR / f"q26-b25-{reconstruction_scheme.as_tag}"
     slice_path = find_slice_near_time(
         sim_dir=sim_dir,
         target_time=target_time,
@@ -250,11 +250,11 @@ def main() -> None:
         verbose=False,
     )
     ppm_log10_sarray_slice = load_log10_sarray_slice(
-        interpolation_scheme=InterpolationScheme.PPM,
+        reconstruction_scheme=ReconstructionScheme.PPM,
         target_time=TARGET_TIME,
     )
     ppm_ep_log10_sarray_slice = load_log10_sarray_slice(
-        interpolation_scheme=InterpolationScheme.PPM_EP,
+        reconstruction_scheme=ReconstructionScheme.PPM_EP,
         target_time=TARGET_TIME,
     )
     fig, axs = manage_plots.create_figure_grid(
@@ -268,8 +268,8 @@ def main() -> None:
         upper_sarray=ppm_log10_sarray_slice,
         lower_sarray=ppm_ep_log10_sarray_slice,
         contour_value=CONTOUR_LOG10_VALUE,
-        upper_color=InterpolationScheme.PPM.value.color,
-        lower_color=InterpolationScheme.PPM_EP.value.color,
+        upper_color=ReconstructionScheme.PPM.value.color,
+        lower_color=ReconstructionScheme.PPM_EP.value.color,
     )
     ax.set_facecolor("white")
     ax.set_xlim(AXIS_BOUNDS[0])
@@ -282,7 +282,7 @@ def main() -> None:
         y_position=0.95,
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Side.Top,
-        label=InterpolationScheme.PPM.value.label,
+        label=ReconstructionScheme.PPM.value.label,
     )
     add_label(
         ax=ax,
@@ -290,7 +290,7 @@ def main() -> None:
         y_position=0.05,
         x_alignment=box_positions.Positions.Side.Right,
         y_alignment=box_positions.Positions.Side.Bottom,
-        label=InterpolationScheme.PPM_EP.value.label,
+        label=ReconstructionScheme.PPM_EP.value.label,
     )
     manage_plots.save_figure(
         fig=fig,

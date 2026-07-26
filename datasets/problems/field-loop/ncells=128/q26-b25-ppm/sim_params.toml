@@ -1,0 +1,43 @@
+## geometry
+geometry.prob_lo = [-1.0, -0.578125, -1.0]
+geometry.prob_hi = [1.0, 0.578125, 1.0]
+quokka.bc = ["periodic", "periodic", "periodic"]
+
+## resolution
+amr.n_cell = [128, 64, 16]
+amr.max_level = 1
+amr.max_grid_size_x = 16
+amr.max_grid_size_y = 16
+amr.max_grid_size_z = 16
+amr.blocking_factor_x = 16
+amr.blocking_factor_y = 16
+amr.blocking_factor_z = 16
+amr.n_error_buf = 3
+
+## verbosity
+amr.v = 1
+
+## output
+checkpoint_interval = -1
+plottime_interval = 0.1
+plotfile_prefix = "snapshots/plt"
+derived_vars = "magnetic_divergence"
+
+## time integration
+cfl = 0.2
+stop_time = 3.0
+do_reflux = 1
+do_subcycle = 0
+
+## hydro
+hydro.rk_integrator_order = 2
+hydro.reconstruction_order = 3
+hydro.use_dual_energy = 0
+
+## mhd
+mhd.emf_compute_scheme = "Quokka2026"
+mhd.emf_averaging_scheme = "Balsara2025"
+mhd.emf_reconstruction_order = 3
+
+## problem setup
+field_loop.refine_based_on = "Region"

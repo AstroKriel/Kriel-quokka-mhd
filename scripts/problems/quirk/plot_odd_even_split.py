@@ -33,8 +33,8 @@ class PressureSnapshot:
 ##
 
 ## inputs and outputs
-COMBO_OFF = "q26-b25-ppm_ep-no-carbuncle-fix"
-COMBO_ON = "q26-b25-ppm_ep"
+COMBO_OFF = "q26-b25-ppm-no-carbuncle-fix"
+COMBO_ON = "q26-b25-ppm"
 ROOT_DIR = Path(__file__).parents[3]
 DATASET_ROOT = ROOT_DIR / "datasets/problems/quirk/ncells=128"
 FIGURE_PATH = ROOT_DIR / "figures/problems/quirk/ncells=128/odd_even_split.png"
@@ -125,16 +125,17 @@ def main() -> None:
         color="blue",
         zorder=3,
     )
-    ax.set_ylabel(r"$p$")
+    ax.set_ylabel(r"$p$", labelpad=10.0)
     ax.set_xlabel(r"$x_0$")
+    ax.set_ylim((24, 30))
     annotate_axis.add_text(
         ax=ax,
         x_pos=0.085,
-        y_pos=0.665,
+        y_pos=0.65,
         label=rf"$t = {representative_off.step_time:.2f}$",
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Side.Top,
-        text_size=20,
+        text_size=22,
         text_color="black",
     )
     annotate_axis.add_custom_legend(
@@ -154,6 +155,7 @@ def main() -> None:
         anchor_point=(0.0, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
         text_size=20,
+        marker_size=10,
     )
     manage_plots.save_figure(
         fig=fig,

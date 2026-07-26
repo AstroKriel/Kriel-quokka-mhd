@@ -226,7 +226,7 @@ def add_label(
         transform=ax.transAxes,
         ha=x_anchor.value,
         va=y_anchor.value,
-        fontsize=22,
+        fontsize=26,
         color="black",
         bbox={
             "facecolor": "white",

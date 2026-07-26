@@ -38,7 +38,7 @@ class EMFComputeScheme(Enum):
         zorder=3,
     )
     B25 = EMFComputeSchemeStyle(
-        label="B25",
+        label="B25a",
         color="cornflowerblue",
         zorder=2,
     )
@@ -65,7 +65,7 @@ class EMFAveragingScheme(Enum):
         marker_size=9.5,
     )
     B25 = EMFAveragingSchemeStyle(
-        label="B25",
+        label="B25b",
         linestyle="--",
         marker="D",
         marker_size=9.5,
@@ -87,6 +87,7 @@ class ScalingSeries:
 
 ## annotations
 STRONG_SCALING_PROBLEM_SIZE = 512
+WEAK_SCALING_CELLS_PER_GPU = 128
 
 ##
 ## === HELPER FUNCTIONS
@@ -204,7 +205,7 @@ def annotate_strong_scaling_axis(
         ],
     )
     top_ax.minorticks_off()
-    top_ax.set_xlabel("cells / GPU")
+    top_ax.set_xlabel("cells / GPU", labelpad=10.0)
 
 
 def annotate_weak_scaling_axis(
@@ -218,6 +219,18 @@ def annotate_weak_scaling_axis(
     gpu_ticks = [1, 8, 64, 512]
     ax.set_xticks(gpu_ticks)
     ax.set_xticklabels([f"$2^{{{round(numpy.log2(gpu_count))}}}$" for gpu_count in gpu_ticks])
+    top_ax = ax.twiny()
+    top_ax.set_xlim(ax.get_xlim())
+    top_ax.set_xscale(
+        value="log",
+        base=2,
+    )
+    top_ax.set_xticks(gpu_ticks)
+    top_ax.set_xticklabels(
+        [f"${round(WEAK_SCALING_CELLS_PER_GPU * gpu_count ** (1.0 / 3.0))}^3$" for gpu_count in gpu_ticks],
+    )
+    top_ax.minorticks_off()
+    top_ax.set_xlabel("resolution", labelpad=10.0)
 
 
 def add_emf_compute_scheme_legend(

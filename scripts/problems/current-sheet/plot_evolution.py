@@ -140,7 +140,7 @@ def main() -> None:
     ]
     palette_config = add_color.DivergingConfig(
         mid_value=0.0,
-        palette_name="bwr",
+        palette_name="pink-white-green",
     )
     num_rows = 2
     num_cols = 2
@@ -182,7 +182,7 @@ def main() -> None:
         ax.text(
             0.9,
             0.5,
-            rf"$j_z \in [{data_panel.data_range[0]:.1f},\ {data_panel.data_range[1]:.1f}]$",
+            rf"$j_2 \in [{data_panel.data_range[0]:.1f},\ {data_panel.data_range[1]:.1f}]$",
             transform=ax.transAxes,
             rotation=90.0,
             rotation_mode="anchor",
@@ -219,8 +219,27 @@ def main() -> None:
     add_color.add_colorbar(
         ax=cbar_anchor_ax,
         palette=palette,
-        label=r"$\mathrm{sgn}(j_z)\,\log_{10}\!\left(1 + |j_z|\right)$",
+        label=r"$\mathrm{sgn}(j_2)\,\log_{10}\!\left(1 + |j_2|\right)$",
         cbar_side="top",
+        label_size=26,
+    )
+    ## one shared x_0/x_1 axis label, centred across the full grid
+    fig.text(
+        (bottom_left_bounds.x0 + top_right_bounds.x1) / 2.0,
+        bottom_left_bounds.y0 - 0.05,
+        r"$x_0$",
+        ha="center",
+        va="top",
+        fontsize=30,
+    )
+    fig.text(
+        top_left_bounds.x0 - 0.1,
+        (bottom_left_bounds.y0 + top_left_bounds.y1) / 2.0,
+        r"$x_1$",
+        ha="right",
+        va="center",
+        rotation=90.0,
+        fontsize=30,
     )
     manage_plots.save_figure(
         fig=fig,

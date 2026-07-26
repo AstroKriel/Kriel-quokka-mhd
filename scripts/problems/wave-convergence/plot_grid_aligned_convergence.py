@@ -86,12 +86,12 @@ class EMFComputeScheme(Enum):
     )
     B25 = EMFComputeSchemeStyle(
         color="cornflowerblue",
-        label="B25",
+        label="B25a",
         zorder=1,
     )
     FS17 = EMFComputeSchemeStyle(
         color="forestgreen",
-        label="FS17",
+        label="FS18",
         zorder=1,
     )
 
@@ -106,7 +106,7 @@ class EMFAveragingScheme(Enum):
     B25 = EMFAveragingSchemeStyle(
         marker="D",
         marker_size=8,
-        label="B25",
+        label="B25b",
     )
     LD04 = EMFAveragingSchemeStyle(
         marker="o",
@@ -364,7 +364,7 @@ def set_resolution_ticks(
     ax.tick_params(labelbottom=show_tick_labels)
     ax.minorticks_off()
     if show_axis_label:
-        ax.set_xlabel("resolution")
+        ax.set_xlabel("resolution", labelpad=10.0)
 
 
 def add_delta_x_axis(
@@ -377,7 +377,7 @@ def add_delta_x_axis(
     top_ax.set_xlim(ax.get_xlim())
     top_ax.tick_params(labeltop=show_tick_labels)
     if show_axis_label:
-        top_ax.set_xlabel(r"$\log_{10} \Delta x$")
+        top_ax.set_xlabel(r"$\log_{10} (\Delta x / L)$", labelpad=10.0)
 
 
 def add_emf_compute_scheme_legend(
@@ -443,10 +443,11 @@ def main() -> None:
     fig, axs = manage_plots.create_figure(
         num_rows=len(WAVE_CONFIGS),
         num_cols=1,
-        axis_shape=(3.5, 6),
+        axis_shape=(3.75, 6),
         share_x=True,
         share_y=False,
     )
+    axs[0, 0].invert_xaxis()
     for row_index, wave_config in enumerate(WAVE_CONFIGS):
         ax = axs[row_index, 0]
         grouped_data_series = load_grouped_data_series(wave_config=wave_config)
@@ -459,11 +460,6 @@ def main() -> None:
             show_tick_labels=is_last_row,
             show_axis_label=is_last_row,
         )
-        add_delta_x_axis(
-            ax=ax,
-            show_tick_labels=is_first_row,
-            show_axis_label=is_first_row,
-        )
         plot_wave_panel(
             ax=ax,
             grouped_data_series=grouped_data_series,
@@ -474,6 +470,13 @@ def main() -> None:
             grouped_data_series=grouped_data_series,
         )
         ax.set_ylim(wave_config.axis_y_range)
+        ## captured only after real data is plotted, so the view limits it copies
+        ## reflect the true autoscaled range rather than the pre-data default
+        add_delta_x_axis(
+            ax=ax,
+            show_tick_labels=is_first_row,
+            show_axis_label=is_first_row,
+        )
         annotate_axis.add_text(
             ax=ax,
             x_pos=0.05,
@@ -482,11 +485,10 @@ def main() -> None:
             y_alignment=box_positions.Positions.Side.Bottom,
             label=wave_config.wave_label,
         )
-    axs[0, 0].invert_xaxis()
     add_emf_compute_scheme_legend(ax=axs[0, 0])
     add_emf_averaging_scheme_legend(ax=axs[1, 0])
     add_reconstruction_scheme_legend(ax=axs[2, 0])
-    fig.supylabel(r"$\log_{10} \, \mathrm{error}$", x=-0.05)
+    fig.supylabel(r"$\log_{10} (\mbox{relative error})$", x=-0.05)
     manage_plots.save_figure(
         fig=fig,
         fig_path=FIGURE_PATH,

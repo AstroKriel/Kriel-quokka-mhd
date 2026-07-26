@@ -41,10 +41,10 @@ FIGURE_PATH = ROOT_DIR / "figures/problems/balsara-vortex/resolution-comparison.
 AXIS_BOUNDS: plot_data.AxisBounds = ((-5.0, 5.0), (-5.0, 5.0))
 PALETTE_NAME = "cmr.horizon_r"
 PALETTE_RANGE = (0.0, 1.0)
-VALUE_RANGE = (-10.3, -4.3)
+VALUE_RANGE = (-10, -3.5)
 
 ## annotations
-REFERENCE_RADIUS = 2.5
+REFERENCE_RADIUS = 2.0
 NUM_ORBITS = 3
 
 ##
@@ -171,31 +171,27 @@ def plot_slice_quadrants(
     return composite
 
 
-def add_reference_circle(
+def add_reference_circle_and_drift_arrow(
     *,
     ax: manage_plots.PlotAxis,
+    radius: float,
 ) -> None:
+    """Draw the reference circle and the drift-direction arrow, both anchored to `radius`."""
     theta = numpy.linspace(0.0, 2.0 * numpy.pi, 200)
     ax.plot(
-        REFERENCE_RADIUS * numpy.cos(theta),
-        REFERENCE_RADIUS * numpy.sin(theta),
+        radius * numpy.cos(theta),
+        radius * numpy.sin(theta),
         color="black",
         linestyle="--",
         linewidth=1.0,
     )
-
-
-def add_advection_arrow(
-    *,
-    ax: manage_plots.PlotAxis,
-) -> None:
     direction_component = 1.0 / numpy.sqrt(2.0)
-    arrow_start_radius = REFERENCE_RADIUS
-    arrow_end_radius = REFERENCE_RADIUS + 1.25
-    label_anchor_radius = REFERENCE_RADIUS + 0.2
+    arrow_start_radius = radius
+    arrow_end_radius = radius + 1.25
+    label_anchor_radius = radius + 0.2
     label_anchor = label_anchor_radius * direction_component
     label_offset = 0.35
-    advection_label_offset = label_offset + 0.15
+    drift_label_offset = label_offset + 0.25
     ax.annotate(
         "",
         xy=(arrow_end_radius * direction_component, arrow_end_radius * direction_component),
@@ -211,15 +207,15 @@ def add_advection_arrow(
         },
     )
     ax.text(
-        label_anchor - advection_label_offset,
-        label_anchor + advection_label_offset,
-        "advection\ndirection",
+        label_anchor - drift_label_offset,
+        label_anchor + drift_label_offset,
+        "drift\ndirection",
         ha="left",
         va="center",
         multialignment="left",
         rotation=45.0,
         rotation_mode="anchor",
-        fontsize=24,
+        fontsize=26,
     )
     ax.text(
         label_anchor + label_offset,
@@ -246,7 +242,7 @@ def main() -> None:
         verbose=False,
     )
     data_dirs_lookup = {
-        num_cells: DATASET_DIR / f"ncells={num_cells}/q26-b25-ppm_ep/extracted"
+        num_cells: DATASET_DIR / f"ncells={num_cells}/q26-b25-ppm/extracted"
         for num_cells in DATASET_RESOLUTIONS
     }
     highest_resolution = max(DATASET_RESOLUTIONS)
@@ -305,8 +301,10 @@ def main() -> None:
         color="black",
         linewidth=0.6,
     )
-    add_reference_circle(ax=ax)
-    add_advection_arrow(ax=ax)
+    add_reference_circle_and_drift_arrow(
+        ax=ax,
+        radius=REFERENCE_RADIUS,
+    )
     ax.set_xticks([])
     ax.set_yticks([])
     for x_pos, num_cells in (
@@ -321,7 +319,7 @@ def main() -> None:
             x_alignment=box_positions.Positions.Side.Left
             if x_pos < 0.5 else box_positions.Positions.Side.Right,
             y_alignment=box_positions.Positions.Side.Top,
-            text_size=24,
+            text_size=28,
             text_color="black",
             box_alpha=0.0,
         )
@@ -369,7 +367,7 @@ def main() -> None:
         palette=palette,
         label=r"$\log_{10}(b^2 / 2)$",
         cbar_side="right",
-        label_size=32,
+        label_size=36,
         label_pad=24.0,
     )
     cbar.ax.tick_params(labelsize=24)

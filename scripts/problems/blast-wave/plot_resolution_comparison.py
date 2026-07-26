@@ -13,6 +13,7 @@ import numpy
 from matplotlib.colorbar import Colorbar as mpl_Colorbar
 from matplotlib.ticker import FuncFormatter, MultipleLocator
 from numpy.typing import NDArray
+from scipy import ndimage as scipy_ndimage
 
 ## personal
 from jormi.ww_arrays.mask_2d_arrays import DiagonalMasks2D
@@ -40,7 +41,7 @@ ROOT_DIR = Path(__file__).parents[3]
 DATASET_DIR = ROOT_DIR / "datasets/problems/blast-wave"
 FIGURE_PATH = ROOT_DIR / "figures/problems/blast-wave/resolution-comparison.png"
 NCELLS_UPPER = 128
-NCELLS_LOWER = 512
+NCELLS_LOWER = 1024
 TARGET_TIME = 0.05
 
 ## plotting details
@@ -48,9 +49,11 @@ AXIS_BOUNDS: plot_data.AxisBounds = ((-0.5, 0.5), (-0.5, 0.5))
 MAJOR_TICK_STEP = 0.25
 MINOR_TICK_STEP = 0.05
 LABELED_TICK_VALUES = (-0.25, 0.25)
-CBAR_BOUNDS = (-0.8, 0.5)
+CBAR_BOUNDS = (-0.8, 0.55)
 CONTOUR_LEVELS = (-0.0075, 0.0075)
 CONTOUR_COLORS = ("blue", "red")
+## a fixed physical length (not a fixed cell count)
+SMOOTHING_LENGTH = 0.1 * (AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]) / NCELLS_UPPER
 
 ##
 ## === HELPER FUNCTIONS
@@ -62,8 +65,8 @@ def find_slice_near_time(
     ncells: int,
     target_time: float,
 ) -> Path:
-    """Return the saved density slice for `q26-b25-ppm_ep` at `ncells` nearest `target_time`."""
-    extracted_dir = DATASET_DIR / f"ncells={ncells}" / "q26-b25-ppm_ep" / "extracted"
+    """Return the saved density slice for `q26-b25-ppm` at `ncells` nearest `target_time`."""
+    extracted_dir = DATASET_DIR / f"ncells={ncells}" / "q26-b25-ppm" / "extracted"
     slice_paths = sorted(extracted_dir.glob("density-slice=x_2-index=*.npz"))
     if not slice_paths:
         raise FileNotFoundError(f"no density slice found in: {extracted_dir}")
@@ -118,6 +121,20 @@ def combine_arrays_split_diagonally(
         num_cols=num_cols,
     )
     return numpy.where(upper_mask, upper_array, lower_array)
+
+
+def compute_smoothed_slice(
+    *,
+    array_2d: NDArray[numpy.floating],
+) -> NDArray[numpy.floating]:
+    """
+    Smooth by a fixed physical length (not a fixed cell count), so background noise is suppressed
+    the same way at every resolution, rather than the coarser grid looking artificially cleaner.
+    """
+    domain_width = AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]
+    cell_size = domain_width / array_2d.shape[0]
+    smoothing_sigma = SMOOTHING_LENGTH / cell_size
+    return scipy_ndimage.gaussian_filter(array_2d, sigma=smoothing_sigma)
 
 
 def overlay_contours(
@@ -217,7 +234,7 @@ def main() -> None:
     upper_slice = load_density_slice(ncells=NCELLS_UPPER)
     lower_slice = load_density_slice(ncells=NCELLS_LOWER)
     palette_config = add_color.SequentialConfig(
-        palette_name="twilight_shifted",
+        palette_name="blue-white-red",
         palette_range=compute_zero_centred_palette_range(value_range=CBAR_BOUNDS),
     )
     fig, ax = manage_plots.create_figure(
@@ -236,9 +253,13 @@ def main() -> None:
         palette_config=palette_config,
         add_cbar=False,
     )
+    smoothed_composite = combine_arrays_split_diagonally(
+        upper_array=compute_smoothed_slice(array_2d=upper_slice.log10_density),
+        lower_array=compute_smoothed_slice(array_2d=lower_slice.log10_density),
+    )
     overlay_contours(
         ax=ax,
-        slice_2d=composite,
+        slice_2d=smoothed_composite,
     )
     ax.plot(
         [AXIS_BOUNDS[0][0], AXIS_BOUNDS[0][1]],
@@ -269,6 +290,8 @@ def main() -> None:
         box_alpha=0.0,
     )
     configure_domain_ticks(ax=ax)
+    ax.set_xlabel(r"$x_0$", fontsize=30)
+    ax.set_ylabel(r"$x_1$", fontsize=30)
     palette = add_color.make_palette(
         config=palette_config,
         value_range=CBAR_BOUNDS,

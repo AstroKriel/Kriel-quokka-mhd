@@ -234,8 +234,8 @@ def plot_sarray_2d(
             palette=palette,
             label=field_label,
             cbar_side="top",
-            label_pad=15.0,
-            label_size=22,
+            label_size=24,
+            label_pad=18.0,
         )
 
 
@@ -307,7 +307,7 @@ def add_time_label(
         label=rf"$t = {step_time:.2f}$",
         x_alignment=box_positions.Positions.Side.Right,
         y_alignment=box_positions.Positions.Side.Top,
-        text_size=24,
+        text_size=26,
         text_color="white",
         box_alpha=0.0,
     )
@@ -339,6 +339,8 @@ def plot_structures(
         bounded_slice=bounded_slice,
         add_cbar=True,
     )
+    main_ax.set_xlabel(r"$x_0$", fontsize=30)
+    main_ax.set_ylabel(r"$x_1$", fontsize=30)
     configure_main_ticks(ax=main_ax)
     add_time_label(
         ax=main_ax,

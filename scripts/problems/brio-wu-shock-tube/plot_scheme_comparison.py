@@ -55,12 +55,12 @@ class EMFComputeScheme(Enum):
         zorder=3,
     )
     B25 = EMFComputeSchemeStyle(
-        label="B25",
+        label="B25a",
         color="cornflowerblue",
         zorder=1,
     )
     FS17 = EMFComputeSchemeStyle(
-        label="FS17",
+        label="FS18",
         color="forestgreen",
         zorder=2,
     )
@@ -74,7 +74,7 @@ class EMFComputeScheme(Enum):
 
 class EMFAveragingScheme(Enum):
     B25 = EMFAveragingSchemeStyle(
-        label="B25",
+        label="B25b",
         marker="D",
     )
     LD04 = EMFAveragingSchemeStyle(
@@ -107,6 +107,7 @@ class ShockTubeProfiles:
 ROOT_DIR: Path = Path(__file__).parents[3]
 DATASET_DIR: Path = ROOT_DIR / "datasets/problems/brio-wu-shock-tube"
 FIGURE_PATH: Path = ROOT_DIR / "figures/problems/brio-wu-shock-tube/ncells=256/scheme-comparison.png"
+DISCONTINUITY_POSITION: float = 0.5
 
 ## plotting details
 MARKER_PLOT_KWARGS: dict[str, Any] = {
@@ -167,6 +168,15 @@ def load_sim_profiles(
     )
 
 
+def load_solution_time(
+    *,
+    sim_dir: Path,
+) -> float:
+    """Load the plotted snapshot time from a simulation's density profile."""
+    density_path = next((sim_dir / "extracted").glob("density-axis=x_0-index=*.json"))
+    return ScalarProfile.load_from_file(file_path=density_path).step_time
+
+
 def compute_moving_average(
     values: NDArray[numpy.floating],
     *,
@@ -213,6 +223,30 @@ def compute_smoothed_profiles(
             position=profiles.magnetic_x1.position,
             field_value=compute_moving_average(profiles.magnetic_x1.field_value),
         ),
+    )
+
+
+def shift_profiles(
+    *,
+    profiles: ShockTubeProfiles,
+    shift: float,
+) -> ShockTubeProfiles:
+
+    def _shifted(
+        component: ComponentArrays,
+    ) -> ComponentArrays:
+        return ComponentArrays(
+            position=component.position - shift,
+            field_value=component.field_value,
+        )
+
+    return ShockTubeProfiles(
+        density=_shifted(profiles.density),
+        pressure=_shifted(profiles.pressure),
+        pressure_ratio=_shifted(profiles.pressure_ratio),
+        velocity_x0=_shifted(profiles.velocity_x0),
+        velocity_x1=_shifted(profiles.velocity_x1),
+        magnetic_x1=_shifted(profiles.magnetic_x1),
     )
 
 
@@ -341,23 +375,32 @@ def add_emf_averaging_scheme_legend(
     )
 
 
-def add_llf_legend(
+@dataclass(frozen=True)
+class ReferenceSchemeStyle:
+    label: str
+    color: str
+
+
+def add_reference_scheme_legend(
     *,
     ax: manage_plots.PlotAxis,
+    styles: tuple[ReferenceSchemeStyle, ...],
 ) -> None:
-    handle = mpl_line2d(
-        [0],
-        [0],
-        marker="s",
-        linewidth=0,
-        markeredgecolor="deeppink",
-        markerfacecolor="none",
-        markeredgewidth=0.3,
-        markersize=7,
-    )
+    handles = [
+        mpl_line2d(
+            [0],
+            [0],
+            marker="s",
+            linewidth=0,
+            markeredgecolor=style.color,
+            markerfacecolor="none",
+            markeredgewidth=0.3,
+            markersize=7,
+        ) for style in styles
+    ]
     legend = ax.legend(
-        handles=[handle],
-        labels=["LLF"],
+        handles=handles,
+        labels=[style.label for style in styles],
         loc="lower left",
         bbox_to_anchor=(0.0, 0.0),
         fontsize=16,
@@ -385,14 +428,21 @@ def main() -> None:
         emf_compute_scheme=EMFComputeScheme.Q26,
         emf_averaging_scheme=EMFAveragingScheme.B25,
     )
-    reference_sim_profiles = compute_smoothed_profiles(
-        profiles=load_sim_profiles(sim_dir=reference_sim_dir),
-    )
-    llf_sim_profiles = load_sim_profiles(
-        sim_dir=DATASET_DIR / "ncells=256/llf" / get_sim_tag(
-            emf_compute_scheme=EMFComputeScheme.Q26,
-            emf_averaging_scheme=EMFAveragingScheme.B25,
+    solution_time = load_solution_time(sim_dir=reference_sim_dir)
+    reference_sim_profiles = shift_profiles(
+        profiles=compute_smoothed_profiles(
+            profiles=load_sim_profiles(sim_dir=reference_sim_dir),
         ),
+        shift=DISCONTINUITY_POSITION,
+    )
+    llf_sim_profiles = shift_profiles(
+        profiles=load_sim_profiles(
+            sim_dir=DATASET_DIR / "ncells=256/llf" / get_sim_tag(
+                emf_compute_scheme=EMFComputeScheme.Q26,
+                emf_averaging_scheme=EMFAveragingScheme.B25,
+            ),
+        ),
+        shift=DISCONTINUITY_POSITION,
     )
     fig, axs = manage_plots.create_figure(
         num_cols=2,
@@ -419,13 +469,32 @@ def main() -> None:
             "zorder": 0,
         },
     )
+    ppm_sim_profiles = shift_profiles(
+        profiles=load_sim_profiles(
+            sim_dir=DATASET_DIR / "ncells=256/hlld/q26-b25-ppm",
+        ),
+        shift=DISCONTINUITY_POSITION,
+    )
+    plot_profiles(
+        axs=axs,
+        profiles=ppm_sim_profiles,
+        plot_kwargs={
+            **MARKER_PLOT_KWARGS,
+            "marker": "s",
+            "markeredgecolor": "purple",
+            "zorder": 0,
+        },
+    )
     for emf_compute_scheme in EMFComputeScheme:
         for emf_averaging_scheme in EMFAveragingScheme:
             sim_dir = DATASET_DIR / "ncells=256/hlld" / get_sim_tag(
                 emf_compute_scheme=emf_compute_scheme,
                 emf_averaging_scheme=emf_averaging_scheme,
             )
-            sim_profiles = load_sim_profiles(sim_dir=sim_dir)
+            sim_profiles = shift_profiles(
+                profiles=load_sim_profiles(sim_dir=sim_dir),
+                shift=DISCONTINUITY_POSITION,
+            )
             plot_profiles(
                 axs=axs,
                 profiles=sim_profiles,
@@ -444,7 +513,7 @@ def main() -> None:
             y_lo=0.5,
             y_hi=0.95,
         ),
-        x_range=(0.625, 0.85),
+        x_range=(0.125, 0.35),
         y_range=(-0.31, -0.19),
         color="lightgrey",
     )
@@ -456,21 +525,41 @@ def main() -> None:
             y_lo=0.35,
             y_hi=0.9,
         ),
-        x_range=(0.55, 0.65),
+        x_range=(0.05, 0.15),
         y_range=(1.4, 1.55),
         color="lightgrey",
     )
     add_emf_compute_scheme_legend(ax=axs[0, 0])
     add_emf_averaging_scheme_legend(ax=axs[0, 1])
-    add_llf_legend(ax=axs[1, 0])
+    annotate_axis.add_text(
+        ax=axs[0, 0],
+        x_pos=0.95,
+        y_pos=0.925,
+        label=rf"$t = {solution_time:.2f}$",
+        x_alignment=box_positions.Positions.Side.Right,
+        y_alignment=box_positions.Positions.Side.Top,
+    )
+    add_reference_scheme_legend(
+        ax=axs[1, 0],
+        styles=(
+            ReferenceSchemeStyle(
+                label="PPM-EP + LLF",
+                color="deeppink",
+            ),
+            ReferenceSchemeStyle(
+                label="PPM + HLLD",
+                color="purple",
+            ),
+        ),
+    )
     axs[0, 0].set_ylabel(r"$\rho$")
     axs[0, 1].set_ylabel(r"$p$")
     axs[1, 0].set_ylabel(r"$u_0$")
     axs[1, 1].set_ylabel(r"$p / \rho$")
     axs[2, 0].set_ylabel(r"$u_1$")
     axs[2, 1].set_ylabel(r"$b_1$")
-    axs[2, 0].set_xlabel(r"$x_0$")
-    axs[2, 1].set_xlabel(r"$x_0$")
+    axs[2, 0].set_xlabel(r"$x_0 - x_\mathrm{shock}$")
+    axs[2, 1].set_xlabel(r"$x_0 - x_\mathrm{shock}$")
     for ax in axs[:, 1]:
         ax.tick_params(
             axis="y",

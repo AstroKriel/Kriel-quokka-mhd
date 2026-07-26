@@ -37,7 +37,7 @@ class Slice:
 
 ## inputs and outputs
 ROOT_DIR = Path(__file__).parents[3]
-DATASET_DIR = ROOT_DIR / "datasets/problems/field-loop/ncells=128/q26-b25-ppm_ep" / "extracted"
+DATASET_DIR = ROOT_DIR / "datasets/problems/field-loop/ncells=128/q26-b25-ppm" / "extracted"
 DIVB_GLOB = "magnetic_divergence-slice=x_2-index=*.npz"
 FIGURE_PATH = ROOT_DIR / "figures/problems/field-loop/div-b.png"
 TARGET_TIME = 1.5
@@ -177,7 +177,7 @@ def plot_pdf_panel(
             palette_range=(0.15, 0.95),
         ),
         value_range=(
-            divb_series[0].step_time / ADVECTION_PERIOD,
+            divb_series[1].step_time / ADVECTION_PERIOD,
             divb_series[-1].step_time / ADVECTION_PERIOD,
         ),
     )
@@ -221,7 +221,7 @@ def plot_pdf_panel(
     time_cbar = add_color.add_colorbar(
         ax=ax,
         palette=time_palette,
-        label=r"$t / T_\mathrm{advect}$",
+        label=r"$t / T$",
         cbar_side="top",
         cbar_thickness=0.1,
         cbar_pad=0.01,
@@ -260,7 +260,7 @@ def plot_slice_panel(
     cbar = add_color.add_colorbar(
         ax=ax,
         palette=palette,
-        label=r"$10^{16} (\nabla \cdot \vec{b})$",
+        label=r"$10^{16} \ (\nabla \cdot \vec{b})$",
         cbar_side="top",
         cbar_thickness=0.1,
         cbar_pad=0.01,
@@ -313,7 +313,7 @@ def plot_slice_panel(
         ax=ax,
         x_pos=0.5,
         y_pos=0.05,
-        label=rf"$t / T_\mathrm{{advect}} = {divb_slice.step_time / ADVECTION_PERIOD:.2f}$",
+        label=rf"$t / T = {divb_slice.step_time / ADVECTION_PERIOD:.2f}$",
         x_alignment=box_positions.Positions.Center.Center,
         y_alignment=box_positions.Positions.Side.Bottom,
         text_size=TICK_LABEL_SIZE,

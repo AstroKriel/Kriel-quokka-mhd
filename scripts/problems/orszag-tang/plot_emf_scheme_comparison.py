@@ -47,8 +47,8 @@ class ReconstructionSchemeStyle:
 
 
 class EMFComputeScheme(Enum):
-    FS17 = EMFComputeSchemeStyle(label="FS17")
-    B25 = EMFComputeSchemeStyle(label="B25")
+    FS17 = EMFComputeSchemeStyle(label="FS18")
+    B25 = EMFComputeSchemeStyle(label="B25a")
     Q26 = EMFComputeSchemeStyle(label="Q26")
 
     @property
@@ -64,7 +64,7 @@ class EMFAveragingScheme(Enum):
         color="#DC5664",
     )
     B25 = EMFAveragingSchemeStyle(
-        label="B25",
+        label="B25b",
         color="#56DCCE",
     )
 

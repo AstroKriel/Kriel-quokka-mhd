@@ -150,6 +150,7 @@ def main() -> None:
     axs[0, 0].legend(
         loc="upper left",
         frameon=False,
+        fontsize=24,
     )
     manage_plots.save_figure(
         fig=fig,

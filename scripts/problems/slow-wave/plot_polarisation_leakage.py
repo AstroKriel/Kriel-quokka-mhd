@@ -19,18 +19,16 @@ from jormi.ww_types import box_positions
 ## === CONFIGURATION
 ##
 
-## oblique slow-wave test: k = (1, 2, 3), 45 degrees between k and the background field, at a
-## moderate resolution. b_0 carries the primary wave polarisation for this k / background-field
-## geometry; b_2, out of the k-B0 plane, should be exactly zero by symmetry. Following the check
-## Felker & Stone (2018) make of B_z for their field-loop test (their Fig. 13-14: B_z should stay
-## zero to round-off as spurious terms enter the induction equation), we track whether b_2 stays
-## negligible relative to the real wave amplitude, or grows into dynamical significance, as a
-## probe of grid-imprinting from the non-grid-aligned reconstruction.
-NCELLS = 128
-SCHEME = "q26-b25-ppm_ep"
+## compares the oblique slow-wave leakage test (k = (1, 2, 3), 45 degrees between k and the
+## background field) at low and high resolution, to check whether the b_2 leakage seeded by
+## non-grid-aligned reconstruction shrinks with resolution, as expected for a convergent scheme.
+NCELLS_LOW = 128
+NCELLS_HIGH = 512
+SCHEME = "q26-b25-ppm"
 PROFILE_AXIS = "x_0"
 PRIMARY_COMPONENT = "x_0"
 SPURIOUS_COMPONENT = "x_2"
+NUM_TIME_SAMPLES = 25
 
 ROOT_DIR = Path(__file__).parents[3]
 DATASET_DIR = ROOT_DIR / "datasets/problems/slow-wave/correctness/nx=1-ny=2-nz=3"
@@ -43,9 +41,11 @@ FIGURE_PATH = ROOT_DIR / "figures/problems/slow-wave/polarisation-leakage.png"
 
 def load_energy_time_series(
     *,
+    ncells: int,
     component: str,
 ) -> tuple[numpy.ndarray, numpy.ndarray]:
-    """Return (time, line-integrated energy) of `component`'s deviation from its mean, per snapshot.
+    """
+    Return (time, line-integrated energy) of `component`'s deviation from its mean, per snapshot.
 
     The domain is periodic, so this uses a plain equal-weight Riemann sum (sum * dx), not
     `numpy.trapezoid`: trapezoidal quadrature halves the weight of the first and last sample,
@@ -53,14 +53,14 @@ def load_energy_time_series(
     edge, and using trapz here introduced a spurious ~1-2% time-dependent oscillation, since the
     profile's phase shifts snapshot to snapshot -- the plain sum is stable to ~0.2% instead.
     """
-    extracted_dir = DATASET_DIR / f"ncells={NCELLS}" / SCHEME / "extracted"
+    extracted_dir = DATASET_DIR / f"ncells={ncells}" / SCHEME / "extracted"
     file_paths = sorted(
         extracted_dir.glob(f"magnetic-axis={PROFILE_AXIS}-index=*.json"),
         key=lambda path: int(path.stem.split("index=")[-1].split("-")[0]),
     )
     times = []
     energies = []
-    for file_path in file_paths:
+    for file_path in file_paths[1:]:
         data = json_io.read_json_file_into_dict(file_path, verbose=False)
         position = numpy.asarray(data["field_comps"][component]["position"])
         field_value = numpy.asarray(data["field_comps"][component]["field_value"])
@@ -69,6 +69,132 @@ def load_energy_time_series(
         times.append(data["step_time"])
         energies.append(deviation_squared.sum() * cell_size)
     return numpy.asarray(times), numpy.asarray(energies)
+
+
+def compute_leakage_ratio(
+    *,
+    ncells: int,
+) -> tuple[numpy.ndarray, numpy.ndarray]:
+    """Return (normalized time, log10 leakage ratio) for one resolution, excluding t=0."""
+    times, primary_energy = load_energy_time_series(ncells=ncells, component=PRIMARY_COMPONENT)
+    _, spurious_energy = load_energy_time_series(ncells=ncells, component=SPURIOUS_COMPONENT)
+    ## the run spans exactly two wave periods (t = 4*pi/omega), so the last recorded time is
+    ## twice the period; normalizing by this lets the x-axis read as wave phase, not raw time
+    wave_period = times[-1] / 2.0
+    normalized_times = times / wave_period
+    log10_leakage_ratio = numpy.log10(spurious_energy / primary_energy)
+    return normalized_times, log10_leakage_ratio
+
+
+def subsample_evenly(
+    *,
+    normalized_times: numpy.ndarray,
+    log10_leakage_ratio: numpy.ndarray,
+    num_samples: int,
+) -> tuple[numpy.ndarray, numpy.ndarray]:
+    """
+    Down-select to `num_samples` points, evenly spread across the series.
+
+    Uses `linspace` rather than `jormi.ww_lists.sample_list`: that helper's stride is an integer
+    floor-division (`(num_elems - 1) // (num_samples - 1)`), which does not generally reach the
+    final element, silently dropping the series' tail (e.g. 24 points down to 10 stops at index 18
+    of 23). `linspace` anchors both endpoints exactly.
+    """
+    indices_to_keep = numpy.unique(
+        numpy.linspace(0, len(normalized_times) - 1, num_samples).round().astype(int),
+    )
+    return normalized_times[indices_to_keep], log10_leakage_ratio[indices_to_keep]
+
+
+def add_saturation_annotation(
+    *,
+    ax: manage_plots.PlotAxis,
+) -> None:
+    """Mark where the wave completes one period, so leakage growth saturates."""
+    ax.axvline(
+        x=1.0,
+        color="red",
+        linestyle="--",
+        linewidth=1.25,
+        zorder=1,
+    )
+    ax.axvspan(
+        0.0,
+        1.0,
+        color="red",
+        alpha=0.1,
+        linewidth=0.0,
+        zorder=0,
+    )
+    annotate_axis.add_text(
+        ax=ax,
+        x_pos=0.27,
+        y_pos=0.935,
+        label="phase pollution",
+        x_alignment=box_positions.Positions.Center.Center,
+        y_alignment=box_positions.Positions.Side.Top,
+        text_size=18,
+        text_color="red",
+    )
+    annotate_axis.add_text(
+        ax=ax,
+        x_pos=0.535,
+        y_pos=0.25,
+        label="wave returns to\nalready-polluted\nphases",
+        x_alignment=box_positions.Positions.Side.Left,
+        y_alignment=box_positions.Positions.Side.Top,
+        text_size=16,
+        text_color="blue",
+    )
+    ax.annotate(
+        "",
+        xytext=(1.0, 0.3),
+        xy=(1.5, 0.3),
+        xycoords=ax.get_xaxis_transform(),
+        arrowprops={
+            "arrowstyle": "-|>",
+            "color": "blue",
+            "linewidth": 1.5,
+            "mutation_scale": 15.0,
+            "shrinkA": 0.0,
+            "shrinkB": 0.0,
+        },
+    )
+
+
+def add_tail_annotation(
+    *,
+    ax: manage_plots.PlotAxis,
+    tail_ave: float,
+    tail_std: float,
+    y_pos: float,
+    y_alignment: box_positions.Positions.Side,
+) -> None:
+    ax.axhspan(
+        tail_ave - tail_std,
+        tail_ave + tail_std,
+        color="blue",
+        alpha=0.15,
+        linewidth=0.0,
+        zorder=1,
+    )
+    ax.axhline(
+        tail_ave,
+        color="blue",
+        linestyle=":",
+        linewidth=1.5,
+        zorder=2,
+    )
+    annotate_axis.add_text(
+        ax=ax,
+        x_pos=0.95,
+        y_pos=y_pos,
+        label=rf"${tail_ave:.2f} \pm {tail_std:.2f}$",
+        x_alignment=box_positions.Positions.Side.Right,
+        y_alignment=y_alignment,
+        text_size=18,
+        text_color="blue",
+    )
 
 
 ##
@@ -83,55 +209,75 @@ def main() -> None:
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
-    times, primary_energy = load_energy_time_series(component=PRIMARY_COMPONENT)
-    _, spurious_energy = load_energy_time_series(component=SPURIOUS_COMPONENT)
-    log10_leakage_ratio = numpy.log10(spurious_energy / primary_energy)
-    tail = log10_leakage_ratio[len(log10_leakage_ratio) // 2:]
-    tail_ave = tail.mean()
-    tail_std = tail.std()
+    times_low, ratio_low = compute_leakage_ratio(ncells=NCELLS_LOW)
+    times_high, ratio_high = compute_leakage_ratio(ncells=NCELLS_HIGH)
+    ## compute saturation stats from the full (non-subsampled) series for a robust estimate
+    tail_low = ratio_low[len(ratio_low) // 2:]
+    tail_high = ratio_high[len(ratio_high) // 2:]
+    tail_ave_low, tail_std_low = tail_low.mean(), tail_low.std()
+    tail_ave_high, tail_std_high = tail_high.mean(), tail_high.std()
+    times_low, ratio_low = subsample_evenly(
+        normalized_times=times_low,
+        log10_leakage_ratio=ratio_low,
+        num_samples=NUM_TIME_SAMPLES,
+    )
+    times_high, ratio_high = subsample_evenly(
+        normalized_times=times_high,
+        log10_leakage_ratio=ratio_high,
+        num_samples=NUM_TIME_SAMPLES,
+    )
     fig, axs = manage_plots.create_figure_grid(
         num_rows=1,
         num_cols=1,
-        axis_shape=(4.5, 6),
+        axis_shape=(5.65, 6),
         fig_scale=0.9,
     )
     ax = axs[0, 0]
     ax.plot(
-        times,
-        log10_leakage_ratio,
+        times_low,
+        ratio_low,
         color="black",
         marker="o",
         markersize=8,
         linewidth=1.0,
         zorder=2,
     )
-    ax.axhspan(
-        tail_ave - tail_std,
-        tail_ave + tail_std,
+    ax.plot(
+        times_high,
+        ratio_high,
         color="black",
-        alpha=0.15,
-        linewidth=0.0,
-        zorder=0,
+        marker="s",
+        markersize=8,
+        linewidth=1.0,
+        zorder=2,
     )
-    ax.axhline(
-        tail_ave,
-        color="black",
-        linestyle=":",
-        linewidth=1.5,
-        zorder=1,
-    )
-    annotate_axis.add_text(
+    annotate_axis.add_custom_legend(
         ax=ax,
-        x_pos=0.975,
-        y_pos=0.75,
-        label=rf"${tail_ave:.2f} \pm {tail_std:.2f}$",
-        x_alignment=box_positions.Positions.Side.Right,
-        y_alignment=box_positions.Positions.Center.Center,
+        artists=["o", "s"],
+        labels=[f"${NCELLS_LOW}^3$", f"${NCELLS_HIGH}^3$"],
+        colors=["black", "black"],
+        anchor_point=(1.0, 1.0),
+        anchor_at_corner=box_positions.Positions.Corner.TopRight,
         text_size=20,
-        text_color="black",
+        spacing=0.25,
     )
-    ax.set_ylim((-10, -6))
-    ax.set_xlabel(r"$t$")
+    add_tail_annotation(
+        ax=ax,
+        tail_ave=tail_ave_low,
+        tail_std=tail_std_low,
+        y_pos=0.65,
+        y_alignment=box_positions.Positions.Side.Top,
+    )
+    add_tail_annotation(
+        ax=ax,
+        tail_ave=tail_ave_high,
+        tail_std=tail_std_high,
+        y_pos=0.49,
+        y_alignment=box_positions.Positions.Side.Top,
+    )
+    add_saturation_annotation(ax=ax)
+    ax.set_ylim((-11, -2))
+    ax.set_xlabel(r"$t / T$")
     ax.set_ylabel(
         r"$\log_{10}\!\left("
         r"\dfrac{\int (b_2 - \langle b_2 \rangle)^2 \mathrm{d}x_0}"

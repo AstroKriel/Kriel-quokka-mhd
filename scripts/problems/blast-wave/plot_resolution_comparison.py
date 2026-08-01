@@ -66,7 +66,7 @@ def find_slice_near_time(
     target_time: float,
 ) -> Path:
     """Return the saved density slice for `q26-b25-ppm` at `ncells` nearest `target_time`."""
-    extracted_dir = DATASET_DIR / f"ncells={ncells}" / "q26-b25-ppm" / "extracted"
+    extracted_dir = DATASET_DIR / f"ncells={ncells}" / "q26-b25-ppm_ep" / "extracted"
     slice_paths = sorted(extracted_dir.glob("density-slice=x_2-index=*.npz"))
     if not slice_paths:
         raise FileNotFoundError(f"no density slice found in: {extracted_dir}")
@@ -299,7 +299,7 @@ def main() -> None:
     cbar = add_color.add_colorbar(
         ax=ax,
         palette=palette,
-        label=r"$\log_{10}(\rho / \rho_0)$",
+        label=r"$\log_{10}(\rho / \rho_\mathrm{bg})$",
         cbar_side="top",
         label_size=26,
     )

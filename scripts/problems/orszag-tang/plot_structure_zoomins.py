@@ -34,6 +34,7 @@ from jormi.ww_plots import (
 )
 from jormi.ww_types import box_positions
 from jormi.ww_validation import validate_types
+from ww_quokka_sims.sim_io import find_snapshots
 
 ##
 ## === DATA STRUCTURES
@@ -134,11 +135,10 @@ class ZoomRegion:
 
 ## inputs and outputs
 ROOT_DIR = Path(__file__).parents[3]
-DATA_PATH: Path = (
-    ROOT_DIR / "datasets/problems/orszag-tang/ncells=8192/q26-b25-ppm/extracted" /
-    "current_density_magnitude-slice=x_2-index=0116573-amr_level=0.npz"
-)
-FIGURE_PATH: Path = ROOT_DIR / "figures/problems/orszag-tang/ncells=8192/q26-b25-ppm/structure-zoomins.png"
+EXTRACTED_DIR: Path = ROOT_DIR / "datasets/problems/orszag-tang/ncells=8192/q26-b25-ppm_ep/extracted"
+DATA_GLOB_PATTERN = "current_density_magnitude-slice=x_2-index=*-amr_level=0.npz"
+TARGET_TIME = 0.8
+FIGURE_PATH: Path = ROOT_DIR / "figures/problems/orszag-tang/ncells=8192/q26-b25-ppm_ep/structure-zoomins.png"
 
 ## plotting details
 AXIS_BOUNDS: plot_data.AxisBounds = ((-0.5, 0.5), (-0.5, 0.5))
@@ -215,9 +215,12 @@ def plot_sarray_2d(
     )
     field_label = r"$\log_{10} \left( \Delta x \, |\nabla \times \vec{b}| \right)$"
     cbar_bounds = (-3.0, -1.25)
+    ## early-time slices (e.g. t=0) sit entirely below `cbar_bounds`, before any current sheets have
+    ## formed; clip rather than let `plot_2d_array` reject the out-of-range array outright
+    clipped_sarray_2d = numpy.clip(bounded_slice.sarray_2d, cbar_bounds[0], cbar_bounds[1])
     plot_data.plot_2d_array(
         ax=ax,
-        array_2d=bounded_slice.sarray_2d,
+        array_2d=clipped_sarray_2d,
         data_format="xy",
         axis_bounds=bounded_slice.axis_bounds,
         cbar_bounds=cbar_bounds,
@@ -383,7 +386,12 @@ def main() -> None:
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
-    with numpy.load(DATA_PATH) as data:
+    data_path = find_snapshots.find_npz_near_time(
+        extracted_dir=EXTRACTED_DIR,
+        glob_pattern=DATA_GLOB_PATTERN,
+        target_time=TARGET_TIME,
+    )
+    with numpy.load(data_path) as data:
         sarray_2d = data["sarray_2d"]
         step_time = float(data["step_time"])
     cell_size = (AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]) / sarray_2d.shape[0]

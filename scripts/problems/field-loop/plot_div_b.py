@@ -37,26 +37,28 @@ class Slice:
 
 ## inputs and outputs
 ROOT_DIR = Path(__file__).parents[3]
-DATASET_DIR = ROOT_DIR / "datasets/problems/field-loop/ncells=128/q26-b25-ppm" / "extracted"
+DATASET_DIR = ROOT_DIR / "datasets/problems/field-loop/ncells=96/q26-b25-ppm_ep" / "extracted"
 DIVB_GLOB = "magnetic_divergence-slice=x_2-index=*.npz"
 FIGURE_PATH = ROOT_DIR / "figures/problems/field-loop/div-b.png"
-TARGET_TIME = 1.5
 
 ## plotting details
 NUM_PDF_BINS = 50
 NUM_PDF_TIMES = 10
 TICK_LABEL_SIZE = 20
 AXIS_LABEL_SIZE = 25
-SLICE_BOUNDS: plot_data.AxisBounds = ((-1.0, 1.0), (-0.578125, 0.578125))
-ADVECTION_PERIOD = (SLICE_BOUNDS[0][1] - SLICE_BOUNDS[0][0]) / numpy.sin(numpy.pi / 3.0)
+SLICE_BOUNDS: plot_data.AxisBounds = ((-1.5, 1.5), (-1.0, 1.0))
+ADVECTION_ANGLE = numpy.arctan2(3.0, 2.0)  # setup.advection_angle_deg = atan2(3, 2) in inputs.toml
+ADVECTION_PERIOD = (SLICE_BOUNDS[0][1] - SLICE_BOUNDS[0][0]) / numpy.sin(ADVECTION_ANGLE)
+TARGET_TIME = 2.4155  # t/T ~ 0.670: loop centred on the region's x-midpoint, straddling both edges
 
 ## annotations
-AMR_REGION_BOUNDS: plot_data.AxisBounds = ((0.4, 0.6), (-0.23125, 0.23125))
-## the loop is centred on the origin at t=0, with radius R_0=0.3 (testFieldLoop.cpp)
+AMR_REGION_BOUNDS: plot_data.AxisBounds = ((-1.25, -0.75), (-0.75, 0.75))
+## the loop is centred on the origin at t=0, with radius set by setup.loop_radius = 0.5 (inputs.toml)
 LOOP_INITIAL_CENTER = (0.0, 0.0)
-LOOP_INITIAL_RADIUS = 0.3
-## advection velocity projected onto the x_0-x_1 plane, from u=(sin(pi/3), cos(pi/3), 1)
-ADVECTION_DIRECTION = (numpy.sin(numpy.pi / 3.0), numpy.cos(numpy.pi / 3.0))
+LOOP_INITIAL_RADIUS = 0.5
+## advection velocity projected onto the x_0-x_1 plane; direction ratio (3, 2, 1) via
+## setup.advection_angle_deg / setup.advection_vz (inputs.toml)
+ADVECTION_DIRECTION = (numpy.sin(ADVECTION_ANGLE), numpy.cos(ADVECTION_ANGLE))
 
 ##
 ## === HELPER FUNCTIONS
@@ -113,15 +115,30 @@ def compute_log10_absolute_divb(
     return numpy.log10(numpy.abs(sarray_2d[nonzero_finite]))
 
 
+def compute_loop_center_at_time(
+    *,
+    step_time: float,
+) -> tuple[float, float]:
+    """Return the loop's true advected centre at `step_time`, wrapped into the periodic domain."""
+    def wrap(value: float, bounds: tuple[float, float]) -> float:
+        span = bounds[1] - bounds[0]
+        return (value - bounds[0]) % span + bounds[0]
+
+    raw_x = LOOP_INITIAL_CENTER[0] + ADVECTION_DIRECTION[0] * step_time
+    raw_y = LOOP_INITIAL_CENTER[1] + ADVECTION_DIRECTION[1] * step_time
+    return (wrap(raw_x, SLICE_BOUNDS[0]), wrap(raw_y, SLICE_BOUNDS[1]))
+
+
 def add_advection_arrow(
     *,
     ax: manage_plots.PlotAxis,
+    loop_center: tuple[float, float],
 ) -> None:
     arrow_start = (
-        LOOP_INITIAL_CENTER[0] + LOOP_INITIAL_RADIUS * ADVECTION_DIRECTION[0],
-        LOOP_INITIAL_CENTER[1] + LOOP_INITIAL_RADIUS * ADVECTION_DIRECTION[1],
+        loop_center[0] + LOOP_INITIAL_RADIUS * ADVECTION_DIRECTION[0],
+        loop_center[1] + LOOP_INITIAL_RADIUS * ADVECTION_DIRECTION[1],
     )
-    arrow_length = 0.25
+    arrow_length = 0.35
     arrow_end = (
         arrow_start[0] + arrow_length * ADVECTION_DIRECTION[0],
         arrow_start[1] + arrow_length * ADVECTION_DIRECTION[1],
@@ -141,12 +158,12 @@ def add_advection_arrow(
     )
     ax.text(
         arrow_start[0] + 0.025,
-        arrow_start[1] + 0.05,
+        arrow_start[1] + 0.075,
         "advection",
         ha="left",
         va="bottom",
         color="red",
-        rotation=30.0,
+        rotation=180 / numpy.pi * numpy.atan(2/3),
         rotation_mode="anchor",
         fontsize=TICK_LABEL_SIZE,
     )
@@ -173,15 +190,15 @@ def plot_pdf_panel(
     pdf_bin_centers = 0.5 * (pdf_bin_edges[:-1] + pdf_bin_edges[1:])
     time_palette = add_color.make_palette(
         config=add_color.SequentialConfig(
-            palette_name="cmr.bubblegum",
-            palette_range=(0.15, 0.95),
+            palette_name="cmr.bubblegum_r",
+            palette_range=(0.05, 0.85),
         ),
         value_range=(
             divb_series[1].step_time / ADVECTION_PERIOD,
             divb_series[-1].step_time / ADVECTION_PERIOD,
         ),
     )
-    for sample_slice in sampled_slices:
+    for sample_slice in sampled_slices[1:]:
         log10_absolute_divb = compute_log10_absolute_divb(sarray_2d=sample_slice.sarray_2d)
         estimated_pdf = compute_array_stats.estimate_pdf(
             values=log10_absolute_divb,
@@ -210,7 +227,7 @@ def plot_pdf_panel(
         r"$\log_{10}\!\left(\mathrm{PDF}(x)\right)$",
         fontsize=AXIS_LABEL_SIZE,
     )
-    ax.set_xlim(-52, -13)
+    ax.set_xlim(-54, -13)
     ax.set_ylim(-2.3, 0.0)
     ax.tick_params(labelsize=TICK_LABEL_SIZE)
     ax.yaxis.set_label_position("right")
@@ -268,13 +285,14 @@ def plot_slice_panel(
         label_pad=17.5,
     )
     cbar.ax.tick_params(labelsize=TICK_LABEL_SIZE)
+    loop_center = compute_loop_center_at_time(step_time=divb_slice.step_time)
     ax.add_patch(
         mpl_patches.Circle(
-            LOOP_INITIAL_CENTER,
+            loop_center,
             LOOP_INITIAL_RADIUS,
             fill=False,
             edgecolor="red",
-            linestyle=":",
+            linestyle="--",
             linewidth=1.25,
         ),
     )
@@ -290,11 +308,11 @@ def plot_slice_panel(
             linewidth=1.25,
         ),
     )
-    add_advection_arrow(ax=ax)
+    add_advection_arrow(ax=ax, loop_center=loop_center)
     annotate_axis.add_text(
         ax=ax,
-        x_pos=0.825,
-        y_pos=0.5,
+        x_pos=0.15,
+        y_pos=0.65,
         label=r"\shortstack{refinement\\region}",
         rotate_deg=90.0,
         x_alignment=box_positions.Positions.Side.Left,

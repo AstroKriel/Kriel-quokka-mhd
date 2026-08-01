@@ -427,7 +427,7 @@ def _field_loop_entries() -> list[GenerateEntry]:
 
 def _mhd_quirk_entries() -> list[GenerateEntry]:
     base = DATASETS_DIR / "quirk/ncells=128"
-    kwargs = {
+    kwargs: dict[str, object] = {
         "compute_scheme_key": "q26",
         "averaging_scheme_key": "b25",
         "reconstruction_order_key": "ppm_ep"

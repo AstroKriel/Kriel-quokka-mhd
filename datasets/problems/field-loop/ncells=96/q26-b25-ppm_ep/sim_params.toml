@@ -40,7 +40,7 @@ mhd.emf_compute_scheme = "Quokka2026"
 mhd.emf_averaging_scheme = "Balsara2025"
 mhd.emf_reconstruction_order = 5
 
-## field loop setup
+## problem setup
 setup.loop_radius = 0.5
 setup.loop_center_x = 0.0
 setup.loop_center_y = 0.0

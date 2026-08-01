@@ -17,7 +17,7 @@ from ww_quokka_sims.sim_io.sim_params import sim_types
 
 
 @dataclass(frozen=True)
-class GenerateEntry:
+class SimParamsConfig:
     target_dir: Path
     problem_key: str
     kwargs: dict[str, object]
@@ -39,15 +39,16 @@ _WAVE_SCHEME_COMBINATIONS: list[tuple[str, str, str]] = [
 ]
 
 ##
-## === PER-PROBLEM ENTRIES
+## === PER-PROBLEM CONFIGS
 ##
 
 
-def _alfven_wave_circular_convergence_entries() -> list[GenerateEntry]:
-    base = DATASETS_DIR / "alfven-wave-circular/convergence"
+def _alfven_wave_circular_convergence_configs() -> list[SimParamsConfig]:
+    dataset_dir = DATASETS_DIR / "alfven-wave-circular/convergence"
     return [
-        GenerateEntry(
-            target_dir=base / f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
+        SimParamsConfig(
+            target_dir=dataset_dir /
+            f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
             problem_key="AlfvenWaveCircular-Convergence",
             kwargs={
                 "compute_scheme_key": compute_scheme_key,
@@ -58,11 +59,12 @@ def _alfven_wave_circular_convergence_entries() -> list[GenerateEntry]:
     ]
 
 
-def _alfven_wave_linear_convergence_entries() -> list[GenerateEntry]:
-    base = DATASETS_DIR / "alfven-wave-linear/convergence/ideal/angle=0-nx=1-ny=0-nz=0"
+def _alfven_wave_linear_convergence_configs() -> list[SimParamsConfig]:
+    dataset_dir = DATASETS_DIR / "alfven-wave-linear/convergence/ideal/angle=0-nx=1-ny=0-nz=0"
     return [
-        GenerateEntry(
-            target_dir=base / f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
+        SimParamsConfig(
+            target_dir=dataset_dir /
+            f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
             problem_key="AlfvenWaveLinear-Convergence",
             kwargs={
                 "compute_scheme_key": compute_scheme_key,
@@ -77,12 +79,12 @@ def _alfven_wave_linear_convergence_entries() -> list[GenerateEntry]:
     ]
 
 
-def _alfven_wave_linear_correctness_entries() -> list[GenerateEntry]:
-    base = DATASETS_DIR / "alfven-wave-linear/correctness/resistive"
+def _alfven_wave_linear_correctness_configs() -> list[SimParamsConfig]:
+    dataset_dir = DATASETS_DIR / "alfven-wave-linear/correctness/resistive"
     etas = ("0.00001", "0.0000316", "0.0001", "0.000316", "0.001", "0.00316", "0.01", "0.0316")
     return [
-        GenerateEntry(
-            target_dir=base / f"eta={eta}/ncells=256/q26-b25-{reconstruction_order_key}",
+        SimParamsConfig(
+            target_dir=dataset_dir / f"eta={eta}/ncells=256/q26-b25-{reconstruction_order_key}",
             problem_key="AlfvenWaveLinear-Correctness",
             kwargs={
                 "compute_scheme_key": "q26",
@@ -100,11 +102,12 @@ def _alfven_wave_linear_correctness_entries() -> list[GenerateEntry]:
     ]
 
 
-def _fast_wave_convergence_entries() -> list[GenerateEntry]:
-    base = DATASETS_DIR / "fast-wave/convergence/nx=1-ny=0-nz=0"
+def _fast_wave_convergence_configs() -> list[SimParamsConfig]:
+    dataset_dir = DATASETS_DIR / "fast-wave/convergence/nx=1-ny=0-nz=0"
     return [
-        GenerateEntry(
-            target_dir=base / f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
+        SimParamsConfig(
+            target_dir=dataset_dir /
+            f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
             problem_key="FastWave-Convergence",
             kwargs={
                 "compute_scheme_key": compute_scheme_key,
@@ -119,11 +122,12 @@ def _fast_wave_convergence_entries() -> list[GenerateEntry]:
     ]
 
 
-def _slow_wave_convergence_entries() -> list[GenerateEntry]:
-    base = DATASETS_DIR / "slow-wave/convergence/nx=1-ny=0-nz=0"
+def _slow_wave_convergence_configs() -> list[SimParamsConfig]:
+    dataset_dir = DATASETS_DIR / "slow-wave/convergence/nx=1-ny=0-nz=0"
     return [
-        GenerateEntry(
-            target_dir=base / f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
+        SimParamsConfig(
+            target_dir=dataset_dir /
+            f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
             problem_key="SlowWave-Convergence",
             kwargs={
                 "compute_scheme_key": compute_scheme_key,
@@ -138,8 +142,8 @@ def _slow_wave_convergence_entries() -> list[GenerateEntry]:
     ]
 
 
-def _slow_wave_correctness_entries() -> list[GenerateEntry]:
-    base = DATASETS_DIR / "slow-wave/correctness/nx=1-ny=2-nz=3"
+def _slow_wave_correctness_configs() -> list[SimParamsConfig]:
+    dataset_dir = DATASETS_DIR / "slow-wave/correctness/nx=1-ny=2-nz=3"
     ## `ncells=512`'s resolution fields follow the same pattern as the verified `ncells=128` leaf
     ## (blocking_factor/max_grid_size == num_cells); `max_time_steps` is linearly scaled, not verified
     resolutions = {
@@ -156,12 +160,12 @@ def _slow_wave_correctness_entries() -> list[GenerateEntry]:
             "max_time_steps": 400_000,
         },
     }
-    entries: list[GenerateEntry] = []
+    configs: list[SimParamsConfig] = []
     for ncells, resolution_kwargs in resolutions.items():
         for reconstruction_order_key in ("ppm", "ppm_ep"):
-            entries.append(
-                GenerateEntry(
-                    target_dir=base / f"ncells={ncells}" / f"q26-b25-{reconstruction_order_key}",
+            configs.append(
+                SimParamsConfig(
+                    target_dir=dataset_dir / f"ncells={ncells}" / f"q26-b25-{reconstruction_order_key}",
                     problem_key="SlowWave-Correctness",
                     kwargs={
                         "compute_scheme_key": "q26",
@@ -176,10 +180,10 @@ def _slow_wave_correctness_entries() -> list[GenerateEntry]:
                     },
                 ),
             )
-    return entries
+    return configs
 
 
-def _balsara_vortex_entries() -> list[GenerateEntry]:
+def _balsara_vortex_configs() -> list[SimParamsConfig]:
     resolutions = {
         128: {
             "domain_lo": (-5.0, -5.0, -0.0390625),
@@ -198,13 +202,13 @@ def _balsara_vortex_entries() -> list[GenerateEntry]:
             "max_time_steps": 800_000,
         },
     }
-    entries: list[GenerateEntry] = []
+    configs: list[SimParamsConfig] = []
     for ncells, base_kwargs in resolutions.items():
-        base = DATASETS_DIR / f"balsara-vortex/ncells={ncells}"
+        dataset_dir = DATASETS_DIR / f"balsara-vortex/ncells={ncells}"
         for reconstruction_order_key in ("ppm", "ppm_ep"):
-            entries.append(
-                GenerateEntry(
-                    target_dir=base / f"q26-b25-{reconstruction_order_key}",
+            configs.append(
+                SimParamsConfig(
+                    target_dir=dataset_dir / f"q26-b25-{reconstruction_order_key}",
                     problem_key="MHDBalsaraVortex",
                     kwargs={
                         "compute_scheme_key": "q26",
@@ -214,12 +218,12 @@ def _balsara_vortex_entries() -> list[GenerateEntry]:
                     },
                 ),
             )
-    return entries
+    return configs
 
 
-def _blast_wave_entries() -> list[GenerateEntry]:
-    base_1024 = DATASETS_DIR / "blast-wave/ncells=1024"
-    base_128 = DATASETS_DIR / "blast-wave/ncells=128"
+def _blast_wave_configs() -> list[SimParamsConfig]:
+    dataset_dir_1024 = DATASETS_DIR / "blast-wave/ncells=1024"
+    dataset_dir_128 = DATASETS_DIR / "blast-wave/ncells=128"
     common_1024 = {
         "num_cells": (1024, 1024, 1024),
         "blocking_factor": (32, 32, 32),
@@ -237,8 +241,8 @@ def _blast_wave_entries() -> list[GenerateEntry]:
         "snapshot_index_interval": 25,
     }
     return [
-        GenerateEntry(
-            target_dir=base_1024 / "q26-b25-ppm",
+        SimParamsConfig(
+            target_dir=dataset_dir_1024 / "q26-b25-ppm",
             problem_key="MHDBlast",
             kwargs={
                 "compute_scheme_key": "q26",
@@ -247,8 +251,8 @@ def _blast_wave_entries() -> list[GenerateEntry]:
                 **common_1024,
             },
         ),
-        GenerateEntry(
-            target_dir=base_1024 / "q26-b25-ppm_ep",
+        SimParamsConfig(
+            target_dir=dataset_dir_1024 / "q26-b25-ppm_ep",
             problem_key="MHDBlast",
             kwargs={
                 "compute_scheme_key": "q26",
@@ -257,8 +261,8 @@ def _blast_wave_entries() -> list[GenerateEntry]:
                 **common_1024,
             },
         ),
-        GenerateEntry(
-            target_dir=base_128 / "q26-b25-ppm",
+        SimParamsConfig(
+            target_dir=dataset_dir_128 / "q26-b25-ppm",
             problem_key="MHDBlast",
             kwargs={
                 "compute_scheme_key": "q26",
@@ -267,8 +271,8 @@ def _blast_wave_entries() -> list[GenerateEntry]:
                 **common_128,
             },
         ),
-        GenerateEntry(
-            target_dir=base_128 / "q26-b25-ppm_ep",
+        SimParamsConfig(
+            target_dir=dataset_dir_128 / "q26-b25-ppm_ep",
             problem_key="MHDBlast",
             kwargs={
                 "compute_scheme_key": "q26",
@@ -280,9 +284,9 @@ def _blast_wave_entries() -> list[GenerateEntry]:
     ]
 
 
-def _brio_wu_shock_tube_entries() -> list[GenerateEntry]:
-    base_256 = DATASETS_DIR / "brio-wu-shock-tube/ncells=256"
-    base_8192 = DATASETS_DIR / "brio-wu-shock-tube/ncells=8192"
+def _brio_wu_shock_tube_configs() -> list[SimParamsConfig]:
+    dataset_dir_256 = DATASETS_DIR / "brio-wu-shock-tube/ncells=256"
+    dataset_dir_8192 = DATASETS_DIR / "brio-wu-shock-tube/ncells=8192"
     common_256 = {
         "num_cells": (256, 8, 8),
         "blocking_factor": (16, 8, 8),
@@ -306,9 +310,9 @@ def _brio_wu_shock_tube_entries() -> list[GenerateEntry]:
         ("q26", "b25", "ppm_ep"),
         ("q26", "ld04", "ppm_ep"),
     )
-    entries: list[GenerateEntry] = [
-        GenerateEntry(
-            target_dir=base_256 / "hlld" /
+    configs: list[SimParamsConfig] = [
+        SimParamsConfig(
+            target_dir=dataset_dir_256 / "hlld" /
             f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
             problem_key="BrioWuShockTube",
             kwargs={
@@ -319,9 +323,9 @@ def _brio_wu_shock_tube_entries() -> list[GenerateEntry]:
             },
         ) for compute_scheme_key, averaging_scheme_key, reconstruction_order_key in hlld_256_combinations
     ]
-    entries.append(
-        GenerateEntry(
-            target_dir=base_256 / "llf" / "q26-b25-ppm_ep",
+    configs.append(
+        SimParamsConfig(
+            target_dir=dataset_dir_256 / "llf" / "q26-b25-ppm_ep",
             problem_key="BrioWuShockTube",
             kwargs={
                 "compute_scheme_key": "q26",
@@ -331,9 +335,9 @@ def _brio_wu_shock_tube_entries() -> list[GenerateEntry]:
             },
         ),
     )
-    entries.append(
-        GenerateEntry(
-            target_dir=base_8192 / "hlld" / "q26-b25-ppm_ep",
+    configs.append(
+        SimParamsConfig(
+            target_dir=dataset_dir_8192 / "hlld" / "q26-b25-ppm_ep",
             problem_key="BrioWuShockTube",
             kwargs={
                 "compute_scheme_key": "q26",
@@ -343,11 +347,11 @@ def _brio_wu_shock_tube_entries() -> list[GenerateEntry]:
             },
         ),
     )
-    return entries
+    return configs
 
 
-def _ryu_jones_2a_shock_tube_entries() -> list[GenerateEntry]:
-    base = DATASETS_DIR / "ryu-jones-2a-shock-tube/ncells=512"
+def _ryu_jones_2a_shock_tube_configs() -> list[SimParamsConfig]:
+    dataset_dir = DATASETS_DIR / "ryu-jones-2a-shock-tube/ncells=512"
     hlld_combinations = (
         ("b25", "b25", "ppm_ep"),
         ("b25", "ld04", "ppm_ep"),
@@ -357,9 +361,9 @@ def _ryu_jones_2a_shock_tube_entries() -> list[GenerateEntry]:
         ("q26", "b25", "ppm_ep"),
         ("q26", "ld04", "ppm_ep"),
     )
-    entries: list[GenerateEntry] = [
-        GenerateEntry(
-            target_dir=base / "hlld" /
+    configs: list[SimParamsConfig] = [
+        SimParamsConfig(
+            target_dir=dataset_dir / "hlld" /
             f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
             problem_key="RyuJones2aShockTube",
             kwargs={
@@ -369,9 +373,9 @@ def _ryu_jones_2a_shock_tube_entries() -> list[GenerateEntry]:
             },
         ) for compute_scheme_key, averaging_scheme_key, reconstruction_order_key in hlld_combinations
     ]
-    entries.append(
-        GenerateEntry(
-            target_dir=base / "llf" / "q26-b25-ppm_ep",
+    configs.append(
+        SimParamsConfig(
+            target_dir=dataset_dir / "llf" / "q26-b25-ppm_ep",
             problem_key="RyuJones2aShockTube",
             kwargs={
                 "compute_scheme_key": "q26",
@@ -380,14 +384,14 @@ def _ryu_jones_2a_shock_tube_entries() -> list[GenerateEntry]:
             },
         ),
     )
-    return entries
+    return configs
 
 
-def _current_sheet_entries() -> list[GenerateEntry]:
-    base = DATASETS_DIR / "current-sheet/ncells=1024"
-    entries = [
-        GenerateEntry(
-            target_dir=base / f"{compute_scheme_key}-{averaging_scheme_key}-ppm",
+def _current_sheet_configs() -> list[SimParamsConfig]:
+    dataset_dir = DATASETS_DIR / "current-sheet/ncells=1024"
+    configs = [
+        SimParamsConfig(
+            target_dir=dataset_dir / f"{compute_scheme_key}-{averaging_scheme_key}-ppm",
             problem_key="CurrentSheet",
             kwargs={
                 "compute_scheme_key": compute_scheme_key,
@@ -396,9 +400,9 @@ def _current_sheet_entries() -> list[GenerateEntry]:
             },
         ) for compute_scheme_key in ("b25", "fs17", "q26") for averaging_scheme_key in ("b25", "ld04")
     ]
-    entries += [
-        GenerateEntry(
-            target_dir=base / f"{compute_scheme_key}-b25-ppm_ep",
+    configs += [
+        SimParamsConfig(
+            target_dir=dataset_dir / f"{compute_scheme_key}-b25-ppm_ep",
             problem_key="CurrentSheet",
             kwargs={
                 "compute_scheme_key": compute_scheme_key,
@@ -407,14 +411,14 @@ def _current_sheet_entries() -> list[GenerateEntry]:
             },
         ) for compute_scheme_key in ("b25", "q26")
     ]
-    return entries
+    return configs
 
 
-def _field_loop_entries() -> list[GenerateEntry]:
-    base = DATASETS_DIR / "field-loop/ncells=96"
+def _field_loop_configs() -> list[SimParamsConfig]:
+    dataset_dir = DATASETS_DIR / "field-loop/ncells=96"
     return [
-        GenerateEntry(
-            target_dir=base / "q26-b25-ppm_ep",
+        SimParamsConfig(
+            target_dir=dataset_dir / "q26-b25-ppm_ep",
             problem_key="FieldLoop",
             kwargs={
                 "compute_scheme_key": "q26",
@@ -425,34 +429,35 @@ def _field_loop_entries() -> list[GenerateEntry]:
     ]
 
 
-def _mhd_quirk_entries() -> list[GenerateEntry]:
-    base = DATASETS_DIR / "quirk/ncells=128"
+def _mhd_quirk_configs() -> list[SimParamsConfig]:
+    dataset_dir = DATASETS_DIR / "quirk/ncells=128"
     kwargs: dict[str, object] = {
         "compute_scheme_key": "q26",
         "averaging_scheme_key": "b25",
-        "reconstruction_order_key": "ppm_ep"
+        "reconstruction_order_key": "ppm_ep",
     }
     return [
-        GenerateEntry(
-            target_dir=base / "q26-b25-ppm_ep",
+        SimParamsConfig(
+            target_dir=dataset_dir / "q26-b25-ppm_ep",
             problem_key="MHDQuirk",
             kwargs=kwargs,
         ),
-        GenerateEntry(
-            target_dir=base / "q26-b25-ppm_ep-no-carbuncle-fix",
+        SimParamsConfig(
+            target_dir=dataset_dir / "q26-b25-ppm_ep-no-carbuncle-fix",
             problem_key="MHDQuirk",
             kwargs=kwargs,
         ),
     ]
 
 
-def _orszag_tang_entries() -> list[GenerateEntry]:
-    base_1024 = DATASETS_DIR / "orszag-tang/ncells=1024"
-    base_4096 = DATASETS_DIR / "orszag-tang/ncells=4096"
-    base_8192 = DATASETS_DIR / "orszag-tang/ncells=8192"
-    entries: list[GenerateEntry] = [
-        GenerateEntry(
-            target_dir=base_1024 / f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
+def _orszag_tang_configs() -> list[SimParamsConfig]:
+    dataset_dir_1024 = DATASETS_DIR / "orszag-tang/ncells=1024"
+    dataset_dir_4096 = DATASETS_DIR / "orszag-tang/ncells=4096"
+    dataset_dir_8192 = DATASETS_DIR / "orszag-tang/ncells=8192"
+    configs: list[SimParamsConfig] = [
+        SimParamsConfig(
+            target_dir=dataset_dir_1024 /
+            f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
             problem_key="OrszagTang",
             kwargs={
                 "compute_scheme_key": compute_scheme_key,
@@ -464,9 +469,9 @@ def _orszag_tang_entries() -> list[GenerateEntry]:
         for averaging_scheme_key in ("b25", "ld04")
         for reconstruction_order_key in ("plm", "ppm", "ppm_ep")
     ]
-    entries += [
-        GenerateEntry(
-            target_dir=base_4096 / f"q26-b25-{reconstruction_order_key}",
+    configs += [
+        SimParamsConfig(
+            target_dir=dataset_dir_4096 / f"q26-b25-{reconstruction_order_key}",
             problem_key="OrszagTang",
             kwargs={
                 "compute_scheme_key": "q26",
@@ -477,9 +482,9 @@ def _orszag_tang_entries() -> list[GenerateEntry]:
             },
         ) for reconstruction_order_key in ("ppm", "ppm_ep")
     ]
-    entries += [
-        GenerateEntry(
-            target_dir=base_8192 / f"q26-b25-{reconstruction_order_key}",
+    configs += [
+        SimParamsConfig(
+            target_dir=dataset_dir_8192 / f"q26-b25-{reconstruction_order_key}",
             problem_key="OrszagTang",
             kwargs={
                 "compute_scheme_key": "q26",
@@ -494,24 +499,24 @@ def _orszag_tang_entries() -> list[GenerateEntry]:
             },
         ) for reconstruction_order_key in ("ppm", "ppm_ep")
     ]
-    return entries
+    return configs
 
 
-ALL_ENTRIES: list[GenerateEntry] = [
-    *_alfven_wave_circular_convergence_entries(),
-    *_alfven_wave_linear_convergence_entries(),
-    *_alfven_wave_linear_correctness_entries(),
-    *_fast_wave_convergence_entries(),
-    *_slow_wave_convergence_entries(),
-    *_slow_wave_correctness_entries(),
-    *_balsara_vortex_entries(),
-    *_blast_wave_entries(),
-    *_brio_wu_shock_tube_entries(),
-    *_ryu_jones_2a_shock_tube_entries(),
-    *_current_sheet_entries(),
-    *_field_loop_entries(),
-    *_mhd_quirk_entries(),
-    *_orszag_tang_entries(),
+ALL_CONFIGS: list[SimParamsConfig] = [
+    *_alfven_wave_circular_convergence_configs(),
+    *_alfven_wave_linear_convergence_configs(),
+    *_alfven_wave_linear_correctness_configs(),
+    *_fast_wave_convergence_configs(),
+    *_slow_wave_convergence_configs(),
+    *_slow_wave_correctness_configs(),
+    *_balsara_vortex_configs(),
+    *_blast_wave_configs(),
+    *_brio_wu_shock_tube_configs(),
+    *_ryu_jones_2a_shock_tube_configs(),
+    *_current_sheet_configs(),
+    *_field_loop_configs(),
+    *_mhd_quirk_configs(),
+    *_orszag_tang_configs(),
 ]
 
 ##
@@ -520,15 +525,15 @@ ALL_ENTRIES: list[GenerateEntry] = [
 
 
 def main() -> None:
-    for entry in ALL_ENTRIES:
-        builder = sim_types.resolve_sim_params_builder(entry.problem_key)
-        sim_params = builder(**entry.kwargs)
+    for config in ALL_CONFIGS:
+        builder = sim_types.resolve_sim_params_builder(config.problem_key)
+        sim_params = builder(**config.kwargs)
         sim_params.write(
-            output_path=entry.target_dir / "sim_params.toml",
+            output_path=config.target_dir / "sim_params.toml",
             overwrite=True,
             verbose=False,
         )
-    print(f"generated {len(ALL_ENTRIES)} sim_params.toml files; review with `git diff`.")
+    print(f"generated {len(ALL_CONFIGS)} sim_params.toml files; review with `git diff`.")
 
 
 ##

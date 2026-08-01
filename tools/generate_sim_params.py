@@ -19,7 +19,7 @@ from ww_quokka_sims.sim_io.sim_params import sim_types
 @dataclass(frozen=True)
 class SimParamsConfig:
     target_dir: Path
-    problem_key: str
+    problem_key: sim_types.ProblemKey
     kwargs: dict[str, object]
 
 
@@ -49,7 +49,7 @@ def alfven_wave_circular_convergence_configs() -> list[SimParamsConfig]:
         SimParamsConfig(
             target_dir=dataset_dir /
             f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
-            problem_key="AlfvenWaveCircular-Convergence",
+            problem_key=sim_types.ProblemKey.ALFVEN_WAVE_CIRCULAR_CONVERGENCE,
             kwargs={
                 "compute_scheme_key": compute_scheme_key,
                 "averaging_scheme_key": averaging_scheme_key,
@@ -65,7 +65,7 @@ def alfven_wave_linear_convergence_configs() -> list[SimParamsConfig]:
         SimParamsConfig(
             target_dir=dataset_dir /
             f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
-            problem_key="AlfvenWaveLinear-Convergence",
+            problem_key=sim_types.ProblemKey.ALFVEN_WAVE_LINEAR_CONVERGENCE,
             kwargs={
                 "compute_scheme_key": compute_scheme_key,
                 "averaging_scheme_key": averaging_scheme_key,
@@ -85,7 +85,7 @@ def alfven_wave_linear_correctness_configs() -> list[SimParamsConfig]:
     return [
         SimParamsConfig(
             target_dir=dataset_dir / f"eta={eta}/ncells=256/q26-b25-{reconstruction_order_key}",
-            problem_key="AlfvenWaveLinear-Correctness",
+            problem_key=sim_types.ProblemKey.ALFVEN_WAVE_LINEAR_CORRECTNESS,
             kwargs={
                 "compute_scheme_key": "q26",
                 "averaging_scheme_key": "b25",
@@ -108,7 +108,7 @@ def fast_wave_convergence_configs() -> list[SimParamsConfig]:
         SimParamsConfig(
             target_dir=dataset_dir /
             f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
-            problem_key="FastWave-Convergence",
+            problem_key=sim_types.ProblemKey.FAST_WAVE_CONVERGENCE,
             kwargs={
                 "compute_scheme_key": compute_scheme_key,
                 "averaging_scheme_key": averaging_scheme_key,
@@ -128,7 +128,7 @@ def slow_wave_convergence_configs() -> list[SimParamsConfig]:
         SimParamsConfig(
             target_dir=dataset_dir /
             f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
-            problem_key="SlowWave-Convergence",
+            problem_key=sim_types.ProblemKey.SLOW_WAVE_CONVERGENCE,
             kwargs={
                 "compute_scheme_key": compute_scheme_key,
                 "averaging_scheme_key": averaging_scheme_key,
@@ -164,7 +164,7 @@ def slow_wave_correctness_configs() -> list[SimParamsConfig]:
             configs.append(
                 SimParamsConfig(
                     target_dir=dataset_dir / f"ncells={ncells}" / f"q26-b25-{reconstruction_order_key}",
-                    problem_key="SlowWave-Correctness",
+                    problem_key=sim_types.ProblemKey.SLOW_WAVE_CORRECTNESS,
                     kwargs={
                         "compute_scheme_key": "q26",
                         "averaging_scheme_key": "b25",
@@ -211,7 +211,7 @@ def balsara_vortex_configs() -> list[SimParamsConfig]:
             configs.append(
                 SimParamsConfig(
                     target_dir=dataset_dir / f"q26-b25-{reconstruction_order_key}",
-                    problem_key="MHDBalsaraVortex",
+                    problem_key=sim_types.ProblemKey.MHD_BALSARA_VORTEX,
                     kwargs={
                         "compute_scheme_key": "q26",
                         "averaging_scheme_key": "b25",
@@ -246,7 +246,7 @@ def blast_wave_configs() -> list[SimParamsConfig]:
     return [
         SimParamsConfig(
             target_dir=dataset_dir_1024 / "q26-b25-ppm",
-            problem_key="MHDBlast",
+            problem_key=sim_types.ProblemKey.MHD_BLAST,
             kwargs={
                 "compute_scheme_key": "q26",
                 "averaging_scheme_key": "b25",
@@ -256,7 +256,7 @@ def blast_wave_configs() -> list[SimParamsConfig]:
         ),
         SimParamsConfig(
             target_dir=dataset_dir_1024 / "q26-b25-ppm_ep",
-            problem_key="MHDBlast",
+            problem_key=sim_types.ProblemKey.MHD_BLAST,
             kwargs={
                 "compute_scheme_key": "q26",
                 "averaging_scheme_key": "b25",
@@ -266,7 +266,7 @@ def blast_wave_configs() -> list[SimParamsConfig]:
         ),
         SimParamsConfig(
             target_dir=dataset_dir_128 / "q26-b25-ppm",
-            problem_key="MHDBlast",
+            problem_key=sim_types.ProblemKey.MHD_BLAST,
             kwargs={
                 "compute_scheme_key": "q26",
                 "averaging_scheme_key": "b25",
@@ -276,7 +276,7 @@ def blast_wave_configs() -> list[SimParamsConfig]:
         ),
         SimParamsConfig(
             target_dir=dataset_dir_128 / "q26-b25-ppm_ep",
-            problem_key="MHDBlast",
+            problem_key=sim_types.ProblemKey.MHD_BLAST,
             kwargs={
                 "compute_scheme_key": "q26",
                 "averaging_scheme_key": "b25",
@@ -317,7 +317,7 @@ def brio_wu_shock_tube_configs() -> list[SimParamsConfig]:
         SimParamsConfig(
             target_dir=dataset_dir_256 / "hlld" /
             f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
-            problem_key="BrioWuShockTube",
+            problem_key=sim_types.ProblemKey.BRIO_WU_SHOCK_TUBE,
             kwargs={
                 "compute_scheme_key": compute_scheme_key,
                 "averaging_scheme_key": averaging_scheme_key,
@@ -329,7 +329,7 @@ def brio_wu_shock_tube_configs() -> list[SimParamsConfig]:
     configs.append(
         SimParamsConfig(
             target_dir=dataset_dir_256 / "llf" / "q26-b25-ppm_ep",
-            problem_key="BrioWuShockTube",
+            problem_key=sim_types.ProblemKey.BRIO_WU_SHOCK_TUBE,
             kwargs={
                 "compute_scheme_key": "q26",
                 "averaging_scheme_key": "b25",
@@ -341,7 +341,7 @@ def brio_wu_shock_tube_configs() -> list[SimParamsConfig]:
     configs.append(
         SimParamsConfig(
             target_dir=dataset_dir_8192 / "hlld" / "q26-b25-ppm_ep",
-            problem_key="BrioWuShockTube",
+            problem_key=sim_types.ProblemKey.BRIO_WU_SHOCK_TUBE,
             kwargs={
                 "compute_scheme_key": "q26",
                 "averaging_scheme_key": "b25",
@@ -368,7 +368,7 @@ def ryu_jones_2a_shock_tube_configs() -> list[SimParamsConfig]:
         SimParamsConfig(
             target_dir=dataset_dir / "hlld" /
             f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
-            problem_key="RyuJones2aShockTube",
+            problem_key=sim_types.ProblemKey.RYU_JONES_2A_SHOCK_TUBE,
             kwargs={
                 "compute_scheme_key": compute_scheme_key,
                 "averaging_scheme_key": averaging_scheme_key,
@@ -379,7 +379,7 @@ def ryu_jones_2a_shock_tube_configs() -> list[SimParamsConfig]:
     configs.append(
         SimParamsConfig(
             target_dir=dataset_dir / "llf" / "q26-b25-ppm_ep",
-            problem_key="RyuJones2aShockTube",
+            problem_key=sim_types.ProblemKey.RYU_JONES_2A_SHOCK_TUBE,
             kwargs={
                 "compute_scheme_key": "q26",
                 "averaging_scheme_key": "b25",
@@ -395,7 +395,7 @@ def current_sheet_configs() -> list[SimParamsConfig]:
     configs = [
         SimParamsConfig(
             target_dir=dataset_dir / f"{compute_scheme_key}-{averaging_scheme_key}-ppm",
-            problem_key="CurrentSheet",
+            problem_key=sim_types.ProblemKey.CURRENT_SHEET,
             kwargs={
                 "compute_scheme_key": compute_scheme_key,
                 "averaging_scheme_key": averaging_scheme_key,
@@ -406,7 +406,7 @@ def current_sheet_configs() -> list[SimParamsConfig]:
     configs += [
         SimParamsConfig(
             target_dir=dataset_dir / f"{compute_scheme_key}-b25-ppm_ep",
-            problem_key="CurrentSheet",
+            problem_key=sim_types.ProblemKey.CURRENT_SHEET,
             kwargs={
                 "compute_scheme_key": compute_scheme_key,
                 "averaging_scheme_key": "b25",
@@ -422,7 +422,7 @@ def field_loop_configs() -> list[SimParamsConfig]:
     return [
         SimParamsConfig(
             target_dir=dataset_dir / "q26-b25-ppm_ep",
-            problem_key="FieldLoop",
+            problem_key=sim_types.ProblemKey.FIELD_LOOP,
             kwargs={
                 "compute_scheme_key": "q26",
                 "averaging_scheme_key": "b25",
@@ -442,12 +442,12 @@ def mhd_quirk_configs() -> list[SimParamsConfig]:
     return [
         SimParamsConfig(
             target_dir=dataset_dir / "q26-b25-ppm_ep",
-            problem_key="MHDQuirk",
+            problem_key=sim_types.ProblemKey.MHD_QUIRK,
             kwargs=kwargs,
         ),
         SimParamsConfig(
             target_dir=dataset_dir / "q26-b25-ppm_ep-no-carbuncle-fix",
-            problem_key="MHDQuirk",
+            problem_key=sim_types.ProblemKey.MHD_QUIRK,
             kwargs=kwargs,
         ),
     ]
@@ -461,7 +461,7 @@ def orszag_tang_configs() -> list[SimParamsConfig]:
         SimParamsConfig(
             target_dir=dataset_dir_1024 /
             f"{compute_scheme_key}-{averaging_scheme_key}-{reconstruction_order_key}",
-            problem_key="OrszagTang",
+            problem_key=sim_types.ProblemKey.ORSZAG_TANG,
             kwargs={
                 "compute_scheme_key": compute_scheme_key,
                 "averaging_scheme_key": averaging_scheme_key,
@@ -475,7 +475,7 @@ def orszag_tang_configs() -> list[SimParamsConfig]:
     configs += [
         SimParamsConfig(
             target_dir=dataset_dir_4096 / f"q26-b25-{reconstruction_order_key}",
-            problem_key="OrszagTang",
+            problem_key=sim_types.ProblemKey.ORSZAG_TANG,
             kwargs={
                 "compute_scheme_key": "q26",
                 "averaging_scheme_key": "b25",
@@ -488,7 +488,7 @@ def orszag_tang_configs() -> list[SimParamsConfig]:
     configs += [
         SimParamsConfig(
             target_dir=dataset_dir_8192 / f"q26-b25-{reconstruction_order_key}",
-            problem_key="OrszagTang",
+            problem_key=sim_types.ProblemKey.ORSZAG_TANG,
             kwargs={
                 "compute_scheme_key": "q26",
                 "averaging_scheme_key": "b25",

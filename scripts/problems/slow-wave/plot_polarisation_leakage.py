@@ -24,7 +24,7 @@ from jormi.ww_types import box_positions
 ## non-grid-aligned reconstruction shrinks with resolution, as expected for a convergent scheme.
 NCELLS_LOW = 128
 NCELLS_HIGH = 512
-SCHEME = "q26-b25-ppm"
+SCHEME = "q26-b25-ppm_ep"
 PROFILE_AXIS = "x_0"
 PRIMARY_COMPONENT = "x_0"
 SPURIOUS_COMPONENT = "x_2"
@@ -136,20 +136,10 @@ def add_saturation_annotation(
         text_size=18,
         text_color="red",
     )
-    annotate_axis.add_text(
-        ax=ax,
-        x_pos=0.535,
-        y_pos=0.25,
-        label="wave returns to\nalready-polluted\nphases",
-        x_alignment=box_positions.Positions.Side.Left,
-        y_alignment=box_positions.Positions.Side.Top,
-        text_size=16,
-        text_color="blue",
-    )
     ax.annotate(
         "",
-        xytext=(1.0, 0.3),
-        xy=(1.5, 0.3),
+        xytext=(1.0, 0.375),
+        xy=(1.5, 0.375),
         xycoords=ax.get_xaxis_transform(),
         arrowprops={
             "arrowstyle": "-|>",
@@ -159,6 +149,16 @@ def add_saturation_annotation(
             "shrinkA": 0.0,
             "shrinkB": 0.0,
         },
+    )
+    annotate_axis.add_text(
+        ax=ax,
+        x_pos=0.535,
+        y_pos=0.32,
+        label="wave returns to\nalready-polluted\nphases",
+        x_alignment=box_positions.Positions.Side.Left,
+        y_alignment=box_positions.Positions.Side.Top,
+        text_size=16,
+        text_color="blue",
     )
 
 
@@ -236,11 +236,11 @@ def main() -> None:
     ax.plot(
         times_low,
         ratio_low,
-        color="black",
         marker="o",
+        color="black",
         markersize=8,
         linewidth=1.0,
-        zorder=2,
+        zorder=5,
     )
     ax.plot(
         times_high,
@@ -249,15 +249,21 @@ def main() -> None:
         marker="s",
         markersize=8,
         linewidth=1.0,
-        zorder=2,
+        zorder=5,
     )
     annotate_axis.add_custom_legend(
         ax=ax,
-        artists=["o", "s"],
-        labels=[f"${NCELLS_LOW}^3$", f"${NCELLS_HIGH}^3$"],
+        artists=[
+            "o",
+            "s",
+        ],
+        labels=[
+            f"${NCELLS_LOW}^3$",
+            f"${NCELLS_HIGH}^3$",
+        ],
         colors=["black", "black"],
-        anchor_point=(1.0, 1.0),
-        anchor_at_corner=box_positions.Positions.Corner.TopRight,
+        anchor_point=(0.15, 0.0),
+        anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
         text_size=20,
         spacing=0.25,
     )
@@ -265,18 +271,18 @@ def main() -> None:
         ax=ax,
         tail_ave=tail_ave_low,
         tail_std=tail_std_low,
-        y_pos=0.65,
+        y_pos=0.925,
         y_alignment=box_positions.Positions.Side.Top,
     )
     add_tail_annotation(
         ax=ax,
         tail_ave=tail_ave_high,
         tail_std=tail_std_high,
-        y_pos=0.49,
+        y_pos=0.615,
         y_alignment=box_positions.Positions.Side.Top,
     )
     add_saturation_annotation(ax=ax)
-    ax.set_ylim((-11, -2))
+    ax.set_ylim((-13, -5))
     ax.set_xlabel(r"$t / T$")
     ax.set_ylabel(
         r"$\log_{10}\!\left("

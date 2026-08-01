@@ -41,9 +41,9 @@ class DataPanel:
 
 ## inputs and outputs
 ROOT_DIR = Path(__file__).parents[3]
-DATASET_DIR = ROOT_DIR / "datasets/problems/current-sheet/ncells=1024/q26-b25-ppm"
+DATASET_DIR = ROOT_DIR / "datasets/problems/current-sheet/ncells=1024/q26-b25-ppm_ep"
 DATASET_GLOB = "current_density-comp=x_2-slice=x_2-index=*.npz"
-TARGET_TIMES = (0.0, 0.5, 3.0, 10.0)
+TARGET_TIMES = (0.0, 0.5, 4.5, 10.0)
 FIGURE_PATH = ROOT_DIR / "figures/problems/current-sheet/current-density-evolution.png"
 
 ## plotting details
@@ -171,10 +171,10 @@ def main() -> None:
         annotate_axis.add_text(
             ax=ax,
             x_pos=0.5,
-            y_pos=0.965,
+            y_pos=0.5,
             label=rf"$t = {data_panel.data_slice.step_time:.1f}$",
             x_alignment=box_positions.Positions.Center.Center,
-            y_alignment=box_positions.Positions.Side.Top,
+            y_alignment=box_positions.Positions.Center.Center,
             text_size=20,
             text_color="black",
             box_alpha=0.0,

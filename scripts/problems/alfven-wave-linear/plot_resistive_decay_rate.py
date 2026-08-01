@@ -101,20 +101,20 @@ def plot_decay_rate_panel(
     eta_labels: tuple[str, ...],
 ) -> None:
     input_etas = numpy.asarray([float(label) for label in eta_labels])
-    measured_gammas = numpy.asarray([measure_decay_rate(eta_label=label) for label in eta_labels])
-    analytic_gammas = input_etas * (2.0 * numpy.pi)**2 / 2.0
+    measured_lambdas = numpy.asarray([measure_decay_rate(eta_label=label) for label in eta_labels])
+    analytic_lambdas = input_etas * (2.0 * numpy.pi)**2 / 2.0
     ax.plot(
         numpy.log10(input_etas),
-        numpy.log10(analytic_gammas),
+        numpy.log10(analytic_lambdas),
         color="black",
         linestyle=":",
         linewidth=1.5,
         zorder=1,
-        label=r"$\gamma = \eta k^2 / 2$",
+        label=r"$\lambda = \eta k^2 / 2$",
     )
     ax.plot(
         numpy.log10(input_etas),
-        numpy.log10(measured_gammas),
+        numpy.log10(measured_lambdas),
         color="black",
         marker="o",
         markersize=9,
@@ -146,7 +146,7 @@ def main() -> None:
         eta_labels=eta_labels,
     )
     axs[0, 0].set_xlabel(r"$\log_{10}\ (\mathrm{input}\ \eta)$")
-    axs[0, 0].set_ylabel(r"$\log_{10}\ (\mathrm{measured}\ \gamma)$")
+    axs[0, 0].set_ylabel(r"$\log_{10}\ (\mathrm{measured}\ \lambda)$")
     axs[0, 0].legend(
         loc="upper left",
         frameon=False,

@@ -33,8 +33,8 @@ class PressureSnapshot:
 ##
 
 ## inputs and outputs
-COMBO_OFF = "q26-b25-ppm-no-carbuncle-fix"
-COMBO_ON = "q26-b25-ppm"
+COMBO_OFF = "q26-b25-ppm_ep-no-carbuncle-fix"
+COMBO_ON = "q26-b25-ppm_ep"
 ROOT_DIR = Path(__file__).parents[3]
 DATASET_ROOT = ROOT_DIR / "datasets/problems/quirk/ncells=128"
 FIGURE_PATH = ROOT_DIR / "figures/problems/quirk/ncells=128/odd_even_split.png"
@@ -127,7 +127,7 @@ def main() -> None:
     )
     ax.set_ylabel(r"$p$", labelpad=10.0)
     ax.set_xlabel(r"$x_0$")
-    ax.set_ylim((24, 30))
+    ax.set_ylim((24.4, 30.2))
     annotate_axis.add_text(
         ax=ax,
         x_pos=0.085,

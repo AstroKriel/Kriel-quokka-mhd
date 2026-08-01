@@ -12,6 +12,7 @@ from pathlib import Path
 ## third-party
 import numpy
 import pandas
+from matplotlib.ticker import FixedLocator, NullFormatter
 from numpy.typing import NDArray
 
 ## personal
@@ -168,7 +169,6 @@ def plot_scaling_panel(
     y_ticks = [10, 20, 30, 40, 50, 60]
     ax.set_yticks(y_ticks)
     ax.set_yticklabels([str(tick) for tick in y_ticks])
-    ax.minorticks_off()
 
 
 def annotate_strong_scaling_axis(
@@ -244,8 +244,9 @@ def add_emf_compute_scheme_legend(
         colors=[scheme.value.color for scheme in EMFComputeScheme],
         marker_size=0,
         text_color="markerfacecolor",
+        text_size=18,
         marker_first=False,  # put the (invisible) handle after the text, so text hugs the left edge
-        anchor_point=(0.0, 0.0),
+        anchor_point=(0.0125, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
     )
 
@@ -256,12 +257,24 @@ def add_emf_averaging_scheme_legend(
 ) -> None:
     annotate_axis.add_custom_legend(
         ax=ax,
+        artists=[scheme.value.linestyle for scheme in EMFAveragingScheme],
+        labels=["" for _ in EMFAveragingScheme],
+        colors=["black" for _ in EMFAveragingScheme],
+        marker_size=7,
+        text_color="black",
+        text_size=18,
+        anchor_point=(0.0125, 0.0),
+        anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
+    )
+    annotate_axis.add_custom_legend(
+        ax=ax,
         artists=[scheme.value.marker for scheme in EMFAveragingScheme],
         labels=[scheme.value.label for scheme in EMFAveragingScheme],
         colors=["black" for _ in EMFAveragingScheme],
         marker_size=7,
         text_color="black",
-        anchor_point=(0.0, 0.0),
+        text_size=18,
+        anchor_point=(0.0125, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
     )
 
@@ -281,6 +294,7 @@ def main() -> None:
         num_rows=1,
         num_cols=2,
         x_spacing=0.05,
+        fig_scale=1.05,
         share_y=True,
     )
     strong_scaling_ax = axs[0, 0]
@@ -305,6 +319,16 @@ def main() -> None:
     )
     annotate_weak_scaling_axis(ax=weak_scaling_ax)
     add_emf_averaging_scheme_legend(ax=weak_scaling_ax)
+    strong_scaling_ax.set_ylim([8, 65])
+    annotate_axis.add_text(
+        ax = weak_scaling_ax,
+        x_pos = 0.95,
+        y_pos = 0.95,
+        label = "perfect scaling",
+        x_alignment = box_positions.Positions.Side.Right,
+        y_alignment = box_positions.Positions.Side.Top,
+        text_size = 20,
+    )
     manage_plots.save_figure(
         fig=fig,
         fig_path=figures_dir / "gpu_scaling.png",

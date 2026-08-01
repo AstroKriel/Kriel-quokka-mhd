@@ -417,28 +417,6 @@ def current_sheet_configs() -> list[SimParamsConfig]:
     return configs
 
 
-def current_sheet_resistive_configs() -> list[SimParamsConfig]:
-    dataset_dir = DATASETS_DIR / "current-sheet/correctness/resistive"
-    etas = ("0.001", "0.01")
-    return [
-        SimParamsConfig(
-            target_dir=dataset_dir / f"eta={eta}/ncells=512/q26-b25-ppm_ep",
-            problem_key=sim_types.ProblemKey.CURRENT_SHEET,
-            kwargs={
-                "compute_scheme_key": "q26",
-                "averaging_scheme_key": "b25",
-                "reconstruction_order_key": "ppm_ep",
-                "num_cells": (512, 512, 8),
-                "max_grid_size": (128, 128, 8),
-                "resistivity": float(eta),
-                "checkpoint_index_interval": -1,
-                "checkpoint_time_interval": None,
-                "checkpoint_prefix": None,
-            },
-        ) for eta in etas
-    ]
-
-
 def field_loop_configs() -> list[SimParamsConfig]:
     dataset_dir = DATASETS_DIR / "field-loop/ncells=96"
     return [
@@ -539,7 +517,6 @@ ALL_CONFIGS: list[SimParamsConfig] = [
     *brio_wu_shock_tube_configs(),
     *ryu_jones_2a_shock_tube_configs(),
     *current_sheet_configs(),
-    *current_sheet_resistive_configs(),
     *field_loop_configs(),
     *mhd_quirk_configs(),
     *orszag_tang_configs(),

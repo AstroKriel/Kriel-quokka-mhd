@@ -6,18 +6,17 @@ quokka.bc = ["periodic", "periodic", "periodic"]
 ## resolution
 amr.n_cell = [1024, 1024, 8]
 amr.max_level = 0
-amr.max_grid_size_x = 128
-amr.max_grid_size_y = 128
-amr.max_grid_size_z = 8
 amr.blocking_factor_x = 32
 amr.blocking_factor_y = 32
 amr.blocking_factor_z = 8
+amr.max_grid_size_x = 128
+amr.max_grid_size_y = 128
+amr.max_grid_size_z = 8
 
 ## verbosity
 amr.v = 1
 
 ## output
-checkpoint_interval = -1
 plottime_interval = 0.05
 plotfile_prefix = "snapshots/plt"
 

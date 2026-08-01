@@ -6,26 +6,26 @@ quokka.bc = ["periodic", "periodic", "periodic"]
 ## resolution
 amr.n_cell = [1024, 1024, 8]
 amr.max_level = 0
-amr.max_grid_size_x = 128
-amr.max_grid_size_y = 128
-amr.max_grid_size_z = 128
 amr.blocking_factor_x = 16
 amr.blocking_factor_y = 16
 amr.blocking_factor_z = 8
+amr.max_grid_size_x = 128
+amr.max_grid_size_y = 128
+amr.max_grid_size_z = 128
 
 ## verbosity
 amr.v = 1
-do_reflux = 0
-do_subcycle = 0
 
 ## output
-checkpoint_prefix = "chk"
 checkpointtime_interval = 1.0
-plotfile_prefix = "snapshots/plt"
+checkpoint_prefix = "chk"
 plottime_interval = 0.5
+plotfile_prefix = "snapshots/plt"
 
 ## time integration
 cfl = 0.2
+do_reflux = 0
+do_subcycle = 0
 stop_time = 10.0
 max_timesteps = 1000000
 

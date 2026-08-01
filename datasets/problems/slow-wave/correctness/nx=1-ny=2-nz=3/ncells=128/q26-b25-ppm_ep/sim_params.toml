@@ -6,12 +6,12 @@ quokka.bc = ["periodic", "periodic", "periodic"]
 ## resolution
 amr.n_cell = [128, 128, 128]
 amr.max_level = 0
-amr.max_grid_size_x = 128
-amr.max_grid_size_y = 128
-amr.max_grid_size_z = 128
 amr.blocking_factor_x = 128
 amr.blocking_factor_y = 128
 amr.blocking_factor_z = 128
+amr.max_grid_size_x = 128
+amr.max_grid_size_y = 128
+amr.max_grid_size_z = 128
 
 ## verbosity
 amr.v = 1
@@ -36,9 +36,10 @@ mhd.emf_averaging_scheme = "Balsara2025"
 mhd.emf_reconstruction_order = 5
 
 ## problem setup
-setup.run_sim = true
-setup.run_convergence = false
-setup.angle_between_k_b0 = 45
+setup.run_sim = 1
+setup.run_convergence = 0
+setup.angle_between_k_b0 = 45.0
 setup.num_modes_x = 1
 setup.num_modes_y = 2
 setup.num_modes_z = 3
+setup.error_tol = 0.002

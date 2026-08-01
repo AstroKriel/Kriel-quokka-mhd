@@ -20,9 +20,9 @@ amr.v = 0
 plotfile_interval = -1
 
 ## time integration
+cfl = 0.3
 do_reflux = 0
 do_subcycle = 0
-cfl = 0.3
 
 ## hydro
 hydro.rk_integrator_order = 2

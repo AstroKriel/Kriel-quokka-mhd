@@ -6,12 +6,12 @@ quokka.bc = ["periodic", "periodic", "periodic"]
 ## resolution
 amr.n_cell = [128, 128, 8]
 amr.max_level = 0
-amr.max_grid_size_x = 128
-amr.max_grid_size_y = 128
-amr.max_grid_size_z = 128
 amr.blocking_factor_x = 128
 amr.blocking_factor_y = 128
 amr.blocking_factor_z = 8
+amr.max_grid_size_x = 128
+amr.max_grid_size_y = 128
+amr.max_grid_size_z = 128
 
 ## verbosity
 amr.v = 1

@@ -20,10 +20,10 @@ amr.v = 1
 plotfile_interval = -1
 
 ## time integration
+cfl = 0.3
 do_reflux = 0
 do_subcycle = 0
 do_tracers = 1
-cfl = 0.3
 
 ## hydro
 hydro.rk_integrator_order = 2
@@ -39,6 +39,6 @@ mhd.emf_reconstruction_order = 2
 setup.num_modes_x = 1
 setup.num_modes_y = 0
 setup.num_modes_z = 0
-setup.angle_between_k_b0 = 90
+setup.angle_between_k_b0 = 90.0
 setup.machine_precision_target = 0
 setup.nx_max = 2048

@@ -34,6 +34,6 @@ mhd.emf_compute_scheme = "Balsara2025"
 mhd.emf_averaging_scheme = "Balsara2025"
 mhd.emf_reconstruction_order = 2
 
-## wave setup
+## problem setup
 setup.machine_precision_target = 0
 setup.nx_max = 2048

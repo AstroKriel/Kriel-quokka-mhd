@@ -17,14 +17,13 @@ amr.max_grid_size_z = 128
 amr.v = 1
 
 ## output
-do_reflux = 0
-do_subcycle = 0
-checkpoint_interval = -1
 plotfile_interval = 200
 plotfile_prefix = "snapshots/plt"
 
 ## time integration
 cfl = 0.4
+do_reflux = 0
+do_subcycle = 0
 stop_time = 0.1
 max_timesteps = 4000
 

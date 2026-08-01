@@ -1,0 +1,55 @@
+## geometry
+geometry.prob_lo = [-1.5, -1.0, -0.5]
+geometry.prob_hi = [1.5, 1.0, 0.5]
+quokka.bc = ["periodic", "periodic", "periodic"]
+
+## resolution
+amr.n_cell = [96, 64, 32]
+amr.max_level = 1
+amr.blocking_factor_x = 16
+amr.blocking_factor_y = 16
+amr.blocking_factor_z = 16
+amr.max_grid_size_x = 32
+amr.max_grid_size_y = 32
+amr.max_grid_size_z = 32
+
+## verbosity
+amr.v = 1
+
+## output
+checkpoint_interval = 500
+checkpoint_prefix = "checkpoints/chk"
+plotfile_interval = 100
+plotfile_prefix = "snapshots/plt"
+derived_vars = ["magnetic_divergence"]
+
+## time integration
+cfl = 0.2
+do_reflux = 1
+do_subcycle = 0
+stop_time = 3.6055512755
+max_timesteps = 5000
+
+## hydro
+hydro.rk_integrator_order = 2
+hydro.reconstruction_order = 5
+hydro.use_dual_energy = 0
+
+## mhd
+mhd.emf_compute_scheme = "Quokka2026"
+mhd.emf_averaging_scheme = "Balsara2025"
+mhd.emf_reconstruction_order = 5
+
+## field loop setup
+setup.loop_radius = 0.5
+setup.loop_center_x = 0.0
+setup.loop_center_y = 0.0
+setup.advection_vz = 0.2773500981126146
+setup.advection_angle_deg = 56.309932474020215
+setup.refine_based_on = "Region"
+setup.region_lo_x = -1.25
+setup.region_hi_x = -0.75
+setup.region_lo_y = -0.75
+setup.region_hi_y = 0.75
+setup.region_lo_z = -0.25
+setup.region_hi_z = 0.25

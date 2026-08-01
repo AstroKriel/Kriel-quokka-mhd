@@ -6,12 +6,12 @@ quokka.bc = ["periodic", "periodic", "periodic"]
 ## resolution
 amr.n_cell = [8192, 8192, 8]
 amr.max_level = 0
-amr.max_grid_size_x = 128
-amr.max_grid_size_y = 128
-amr.max_grid_size_z = 8
 amr.blocking_factor_x = 32
 amr.blocking_factor_y = 32
 amr.blocking_factor_z = 8
+amr.max_grid_size_x = 128
+amr.max_grid_size_y = 128
+amr.max_grid_size_z = 8
 
 ## verbosity
 amr.v = 1
@@ -24,15 +24,14 @@ plotfile_prefix = "snapshots/plt"
 
 ## time integration
 cfl = 0.2
-stop_time = 1.0
-max_timesteps = 200000
 do_reflux = 0
 do_subcycle = 0
+stop_time = 1.0
+max_timesteps = 200000
 
 ## hydro
 hydro.rk_integrator_order = 2
 hydro.reconstruction_order = 3
-hydro.use_dual_energy = 0
 
 ## mhd
 mhd.emf_compute_scheme = "Quokka2026"

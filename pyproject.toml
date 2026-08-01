@@ -45,7 +45,7 @@ testpaths = ["utests"]  # vtests are run manually
 ##
 
 [tool.basedpyright]
-include = ["scripts", "utests", "vtests"]
+include = ["scripts", "tools", "utests", "vtests"]
 exclude = ["scripts/datasets.gitignored"]
 reportMissingTypeStubs = false  # suppress missing stub warnings for third-party packages (e.g. scipy)
 reportExplicitAny = "none"

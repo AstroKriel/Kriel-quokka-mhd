@@ -43,7 +43,7 @@ _WAVE_SCHEME_COMBINATIONS: list[tuple[str, str, str]] = [
 ##
 
 
-def _alfven_wave_circular_convergence_configs() -> list[SimParamsConfig]:
+def alfven_wave_circular_convergence_configs() -> list[SimParamsConfig]:
     dataset_dir = DATASETS_DIR / "alfven-wave-circular/convergence"
     return [
         SimParamsConfig(
@@ -59,7 +59,7 @@ def _alfven_wave_circular_convergence_configs() -> list[SimParamsConfig]:
     ]
 
 
-def _alfven_wave_linear_convergence_configs() -> list[SimParamsConfig]:
+def alfven_wave_linear_convergence_configs() -> list[SimParamsConfig]:
     dataset_dir = DATASETS_DIR / "alfven-wave-linear/convergence/ideal/angle=0-nx=1-ny=0-nz=0"
     return [
         SimParamsConfig(
@@ -79,7 +79,7 @@ def _alfven_wave_linear_convergence_configs() -> list[SimParamsConfig]:
     ]
 
 
-def _alfven_wave_linear_correctness_configs() -> list[SimParamsConfig]:
+def alfven_wave_linear_correctness_configs() -> list[SimParamsConfig]:
     dataset_dir = DATASETS_DIR / "alfven-wave-linear/correctness/resistive"
     etas = ("0.00001", "0.0000316", "0.0001", "0.000316", "0.001", "0.00316", "0.01", "0.0316")
     return [
@@ -102,7 +102,7 @@ def _alfven_wave_linear_correctness_configs() -> list[SimParamsConfig]:
     ]
 
 
-def _fast_wave_convergence_configs() -> list[SimParamsConfig]:
+def fast_wave_convergence_configs() -> list[SimParamsConfig]:
     dataset_dir = DATASETS_DIR / "fast-wave/convergence/nx=1-ny=0-nz=0"
     return [
         SimParamsConfig(
@@ -122,7 +122,7 @@ def _fast_wave_convergence_configs() -> list[SimParamsConfig]:
     ]
 
 
-def _slow_wave_convergence_configs() -> list[SimParamsConfig]:
+def slow_wave_convergence_configs() -> list[SimParamsConfig]:
     dataset_dir = DATASETS_DIR / "slow-wave/convergence/nx=1-ny=0-nz=0"
     return [
         SimParamsConfig(
@@ -142,10 +142,8 @@ def _slow_wave_convergence_configs() -> list[SimParamsConfig]:
     ]
 
 
-def _slow_wave_correctness_configs() -> list[SimParamsConfig]:
+def slow_wave_correctness_configs() -> list[SimParamsConfig]:
     dataset_dir = DATASETS_DIR / "slow-wave/correctness/nx=1-ny=2-nz=3"
-    ## `ncells=512`'s resolution fields follow the same pattern as the verified `ncells=128` leaf
-    ## (blocking_factor/max_grid_size == num_cells); `max_time_steps` is linearly scaled, not verified
     resolutions = {
         128: {
             "num_cells": (128, 128, 128),
@@ -183,19 +181,23 @@ def _slow_wave_correctness_configs() -> list[SimParamsConfig]:
     return configs
 
 
-def _balsara_vortex_configs() -> list[SimParamsConfig]:
+def balsara_vortex_configs() -> list[SimParamsConfig]:
+
+    def _compute_domain(
+        num_cells_xy: int,
+    ) -> dict[str, tuple[float, float, float]]:
+        """The z-domain spans the width of one cell in the (x,y) plane, and is split across 8 cells."""
+        z_extent = 5.0 / num_cells_xy
+        return {"domain_lo": (-5.0, -5.0, -z_extent), "domain_hi": (5.0, 5.0, z_extent)}
+
     resolutions = {
         128: {
-            "domain_lo": (-5.0, -5.0, -0.0390625),
-            "domain_hi": (5.0, 5.0, 0.0390625),
             "num_cells": (128, 128, 8),
             "blocking_factor": (128, 128, 8),
             "max_grid_size": (128, 128, 128),
             "max_time_steps": 2_000_000,
         },
         64: {
-            "domain_lo": (-5.0, -5.0, -0.078125),
-            "domain_hi": (5.0, 5.0, 0.078125),
             "num_cells": (64, 64, 8),
             "blocking_factor": (64, 64, 8),
             "max_grid_size": (64, 64, 64),
@@ -214,6 +216,7 @@ def _balsara_vortex_configs() -> list[SimParamsConfig]:
                         "compute_scheme_key": "q26",
                         "averaging_scheme_key": "b25",
                         "reconstruction_order_key": reconstruction_order_key,
+                        **_compute_domain(ncells),
                         **base_kwargs,
                     },
                 ),
@@ -221,7 +224,7 @@ def _balsara_vortex_configs() -> list[SimParamsConfig]:
     return configs
 
 
-def _blast_wave_configs() -> list[SimParamsConfig]:
+def blast_wave_configs() -> list[SimParamsConfig]:
     dataset_dir_1024 = DATASETS_DIR / "blast-wave/ncells=1024"
     dataset_dir_128 = DATASETS_DIR / "blast-wave/ncells=128"
     common_1024 = {
@@ -284,7 +287,7 @@ def _blast_wave_configs() -> list[SimParamsConfig]:
     ]
 
 
-def _brio_wu_shock_tube_configs() -> list[SimParamsConfig]:
+def brio_wu_shock_tube_configs() -> list[SimParamsConfig]:
     dataset_dir_256 = DATASETS_DIR / "brio-wu-shock-tube/ncells=256"
     dataset_dir_8192 = DATASETS_DIR / "brio-wu-shock-tube/ncells=8192"
     common_256 = {
@@ -350,7 +353,7 @@ def _brio_wu_shock_tube_configs() -> list[SimParamsConfig]:
     return configs
 
 
-def _ryu_jones_2a_shock_tube_configs() -> list[SimParamsConfig]:
+def ryu_jones_2a_shock_tube_configs() -> list[SimParamsConfig]:
     dataset_dir = DATASETS_DIR / "ryu-jones-2a-shock-tube/ncells=512"
     hlld_combinations = (
         ("b25", "b25", "ppm_ep"),
@@ -387,7 +390,7 @@ def _ryu_jones_2a_shock_tube_configs() -> list[SimParamsConfig]:
     return configs
 
 
-def _current_sheet_configs() -> list[SimParamsConfig]:
+def current_sheet_configs() -> list[SimParamsConfig]:
     dataset_dir = DATASETS_DIR / "current-sheet/ncells=1024"
     configs = [
         SimParamsConfig(
@@ -414,7 +417,7 @@ def _current_sheet_configs() -> list[SimParamsConfig]:
     return configs
 
 
-def _field_loop_configs() -> list[SimParamsConfig]:
+def field_loop_configs() -> list[SimParamsConfig]:
     dataset_dir = DATASETS_DIR / "field-loop/ncells=96"
     return [
         SimParamsConfig(
@@ -429,7 +432,7 @@ def _field_loop_configs() -> list[SimParamsConfig]:
     ]
 
 
-def _mhd_quirk_configs() -> list[SimParamsConfig]:
+def mhd_quirk_configs() -> list[SimParamsConfig]:
     dataset_dir = DATASETS_DIR / "quirk/ncells=128"
     kwargs: dict[str, object] = {
         "compute_scheme_key": "q26",
@@ -450,7 +453,7 @@ def _mhd_quirk_configs() -> list[SimParamsConfig]:
     ]
 
 
-def _orszag_tang_configs() -> list[SimParamsConfig]:
+def orszag_tang_configs() -> list[SimParamsConfig]:
     dataset_dir_1024 = DATASETS_DIR / "orszag-tang/ncells=1024"
     dataset_dir_4096 = DATASETS_DIR / "orszag-tang/ncells=4096"
     dataset_dir_8192 = DATASETS_DIR / "orszag-tang/ncells=8192"
@@ -503,20 +506,20 @@ def _orszag_tang_configs() -> list[SimParamsConfig]:
 
 
 ALL_CONFIGS: list[SimParamsConfig] = [
-    *_alfven_wave_circular_convergence_configs(),
-    *_alfven_wave_linear_convergence_configs(),
-    *_alfven_wave_linear_correctness_configs(),
-    *_fast_wave_convergence_configs(),
-    *_slow_wave_convergence_configs(),
-    *_slow_wave_correctness_configs(),
-    *_balsara_vortex_configs(),
-    *_blast_wave_configs(),
-    *_brio_wu_shock_tube_configs(),
-    *_ryu_jones_2a_shock_tube_configs(),
-    *_current_sheet_configs(),
-    *_field_loop_configs(),
-    *_mhd_quirk_configs(),
-    *_orszag_tang_configs(),
+    *alfven_wave_circular_convergence_configs(),
+    *alfven_wave_linear_convergence_configs(),
+    *alfven_wave_linear_correctness_configs(),
+    *fast_wave_convergence_configs(),
+    *slow_wave_convergence_configs(),
+    *slow_wave_correctness_configs(),
+    *balsara_vortex_configs(),
+    *blast_wave_configs(),
+    *brio_wu_shock_tube_configs(),
+    *ryu_jones_2a_shock_tube_configs(),
+    *current_sheet_configs(),
+    *field_loop_configs(),
+    *mhd_quirk_configs(),
+    *orszag_tang_configs(),
 ]
 
 ##

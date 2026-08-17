@@ -319,12 +319,21 @@ def main() -> None:
     )
     annotate_weak_scaling_axis(ax=weak_scaling_ax)
     add_emf_averaging_scheme_legend(ax=weak_scaling_ax)
-    strong_scaling_ax.set_ylim([8, 65])
+    strong_scaling_ax.set_ylim([8, 70])
+    annotate_axis.add_text(
+        ax = strong_scaling_ax,
+        x_pos = 0.95,
+        y_pos = 0.95,
+        label = "strong scaling",
+        x_alignment = box_positions.Positions.Side.Right,
+        y_alignment = box_positions.Positions.Side.Top,
+        text_size = 20,
+    )
     annotate_axis.add_text(
         ax = weak_scaling_ax,
         x_pos = 0.95,
         y_pos = 0.95,
-        label = "perfect scaling",
+        label = "weak scaling",
         x_alignment = box_positions.Positions.Side.Right,
         y_alignment = box_positions.Positions.Side.Top,
         text_size = 20,

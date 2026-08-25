@@ -17,7 +17,7 @@ from numpy.typing import NDArray
 ## personal
 from jormi.ww_arrays import compute_array_stats
 from jormi.ww_io import manage_io, manage_log
-from jormi.ww_plots import add_color, annotate_axis, manage_plots, plot_data, style_plots
+from jormi.ww_plots import add_color, annotate_panel, manage_figure, plot_data, style_figure
 from jormi.ww_types import box_positions
 
 ##
@@ -44,15 +44,13 @@ FIGURE_PATH = ROOT_DIR / "figures/problems/field-loop/div-b.png"
 ## plotting details
 NUM_PDF_BINS = 50
 NUM_PDF_TIMES = 10
-TICK_LABEL_SIZE = 20
-AXIS_LABEL_SIZE = 25
-SLICE_BOUNDS: plot_data.AxisBounds = ((-1.5, 1.5), (-1.0, 1.0))
+SLICE_BOUNDS: plot_data.AxisRanges = ((-1.5, 1.5), (-1.0, 1.0))
 ADVECTION_ANGLE = numpy.arctan2(3.0, 2.0)  # setup.advection_angle_deg = atan2(3, 2) in inputs.toml
 ADVECTION_PERIOD = (SLICE_BOUNDS[0][1] - SLICE_BOUNDS[0][0]) / numpy.sin(ADVECTION_ANGLE)
 TARGET_TIME = 2.4155  # t/T ~ 0.670: loop centred on the region's x-midpoint, straddling both edges
 
 ## annotations
-AMR_REGION_BOUNDS: plot_data.AxisBounds = ((-1.25, -0.75), (-0.75, 0.75))
+AMR_REGION_BOUNDS: plot_data.AxisRanges = ((-1.25, -0.75), (-0.75, 0.75))
 ## the loop is centred on the origin at t=0, with radius set by setup.loop_radius = 0.5 (inputs.toml)
 LOOP_INITIAL_CENTER = (0.0, 0.0)
 LOOP_INITIAL_RADIUS = 0.5
@@ -131,9 +129,12 @@ def compute_loop_center_at_time(
 
 def add_advection_arrow(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
     loop_center: tuple[float, float],
 ) -> None:
+    figure_params = style_figure.get_figure_params()
+    data_artist_params = figure_params.data_artist_params
+    text_size_params = figure_params.text_size_params
     arrow_start = (
         loop_center[0] + LOOP_INITIAL_RADIUS * ADVECTION_DIRECTION[0],
         loop_center[1] + LOOP_INITIAL_RADIUS * ADVECTION_DIRECTION[1],
@@ -143,20 +144,21 @@ def add_advection_arrow(
         arrow_start[0] + arrow_length * ADVECTION_DIRECTION[0],
         arrow_start[1] + arrow_length * ADVECTION_DIRECTION[1],
     )
-    ax.annotate(
+    panel.annotate(
         "",
         xy=arrow_end,
         xytext=arrow_start,
         arrowprops={
             "arrowstyle": "-|>",
             "color": "red",
-            "linewidth": 1.5,
-            "mutation_scale": 15.0,
+            "linewidth": data_artist_params.line_width,
+            ## the head is sized in points, so tie it to the text it sits beside
+            "mutation_scale": text_size_params.annotation_size,
             "shrinkA": 0.0,
             "shrinkB": 0.0,
         },
     )
-    ax.text(
+    panel.text(
         arrow_start[0] + 0.025,
         arrow_start[1] + 0.075,
         "advection",
@@ -165,7 +167,7 @@ def add_advection_arrow(
         color="red",
         rotation=180 / numpy.pi * numpy.atan(2/3),
         rotation_mode="anchor",
-        fontsize=TICK_LABEL_SIZE,
+        fontsize=text_size_params.annotation_size,
     )
 
 
@@ -176,10 +178,11 @@ def add_advection_arrow(
 
 def plot_pdf_panel(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
     divb_series: tuple[Slice, ...],
 ) -> None:
     """Plot the div-b PDF at `NUM_PDF_TIMES` times, sampled evenly across the run."""
+    figure_params = style_figure.get_figure_params()
     finite_slices = [
         divb_slice for divb_slice in divb_series
         if numpy.any(numpy.isfinite(divb_slice.sarray_2d) & (divb_slice.sarray_2d != 0.0))
@@ -212,48 +215,45 @@ def plot_pdf_panel(
         )
         finite_pdf = numpy.isfinite(log10_pdf)
         curve_color = time_palette.mpl_cmap(time_palette.mpl_norm(sample_slice.step_time / ADVECTION_PERIOD))
-        ax.step(
+        panel.step(
             estimated_pdf.bin_centers[finite_pdf],
             log10_pdf[finite_pdf],
             where="mid",
             color=curve_color,
-            linewidth=2.0,
         )
-    ax.set_xlabel(
-        r"$x \equiv \log_{10}|\nabla \cdot \vec{b}|$",
-        fontsize=AXIS_LABEL_SIZE,
-    )
-    ax.set_ylabel(
-        r"$\log_{10}\!\left(\mathrm{PDF}(x)\right)$",
-        fontsize=AXIS_LABEL_SIZE,
-    )
-    ax.set_xlim(-54, -13)
-    ax.set_ylim(-2.3, 0.0)
-    ax.tick_params(labelsize=TICK_LABEL_SIZE)
-    ax.yaxis.set_label_position("right")
-    ax.yaxis.tick_right()
+    panel.set_xlabel(r"$x \equiv \log_{10}|\nabla \cdot \vec{b}|$")
+    panel.set_ylabel(r"$\log_{10}\!\left(\mathrm{PDF}(x)\right)$")
+    panel.set_xlim(-54, -13)
+    panel.set_ylim(-2.3, 0.0)
+    panel.yaxis.set_label_position("right")
+    panel.yaxis.tick_right()
     axis_width = SLICE_BOUNDS[0][1] - SLICE_BOUNDS[0][0]
     axis_height = SLICE_BOUNDS[1][1] - SLICE_BOUNDS[1][0]
-    ax.set_box_aspect(axis_height / axis_width)
-    time_cbar = add_color.add_colorbar(
-        ax=ax,
+    panel.set_box_aspect(axis_height / axis_width)
+    panel_gaps = figure_params.figure_layout.panel_gaps
+    panel_frame_params = figure_params.panel_frame_params
+    add_color.add_colorbar(
+        panel=panel,
         palette=time_palette,
         label=r"$t / T$",
-        cbar_side="top",
-        cbar_thickness=0.1,
-        cbar_pad=0.01,
-        label_size=AXIS_LABEL_SIZE,
-        label_pad=17.5,
+        colorbar_side="top",
+        ## nothing sits between the panel and the bar, so it needs less room than two panels do
+        colorbar_gap=panel_gaps.row / 2.0,
+        ## the label clears a row of tick labels here, not just the bar, so it sits further out
+        label_gap=panel_frame_params.axis_label_gap * 2.0,
     )
-    time_cbar.ax.tick_params(labelsize=TICK_LABEL_SIZE)
 
 
 def plot_slice_panel(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
     divb_slice: Slice,
 ) -> None:
     """Plot the div-b slice nearest `TARGET_TIME`, with a colorbar and a time label."""
+    figure_params = style_figure.get_figure_params()
+    data_artist_params = figure_params.data_artist_params
+    panel_frame_params = figure_params.panel_frame_params
+    panel_gaps = figure_params.figure_layout.panel_gaps
     palette_config = add_color.DivergingConfig(
         mid_value=0.0,
         palette_name="cmr.prinsenvlag",
@@ -262,42 +262,41 @@ def plot_slice_panel(
     scaled_field = divb_slice.sarray_2d / 1.0e-16
     cbar_bounds = compute_symmetric_bounds(field=scaled_field)
     plot_data.plot_2d_array(
-        ax=ax,
+        panel=panel,
         array_2d=scaled_field,
         data_format="xy",
-        axis_bounds=SLICE_BOUNDS,
-        cbar_bounds=cbar_bounds,
+        axis_ranges=SLICE_BOUNDS,
+        colorbar_range=cbar_bounds,
         palette_config=palette_config,
-        add_cbar=False,
+        add_colorbar=False,
     )
     palette = add_color.make_palette(
         config=palette_config,
         value_range=cbar_bounds,
     )
-    cbar = add_color.add_colorbar(
-        ax=ax,
+    add_color.add_colorbar(
+        panel=panel,
         palette=palette,
         label=r"$10^{16} \ (\nabla \cdot \vec{b})$",
-        cbar_side="top",
-        cbar_thickness=0.1,
-        cbar_pad=0.01,
-        label_size=AXIS_LABEL_SIZE,
-        label_pad=17.5,
+        colorbar_side="top",
+        ## nothing sits between the panel and the bar, so it needs less room than two panels do
+        colorbar_gap=panel_gaps.row / 2.0,
+        ## the label clears a row of tick labels here, not just the bar, so it sits further out
+        label_gap=panel_frame_params.axis_label_gap * 2.0,
     )
-    cbar.ax.tick_params(labelsize=TICK_LABEL_SIZE)
     loop_center = compute_loop_center_at_time(step_time=divb_slice.step_time)
-    ax.add_patch(
+    panel.add_patch(
         mpl_patches.Circle(
             loop_center,
             LOOP_INITIAL_RADIUS,
             fill=False,
             edgecolor="red",
             linestyle="--",
-            linewidth=1.25,
+            linewidth=data_artist_params.line_width,
         ),
     )
     (amr_x_lo, amr_x_hi), (amr_y_lo, amr_y_hi) = AMR_REGION_BOUNDS
-    ax.add_patch(
+    panel.add_patch(
         mpl_patches.Rectangle(
             (amr_x_lo, amr_y_lo),
             amr_x_hi - amr_x_lo,
@@ -305,38 +304,29 @@ def plot_slice_panel(
             fill=False,
             edgecolor="blue",
             linestyle="--",
-            linewidth=1.25,
+            linewidth=data_artist_params.line_width,
         ),
     )
-    add_advection_arrow(ax=ax, loop_center=loop_center)
-    annotate_axis.add_text(
-        ax=ax,
+    add_advection_arrow(panel=panel, loop_center=loop_center)
+    annotate_panel.add_text(
+        panel=panel,
         x_pos=0.15,
         y_pos=0.65,
         label=r"\shortstack{refinement\\region}",
         rotate_deg=90.0,
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Center.Center,
-        text_size=TICK_LABEL_SIZE,
         text_color="blue",
-        box_alpha=0.0,
     )
-    ax.set_xlabel(
-        r"$x_0$",
-        fontsize=AXIS_LABEL_SIZE,
-        labelpad=10.0,
-    )
-    ax.set_ylabel(r"$x_1$", fontsize=AXIS_LABEL_SIZE)
-    annotate_axis.add_text(
-        ax=ax,
+    panel.set_xlabel(r"$x_0$")
+    panel.set_ylabel(r"$x_1$")
+    annotate_panel.add_text(
+        panel=panel,
         x_pos=0.5,
         y_pos=0.05,
         label=rf"$t / T = {divb_slice.step_time / ADVECTION_PERIOD:.2f}$",
         x_alignment=box_positions.Positions.Center.Center,
         y_alignment=box_positions.Positions.Side.Bottom,
-        text_size=TICK_LABEL_SIZE,
-        text_color="black",
-        box_alpha=0.0,
     )
 
 
@@ -345,22 +335,32 @@ def plot_field_loop_divb(
     divb_series: tuple[Slice, ...],
     divb_slice: Slice,
 ) -> mpl_Figure:
-    fig, axs = manage_plots.create_figure_grid(
-        num_rows=1,
-        num_cols=2,
-        axis_shape=(7.0, 4.5),
-        fig_scale=1.5,
-        x_spacing=0.05,
+    figure, panel_grid = manage_figure.create_figure_grid(
+        num_panel_rows=1,
+        num_panel_columns=2,
+        panel_aspect_ratio=1.113,
+        ## drawn at the width the paper prints it at, so its text is the size it asks for
+        figure_layout=style_figure.FigureLayout(
+            figure_width=style_figure.FigureWidth(width_fraction=0.95),
+            ## each panel carries a colorbar above it, and the right panel puts its y axis on
+            ## the outside, so both the top and right margins have to hold labels
+            figure_margins=style_figure.FigureMargins(
+                left=38.0,
+                right=42.0,
+                bottom=34.0,
+                top=46.0,
+            ),
+        ),
     )
     plot_slice_panel(
-        ax=axs[0, 0],
+        panel=panel_grid[0, 0],
         divb_slice=divb_slice,
     )
     plot_pdf_panel(
-        ax=axs[0, 1],
+        panel=panel_grid[0, 1],
         divb_series=divb_series,
     )
-    return fig
+    return figure
 
 
 ##
@@ -370,7 +370,7 @@ def plot_field_loop_divb(
 
 def main() -> None:
     manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    style_plots.set_theme()
+    style_figure.set_figure_params()
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,
@@ -385,14 +385,13 @@ def main() -> None:
             target_time=TARGET_TIME,
         ),
     )
-    fig = plot_field_loop_divb(
+    figure = plot_field_loop_divb(
         divb_series=divb_series,
         divb_slice=divb_slice,
     )
-    manage_plots.save_figure(
-        fig=fig,
-        fig_path=FIGURE_PATH,
-        dpi=400,
+    manage_figure.save_figure(
+        figure=figure,
+        figure_path=FIGURE_PATH,
     )
 
 

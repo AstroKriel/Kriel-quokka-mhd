@@ -18,7 +18,7 @@ from scipy import ndimage as scipy_ndimage
 ## personal
 from jormi.ww_arrays.mask_2d_arrays import DiagonalMasks2D
 from jormi.ww_io import manage_io, manage_log
-from jormi.ww_plots import add_color, annotate_axis, manage_plots, plot_data, style_plots
+from jormi.ww_plots import add_color, annotate_panel, manage_figure, plot_data, style_figure
 from jormi.ww_types import box_positions
 
 ##
@@ -45,7 +45,7 @@ NCELLS_LOWER = 1024
 TARGET_TIME = 0.05
 
 ## plotting details
-AXIS_BOUNDS: plot_data.AxisBounds = ((-0.5, 0.5), (-0.5, 0.5))
+AXIS_BOUNDS: plot_data.AxisRanges = ((-0.5, 0.5), (-0.5, 0.5))
 MAJOR_TICK_STEP = 0.25
 MINOR_TICK_STEP = 0.05
 LABELED_TICK_VALUES = (-0.25, 0.25)
@@ -139,7 +139,7 @@ def compute_smoothed_slice(
 
 def overlay_contours(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
     slice_2d: NDArray[numpy.floating],
 ) -> None:
     num_rows, num_cols = slice_2d.shape
@@ -147,14 +147,14 @@ def overlay_contours(
         numpy.linspace(AXIS_BOUNDS[0][0], AXIS_BOUNDS[0][1], num_cols),
         numpy.linspace(AXIS_BOUNDS[1][0], AXIS_BOUNDS[1][1], num_rows),
     )
-    ax.contour(
+    panel.contour(
         grid_x,
         grid_y,
         slice_2d.T,
         levels=list(CONTOUR_LEVELS),
         colors=list(CONTOUR_COLORS),
         linestyles="solid",
-        linewidths=1.0,
+        linewidths=0.5,
         alpha=0.35,
         zorder=1,
     )
@@ -168,7 +168,7 @@ def mark_contour_levels_on_cbar(
         cbar.ax.axvline(
             x=level,
             color=color,
-            linewidth=1.0,
+            linewidth=0.5,
             zorder=10,
         )
 
@@ -196,22 +196,28 @@ def format_domain_tick(
     tick_value: float,
     _tick_position: int,
 ) -> str:
-    """Label only `LABELED_TICK_VALUES`; every other major tick is drawn unlabeled."""
+    """
+    Label only `LABELED_TICK_VALUES`; every other major tick is drawn unlabeled.
+
+    Labels are math mode, so their minus signs match the ones Matplotlib formats itself.
+    """
     is_labeled = any(numpy.isclose(tick_value, labeled_value) for labeled_value in LABELED_TICK_VALUES)
-    return f"{tick_value:.2f}" if is_labeled else ""
+    return f"${tick_value:.2f}$" if is_labeled else ""
 
 
 def configure_domain_ticks(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
 ) -> None:
-    for axis in (ax.xaxis, ax.yaxis):
+    figure_params = style_figure.get_figure_params()
+    theme_params = figure_params.theme_params
+    for axis in (panel.xaxis, panel.yaxis):
         axis.set_major_locator(MultipleLocator(MAJOR_TICK_STEP))
         axis.set_minor_locator(MultipleLocator(MINOR_TICK_STEP))
         axis.set_major_formatter(FuncFormatter(format_domain_tick))
-    ax.tick_params(
+    panel.tick_params(
         which="both",
-        color="black",
+        color=theme_params.foreground_color,
         labelbottom=True,
         labeltop=False,
         labelleft=True,
@@ -226,7 +232,11 @@ def configure_domain_ticks(
 
 def main() -> None:
     manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    style_plots.set_theme()
+    style_figure.set_figure_params()
+    figure_params = style_figure.get_figure_params()
+    panel_frame_params = figure_params.panel_frame_params
+    panel_gaps = figure_params.figure_layout.panel_gaps
+    text_size_params = figure_params.text_size_params
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,
@@ -237,77 +247,87 @@ def main() -> None:
         palette_name="blue-white-red",
         palette_range=compute_zero_centred_palette_range(value_range=CBAR_BOUNDS),
     )
-    fig, ax = manage_plots.create_figure(
-        axis_shape=(6, 6),
+    figure, panel = manage_figure.create_figure(
+        panel_aspect_ratio=0.860,
+        ## drawn at the width the paper prints it at, so its text is the size it asks for
+        figure_layout=style_figure.FigureLayout(
+            figure_width=style_figure.FigureWidth(width_fraction=0.5),
+            ## the colorbar sits above the panel, so the top margin holds it, its ticks, and its label
+            figure_margins=style_figure.FigureMargins(
+                left=34.0,
+                right=6.0,
+                bottom=28.0,
+                top=49.0,
+            ),
+        ),
     )
     composite = combine_arrays_split_diagonally(
         upper_array=upper_slice.log10_density,
         lower_array=lower_slice.log10_density,
     )
     plot_data.plot_2d_array(
-        ax=ax,
+        panel=panel,
         array_2d=composite,
         data_format="xy",
-        axis_bounds=AXIS_BOUNDS,
-        cbar_bounds=CBAR_BOUNDS,
+        axis_ranges=AXIS_BOUNDS,
+        colorbar_range=CBAR_BOUNDS,
         palette_config=palette_config,
-        add_cbar=False,
+        add_colorbar=False,
     )
     smoothed_composite = combine_arrays_split_diagonally(
         upper_array=compute_smoothed_slice(array_2d=upper_slice.log10_density),
         lower_array=compute_smoothed_slice(array_2d=lower_slice.log10_density),
     )
     overlay_contours(
-        ax=ax,
+        panel=panel,
         slice_2d=smoothed_composite,
     )
-    ax.plot(
+    panel.plot(
         [AXIS_BOUNDS[0][0], AXIS_BOUNDS[0][1]],
         [AXIS_BOUNDS[1][0], AXIS_BOUNDS[1][1]],
         color="white",
-        linewidth=0.6,
+        linewidth=panel_frame_params.line_width,
     )
-    annotate_axis.add_text(
-        ax=ax,
+    annotate_panel.add_text(
+        panel=panel,
         x_pos=0.05,
         y_pos=0.95,
         label=rf"${NCELLS_UPPER}^3$",
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Side.Top,
-        text_size=26,
-        text_color="black",
-        box_alpha=0.0,
+        ## these name what each half of the panel shows, so they sit with the axis labels
+        text_size=text_size_params.axis_label_size,
     )
-    annotate_axis.add_text(
-        ax=ax,
+    annotate_panel.add_text(
+        panel=panel,
         x_pos=0.95,
         y_pos=0.05,
         label=rf"${NCELLS_LOWER}^3$",
         x_alignment=box_positions.Positions.Side.Right,
         y_alignment=box_positions.Positions.Side.Bottom,
-        text_size=26,
-        text_color="black",
-        box_alpha=0.0,
+        text_size=text_size_params.axis_label_size,
     )
-    configure_domain_ticks(ax=ax)
-    ax.set_xlabel(r"$x_0$", fontsize=30)
-    ax.set_ylabel(r"$x_1$", fontsize=30)
+    configure_domain_ticks(panel=panel)
+    panel.set_xlabel(r"$x_0$")
+    panel.set_ylabel(r"$x_1$")
     palette = add_color.make_palette(
         config=palette_config,
         value_range=CBAR_BOUNDS,
     )
     cbar = add_color.add_colorbar(
-        ax=ax,
+        panel=panel,
         palette=palette,
         label=r"$\log_{10}(\rho / \rho_\mathrm{bg})$",
-        cbar_side="top",
-        label_size=26,
+        colorbar_side="top",
+        ## nothing sits between the panel and the bar, so it needs less room than two panels do
+        colorbar_gap=panel_gaps.row / 2.0,
+        ## the label clears a row of tick labels here, not just the bar, so it sits further out
+        label_gap=panel_frame_params.axis_label_gap * 2.0,
     )
     mark_contour_levels_on_cbar(cbar=cbar)
-    manage_plots.save_figure(
-        fig=fig,
-        fig_path=FIGURE_PATH,
-        dpi=400,
+    manage_figure.save_figure(
+        figure=figure,
+        figure_path=FIGURE_PATH,
     )
 
 

@@ -17,7 +17,7 @@ from numpy.typing import NDArray
 
 ## personal
 from jormi.ww_io import manage_io, manage_log
-from jormi.ww_plots import annotate_axis, manage_plots, style_plots
+from jormi.ww_plots import annotate_panel, manage_figure, style_figure
 from jormi.ww_types import box_positions
 
 ##
@@ -63,13 +63,13 @@ class EMFAveragingScheme(Enum):
         label="LD04",
         linestyle="-",
         marker="o",
-        marker_size=9.5,
+        marker_size=5.0,
     )
     B25 = EMFAveragingSchemeStyle(
         label="B25b",
         linestyle="--",
         marker="D",
-        marker_size=9.5,
+        marker_size=5.0,
     )
 
 
@@ -127,62 +127,64 @@ def load_scaling_series(
 
 def plot_scaling_panel(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
     grouped_scaling_series: list[ScalingSeries],
     add_y_label: bool,
 ) -> None:
+    figure_params = style_figure.get_figure_params()
+    theme_params = figure_params.theme_params
     for series in grouped_scaling_series:
         emf_compute_scheme_style = series.emf_compute_scheme.value
         emf_averaging_scheme_style = series.emf_averaging_scheme.value
-        ax.axhline(
+        panel.axhline(
             y=series.reference_value,
             linestyle=emf_averaging_scheme_style.linestyle,
-            linewidth=1.2,
+            linewidth=0.9,
             color=emf_compute_scheme_style.color,
             alpha=0.5,
             zorder=emf_compute_scheme_style.zorder,
         )
-        ax.plot(
+        panel.plot(
             series.num_gpus,
             series.updates_per_s_per_gpu,
             linestyle="None",
             marker=emf_averaging_scheme_style.marker,
             markersize=emf_averaging_scheme_style.marker_size,
             markerfacecolor=emf_compute_scheme_style.color,
-            markeredgecolor="black",
-            markeredgewidth=1.5,
+            markeredgecolor=theme_params.foreground_color,
+            markeredgewidth=0.6,
             label=f"{emf_compute_scheme_style.label} + {emf_averaging_scheme_style.label}",
             zorder=10 + emf_compute_scheme_style.zorder,
         )
-    ax.set_xlabel("GPUs")
+    panel.set_xlabel("GPUs")
     if add_y_label:
-        ax.set_ylabel("Mzone updates / s. / GPU")
-    ax.set_xscale(
+        panel.set_ylabel("Mzone updates / s. / GPU")
+    panel.set_xscale(
         value="log",
         base=2,
     )
-    ax.set_yscale("log")
-    ax.set_ylim(
+    panel.set_yscale("log")
+    panel.set_ylim(
         bottom=8,
         top=6e1,
     )
     y_ticks = [10, 20, 30, 40, 50, 60]
-    ax.set_yticks(y_ticks)
-    ax.set_yticklabels([str(tick) for tick in y_ticks])
+    panel.set_yticks(y_ticks)
+    panel.set_yticklabels([str(tick) for tick in y_ticks])
 
 
 def annotate_strong_scaling_axis(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
 ) -> None:
-    ax.set_xlim(
+    panel.set_xlim(
         left=2**1,
         right=2**9.5,
     )
     ## show a tick at every GPU count tested, but only label the even powers of 2
     gpu_ticks = [4, 8, 16, 32, 64, 128, 256, 512]
-    ax.set_xticks(gpu_ticks)
-    ax.set_xticklabels(
+    panel.set_xticks(gpu_ticks)
+    panel.set_xticklabels(
         [
             f"$2^{{{round(numpy.log2(gpu_count))}}}$" if round(numpy.log2(gpu_count)) % 2 == 0 else ""
             for gpu_count in gpu_ticks
@@ -191,8 +193,8 @@ def annotate_strong_scaling_axis(
     ## show a tick at every GPU count tested, but only label the ones where 512/N^(1/3) lands
     ## on an exact integer cells/GPU side length
     labeled_gpu_ticks = {8, 64, 512}
-    top_ax = ax.twiny()
-    top_ax.set_xlim(ax.get_xlim())
+    top_ax = panel.twiny()
+    top_ax.set_xlim(panel.get_xlim())
     top_ax.set_xscale(
         value="log",
         base=2,
@@ -210,17 +212,17 @@ def annotate_strong_scaling_axis(
 
 def annotate_weak_scaling_axis(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
 ) -> None:
-    ax.set_xlim(
+    panel.set_xlim(
         left=2**-1,
         right=2**9.5,
     )
     gpu_ticks = [1, 8, 64, 512]
-    ax.set_xticks(gpu_ticks)
-    ax.set_xticklabels([f"$2^{{{round(numpy.log2(gpu_count))}}}$" for gpu_count in gpu_ticks])
-    top_ax = ax.twiny()
-    top_ax.set_xlim(ax.get_xlim())
+    panel.set_xticks(gpu_ticks)
+    panel.set_xticklabels([f"$2^{{{round(numpy.log2(gpu_count))}}}$" for gpu_count in gpu_ticks])
+    top_ax = panel.twiny()
+    top_ax.set_xlim(panel.get_xlim())
     top_ax.set_xscale(
         value="log",
         base=2,
@@ -235,16 +237,13 @@ def annotate_weak_scaling_axis(
 
 def add_emf_compute_scheme_legend(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
 ) -> None:
-    annotate_axis.add_custom_legend(
-        ax=ax,
-        artists=["o" for _ in EMFComputeScheme],
+    annotate_panel.add_custom_legend(
+        panel=panel,
+        artists=[None for _ in EMFComputeScheme],
         labels=[scheme.value.label for scheme in EMFComputeScheme],
         colors=[scheme.value.color for scheme in EMFComputeScheme],
-        marker_size=0,
-        text_color="markerfacecolor",
-        text_size=18,
         marker_first=False,  # put the (invisible) handle after the text, so text hugs the left edge
         anchor_point=(0.0125, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
@@ -253,27 +252,23 @@ def add_emf_compute_scheme_legend(
 
 def add_emf_averaging_scheme_legend(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
 ) -> None:
-    annotate_axis.add_custom_legend(
-        ax=ax,
+    annotate_panel.add_custom_legend(
+        panel=panel,
         artists=[scheme.value.linestyle for scheme in EMFAveragingScheme],
         labels=["" for _ in EMFAveragingScheme],
         colors=["black" for _ in EMFAveragingScheme],
-        marker_size=7,
-        text_color="black",
-        text_size=18,
+
         anchor_point=(0.0125, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
     )
-    annotate_axis.add_custom_legend(
-        ax=ax,
+    annotate_panel.add_custom_legend(
+        panel=panel,
         artists=[scheme.value.marker for scheme in EMFAveragingScheme],
         labels=[scheme.value.label for scheme in EMFAveragingScheme],
         colors=["black" for _ in EMFAveragingScheme],
-        marker_size=7,
-        text_color="black",
-        text_size=18,
+
         anchor_point=(0.0125, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
     )
@@ -286,61 +281,79 @@ def add_emf_averaging_scheme_legend(
 
 def main() -> None:
     manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    style_plots.set_theme()
+    default_text_sizes = style_figure.TextSizeParams()
+    style_figure.set_figure_params(
+        figure_params=style_figure.FigureParams(
+            text_size_params=style_figure.TextSizeParams(
+                legend_level=default_text_sizes.annotation_level,
+            ),
+        ),
+    )
     datasets_dir = Path(__file__).parents[2] / "datasets" / "performance"
     figures_dir = Path(__file__).parents[2] / "figures" / "performance"
     manage_io.create_directory(figures_dir)
-    fig, axs = manage_plots.create_figure_grid(
-        num_rows=1,
-        num_cols=2,
-        x_spacing=0.05,
-        fig_scale=1.05,
-        share_y=True,
+    figure, panel_grid = manage_figure.create_figure_grid(
+        num_panel_rows=1,
+        num_panel_columns=2,
+        panel_aspect_ratio=1.115,
+        ## the panels share a y axis, so only their frames sit in the gap
+        panel_column_gap=5.0,
+        ## drawn at the width the paper prints it at, so its text is the size it asks for
+        figure_layout=style_figure.FigureLayout(
+            figure_width=style_figure.FigureWidth(width_fraction=0.90),
+            ## each panel carries a second x axis above it, with its own ticks and label,
+            ## so the top margin has to hold all of that
+            figure_margins=style_figure.FigureMargins(
+                left=33.0,
+                right=6.0,
+                bottom=32.0,
+                top=37.0,
+            ),
+        ),
+        share_y_axis=True,
     )
-    strong_scaling_ax = axs[0, 0]
+    strong_scaling_ax = panel_grid[0, 0]
     grouped_strong_scaling_series = load_scaling_series(
         csv_path=datasets_dir / "strong_gpu_scaling.csv",
     )
     plot_scaling_panel(
-        ax=strong_scaling_ax,
+        panel=strong_scaling_ax,
         grouped_scaling_series=grouped_strong_scaling_series,
         add_y_label=True,
     )
-    annotate_strong_scaling_axis(ax=strong_scaling_ax)
-    add_emf_compute_scheme_legend(ax=strong_scaling_ax)
-    weak_scaling_ax = axs[0, 1]
+    annotate_strong_scaling_axis(panel=strong_scaling_ax)
+    add_emf_compute_scheme_legend(panel=strong_scaling_ax)
+    weak_scaling_ax = panel_grid[0, 1]
     grouped_weak_scaling_series = load_scaling_series(
         csv_path=datasets_dir / "weak_gpu_scaling.csv",
     )
     plot_scaling_panel(
-        ax=weak_scaling_ax,
+        panel=weak_scaling_ax,
         grouped_scaling_series=grouped_weak_scaling_series,
         add_y_label=False,
     )
-    annotate_weak_scaling_axis(ax=weak_scaling_ax)
-    add_emf_averaging_scheme_legend(ax=weak_scaling_ax)
+    annotate_weak_scaling_axis(panel=weak_scaling_ax)
+    add_emf_averaging_scheme_legend(panel=weak_scaling_ax)
     strong_scaling_ax.set_ylim([8, 70])
-    annotate_axis.add_text(
-        ax = strong_scaling_ax,
+    annotate_panel.add_text(
+        panel = strong_scaling_ax,
         x_pos = 0.95,
         y_pos = 0.95,
         label = "strong scaling",
         x_alignment = box_positions.Positions.Side.Right,
         y_alignment = box_positions.Positions.Side.Top,
-        text_size = 20,
     )
-    annotate_axis.add_text(
-        ax = weak_scaling_ax,
+    annotate_panel.add_text(
+        panel = weak_scaling_ax,
         x_pos = 0.95,
         y_pos = 0.95,
         label = "weak scaling",
         x_alignment = box_positions.Positions.Side.Right,
         y_alignment = box_positions.Positions.Side.Top,
-        text_size = 20,
     )
-    manage_plots.save_figure(
-        fig=fig,
-        fig_path=figures_dir / "gpu_scaling.png",
+    manage_figure.save_figure(
+        figure=figure,
+        figure_path=figures_dir / "gpu_scaling.png",
     )
 
 

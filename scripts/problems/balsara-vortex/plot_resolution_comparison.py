@@ -18,10 +18,10 @@ from jormi.ww_arrays.mask_2d_arrays import QuadrantMasks2D
 from jormi.ww_io import manage_io, manage_log
 from jormi.ww_plots import (
     add_color,
-    annotate_axis,
-    manage_plots,
+    annotate_panel,
+    manage_figure,
     plot_data,
-    style_plots,
+    style_figure,
 )
 from jormi.ww_types import box_positions
 
@@ -38,7 +38,7 @@ DATASET_TIME_NAME = "magnetic_energy-vi_evolution.json"
 FIGURE_PATH = ROOT_DIR / "figures/problems/balsara-vortex/resolution-comparison.png"
 
 ## plotting details
-AXIS_BOUNDS: plot_data.AxisBounds = ((-5.0, 5.0), (-5.0, 5.0))
+AXIS_BOUNDS: plot_data.AxisRanges = ((-5.0, 5.0), (-5.0, 5.0))
 PALETTE_NAME = "cmr.horizon_r"
 PALETTE_RANGE = (0.0, 1.0)
 VALUE_RANGE = (-10, -3.5)
@@ -83,14 +83,14 @@ def upsample_slice(
 def compute_centroid_position(
     *,
     array_2d: NDArray[numpy.floating],
-    axis_bounds: plot_data.AxisBounds,
+    axis_ranges: plot_data.AxisRanges,
 ) -> tuple[float, float]:
     """Mass-weighted centroid of a positive-definite field, in physical (x, y) units."""
     num_rows, num_cols = array_2d.shape
-    cell_size_x = (axis_bounds[0][1] - axis_bounds[0][0]) / num_cols
-    cell_size_y = (axis_bounds[1][1] - axis_bounds[1][0]) / num_rows
-    x_coords = axis_bounds[0][0] + cell_size_x * (numpy.arange(num_cols) + 0.5)
-    y_coords = axis_bounds[1][0] + cell_size_y * (numpy.arange(num_rows) + 0.5)
+    cell_size_x = (axis_ranges[0][1] - axis_ranges[0][0]) / num_cols
+    cell_size_y = (axis_ranges[1][1] - axis_ranges[1][0]) / num_rows
+    x_coords = axis_ranges[0][0] + cell_size_x * (numpy.arange(num_cols) + 0.5)
+    y_coords = axis_ranges[1][0] + cell_size_y * (numpy.arange(num_rows) + 0.5)
     x_grid, y_grid = numpy.meshgrid(x_coords, y_coords)
     total = array_2d.sum()
     return (
@@ -102,7 +102,7 @@ def compute_centroid_position(
 def recenter_via_periodic_shift(
     *,
     array_2d: NDArray[numpy.floating],
-    axis_bounds: plot_data.AxisBounds,
+    axis_ranges: plot_data.AxisRanges,
 ) -> NDArray[numpy.floating]:
     """
     Undo a small, uniform positional drift by applying a sub-pixel periodic shift.
@@ -113,11 +113,11 @@ def recenter_via_periodic_shift(
     """
     centroid_x, centroid_y = compute_centroid_position(
         array_2d=array_2d,
-        axis_bounds=axis_bounds,
+        axis_ranges=axis_ranges,
     )
     num_rows, num_cols = array_2d.shape
-    cell_size_x = (axis_bounds[0][1] - axis_bounds[0][0]) / num_cols
-    cell_size_y = (axis_bounds[1][1] - axis_bounds[1][0]) / num_rows
+    cell_size_x = (axis_ranges[0][1] - axis_ranges[0][0]) / num_cols
+    cell_size_y = (axis_ranges[1][1] - axis_ranges[1][0]) / num_rows
     shift_in_cells_x = -centroid_x / cell_size_x
     shift_in_cells_y = -centroid_y / cell_size_y
     freq_x = numpy.fft.fftfreq(num_cols)
@@ -173,17 +173,20 @@ def plot_slice_quadrants(
 
 def add_reference_circle_and_drift_arrow(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
     radius: float,
 ) -> None:
     """Draw the reference circle and the drift-direction arrow, both anchored to `radius`."""
+    figure_params = style_figure.get_figure_params()
+    data_artist_params = figure_params.data_artist_params
+    text_size_params = figure_params.text_size_params
+    theme_params = figure_params.theme_params
     theta = numpy.linspace(0.0, 2.0 * numpy.pi, 200)
-    ax.plot(
+    panel.plot(
         radius * numpy.cos(theta),
         radius * numpy.sin(theta),
-        color="black",
+        color=theme_params.foreground_color,
         linestyle="--",
-        linewidth=1.0,
     )
     direction_component = 1.0 / numpy.sqrt(2.0)
     arrow_start_radius = radius
@@ -192,21 +195,22 @@ def add_reference_circle_and_drift_arrow(
     label_anchor = label_anchor_radius * direction_component
     label_offset = 0.35
     drift_label_offset = label_offset + 0.25
-    ax.annotate(
+    panel.annotate(
         "",
         xy=(arrow_end_radius * direction_component, arrow_end_radius * direction_component),
         xytext=(arrow_start_radius * direction_component, arrow_start_radius * direction_component),
         arrowprops={
             "arrowstyle": "-|>",
-            "color": "black",
+            "color": theme_params.foreground_color,
             "linestyle": "-",
-            "linewidth": 1.0,
-            "mutation_scale": 15.0,
+            "linewidth": data_artist_params.line_width,
+            ## the head is sized in points, so tie it to the text it sits beside
+            "mutation_scale": text_size_params.annotation_size,
             "shrinkA": 0.0,
             "shrinkB": 0.0,
         },
     )
-    ax.text(
+    panel.text(
         label_anchor - drift_label_offset,
         label_anchor + drift_label_offset,
         "drift\ndirection",
@@ -215,9 +219,10 @@ def add_reference_circle_and_drift_arrow(
         multialignment="left",
         rotation=45.0,
         rotation_mode="anchor",
-        fontsize=26,
+        fontsize=text_size_params.annotation_size,
+        color=theme_params.foreground_color,
     )
-    ax.text(
+    panel.text(
         label_anchor + label_offset,
         label_anchor - label_offset,
         r"$\mathcal{M} = 0.01$",
@@ -225,7 +230,8 @@ def add_reference_circle_and_drift_arrow(
         va="center",
         rotation=45.0,
         rotation_mode="anchor",
-        fontsize=24,
+        fontsize=text_size_params.annotation_size,
+        color=theme_params.foreground_color,
     )
 
 
@@ -236,13 +242,18 @@ def add_reference_circle_and_drift_arrow(
 
 def main() -> None:
     manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    style_plots.set_theme()
+    style_figure.set_figure_params()
+    figure_params = style_figure.get_figure_params()
+    panel_frame_params = figure_params.panel_frame_params
+    panel_gaps = figure_params.figure_layout.panel_gaps
+    text_size_params = figure_params.text_size_params
+    theme_params = figure_params.theme_params
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
     data_dirs_lookup = {
-        num_cells: DATASET_DIR / f"ncells={num_cells}/q26-b25-ppm/extracted"
+        num_cells: DATASET_DIR / f"ncells={num_cells}/q26-b25-ppm_ep/extracted"
         for num_cells in DATASET_RESOLUTIONS
     }
     highest_resolution = max(DATASET_RESOLUTIONS)
@@ -260,7 +271,7 @@ def main() -> None:
         upsample_slice(
             array_2d=recenter_via_periodic_shift(
                 array_2d=numpy.load(find_slice_paths(data_dir=data_dir)[-1])["sarray_2d"],
-                axis_bounds=AXIS_BOUNDS,
+                axis_ranges=AXIS_BOUNDS,
             ),
             target_num_cells=highest_resolution,
         )
@@ -276,56 +287,67 @@ def main() -> None:
         bottom_left=first_snapshot_lookup[left_side_resolution],
         bottom_right=first_snapshot_lookup[right_side_resolution],
     )
-    fig, ax = manage_plots.create_figure(
-        axis_shape=(7, 7),
+    figure, panel = manage_figure.create_figure(
+        panel_aspect_ratio=1.076,
+        ## drawn at the width the paper prints it at, so its text is the size it asks for
+        figure_layout=style_figure.FigureLayout(
+            figure_width=style_figure.FigureWidth(width_fraction=0.5),
+            ## the panel carries no ticks, so the margins hold the colorbar on the right and
+            ## the two labels that sit outside the panel above and below it
+            figure_margins=style_figure.FigureMargins(
+                left=6.0,
+                right=50.0,
+                bottom=20.0,
+                top=20.0,
+            ),
+        ),
     )
     plot_data.plot_2d_array(
-        ax=ax,
+        panel=panel,
         array_2d=compute_array_stats.compute_safe_log10(composite),
         data_format="ij",
-        axis_bounds=AXIS_BOUNDS,
-        cbar_bounds=VALUE_RANGE,
+        axis_ranges=AXIS_BOUNDS,
+        colorbar_range=VALUE_RANGE,
         palette_config=add_color.SequentialConfig(
             palette_name=PALETTE_NAME,
             palette_range=PALETTE_RANGE,
         ),
-        add_cbar=False,
+        add_colorbar=False,
     )
-    ax.axhline(
+    panel.axhline(
         0.0,
-        color="black",
-        linewidth=0.6,
+        color=theme_params.foreground_color,
+        linewidth=panel_frame_params.line_width,
     )
-    ax.axvline(
+    panel.axvline(
         0.0,
-        color="black",
-        linewidth=0.6,
+        color=theme_params.foreground_color,
+        linewidth=panel_frame_params.line_width,
     )
     add_reference_circle_and_drift_arrow(
-        ax=ax,
+        panel=panel,
         radius=REFERENCE_RADIUS,
     )
-    ax.set_xticks([])
-    ax.set_yticks([])
+    panel.set_xticks([])
+    panel.set_yticks([])
     for x_pos, num_cells in (
         (0.025, left_side_resolution),
         (0.975, right_side_resolution),
     ):
-        annotate_axis.add_text(
-            ax=ax,
+        annotate_panel.add_text(
+            panel=panel,
             x_pos=x_pos,
             y_pos=0.965,
             label=rf"${num_cells}^2$",
             x_alignment=box_positions.Positions.Side.Left
             if x_pos < 0.5 else box_positions.Positions.Side.Right,
             y_alignment=box_positions.Positions.Side.Top,
-            text_size=28,
-            text_color="black",
-            box_alpha=0.0,
+            ## these name what each half of the panel shows, so they sit with the axis labels
+            text_size=text_size_params.axis_label_size,
         )
     for x_pos, num_cells in ((0.025, left_side_resolution), (0.975, right_side_resolution)):
-        annotate_axis.add_text(
-            ax=ax,
+        annotate_panel.add_text(
+            panel=panel,
             x_pos=x_pos,
             y_pos=0.025,
             label=f"conserves\n{100.0 * energy_conservation_lookup[num_cells]:.1f}\\% / orbit",
@@ -333,27 +355,27 @@ def main() -> None:
                 box_positions.Positions.Side.Left if x_pos < 0.5 else box_positions.Positions.Side.Right
             ),
             y_alignment=box_positions.Positions.Side.Bottom,
-            text_size=24,
-            text_color="black",
-            box_alpha=0.0,
         )
-    ax.text(
+    ## these sit outside the panel, so they are placed directly rather than through `add_text`
+    panel.text(
         0.5,
         1.02,
         "initial profile",
-        transform=ax.transAxes,
-        fontsize=32,
+        transform=panel.transAxes,
         ha="center",
         va="bottom",
+        fontsize=text_size_params.axis_label_size,
+        color=theme_params.foreground_color,
     )
-    ax.text(
+    panel.text(
         0.5,
         -0.02,
-        "profile after 3 orbits",
-        transform=ax.transAxes,
-        fontsize=32,
+        f"profile after {NUM_ORBITS} orbits",
+        transform=panel.transAxes,
         ha="center",
         va="top",
+        fontsize=text_size_params.axis_label_size,
+        color=theme_params.foreground_color,
     )
     palette = add_color.make_palette(
         config=add_color.SequentialConfig(
@@ -362,19 +384,17 @@ def main() -> None:
         ),
         value_range=VALUE_RANGE,
     )
-    cbar = add_color.add_colorbar(
-        ax=ax,
+    add_color.add_colorbar(
+        panel=panel,
         palette=palette,
         label=r"$\log_{10}(b^2 / 2)$",
-        cbar_side="right",
-        label_size=36,
-        label_pad=24.0,
+        colorbar_side="right",
+        ## nothing sits between the panel and the bar, so it needs less room than two panels do
+        colorbar_gap=panel_gaps.column / 2.0,
     )
-    cbar.ax.tick_params(labelsize=24)
-    manage_plots.save_figure(
-        fig=fig,
-        fig_path=FIGURE_PATH,
-        dpi=400,
+    manage_figure.save_figure(
+        figure=figure,
+        figure_path=FIGURE_PATH,
     )
 
 

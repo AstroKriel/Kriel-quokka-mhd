@@ -18,9 +18,9 @@ from numpy.typing import NDArray
 from jormi.ww_arrays.mask_2d_arrays import DiagonalMasks2D
 from jormi.ww_io import manage_io, manage_log
 from jormi.ww_plots import (
-    manage_plots,
+    manage_figure,
     plot_data,
-    style_plots,
+    style_figure,
 )
 from jormi.ww_types import box_positions
 from jormi.ww_validation import validate_box_positions
@@ -116,7 +116,7 @@ FILE_NAME_GLOB = "current_density_magnitude-slice=x_2-index=*.npz"
 TARGET_TIME = 0.85
 
 ## plotting details
-AXIS_BOUNDS: plot_data.AxisBounds = ((-0.5, 0.5), (-0.5, 0.5))
+AXIS_BOUNDS: plot_data.AxisRanges = ((-0.5, 0.5), (-0.5, 0.5))
 CONTOUR_LOG10_VALUE = -1.6
 
 ##
@@ -163,7 +163,7 @@ def mask_sarray_slice(
 
 def plot_comparison_contours(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
     upper_sarray: NDArray[numpy.floating],
     lower_sarray: NDArray[numpy.floating],
     contour_value: float,
@@ -204,64 +204,64 @@ def plot_comparison_contours(
         numpy.linspace(AXIS_BOUNDS[1][0], AXIS_BOUNDS[1][1], num_rows),
     )
     ## contours of each scheme's solution
-    ax.contour(
+    panel.contour(
         grid_x,
         grid_y,
         upper_sarray_main.T,
         levels=[contour_value],
         colors=upper_color,
-        linewidths=0.75,
+        linewidths=0.5,
         alpha=1.0,
         linestyles="solid",
         zorder=1,
     )
-    ax.contour(
+    panel.contour(
         grid_x,
         grid_y,
         lower_sarray_main.T,
         levels=[contour_value],
         colors=lower_color,
-        linewidths=0.75,
+        linewidths=0.5,
         alpha=1.0,
         linestyles="solid",
         zorder=1,
     )
     ## faint "ghost" reference contours in the opposite triangle (overlayed on top)
-    ax.contour(
+    panel.contour(
         grid_x,
         grid_y,
         upper_sarray_ghost.T,
         levels=[contour_value],
         colors=upper_color,
-        linewidths=0.65,
+        linewidths=0.45,
         alpha=0.4,
         linestyles="solid",
         zorder=2,
     )
-    ax.contour(
+    panel.contour(
         grid_x,
         grid_y,
         lower_sarray_ghost.T,
         levels=[contour_value],
         colors=lower_color,
-        linewidths=0.65,
+        linewidths=0.45,
         alpha=0.4,
         linestyles="solid",
         zorder=2,
     )
     ## off-diagonal line separating the two triangular halves of the domain
-    ax.plot(
+    panel.plot(
         [AXIS_BOUNDS[0][0], AXIS_BOUNDS[0][1]],
         [AXIS_BOUNDS[1][0], AXIS_BOUNDS[1][1]],
         color="black",
-        linewidth=0.6,
+        linewidth=0.4,
         zorder=3,
     )
 
 
 def add_label(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
     x_position: float,
     y_position: float,
     x_alignment: box_positions.Positions.PositionLike,
@@ -270,14 +270,13 @@ def add_label(
 ) -> None:
     x_anchor = validate_box_positions.as_mpl_ha(x_alignment)
     y_anchor = validate_box_positions.as_mpl_va(y_alignment)
-    ax.text(
+    panel.text(
         x_position,
         y_position,
         label,
-        transform=ax.transAxes,
+        transform=panel.transAxes,
         ha=x_anchor.value,
         va=y_anchor.value,
-        fontsize=22,
         color="black",
         bbox={
             "facecolor": "white",
@@ -294,7 +293,7 @@ def add_label(
 
 
 def main() -> None:
-    style_plots.set_theme()
+    style_figure.set_figure_params()
     manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
@@ -302,18 +301,31 @@ def main() -> None:
     )
     reconstruction_schemes = list(ReconstructionScheme)
     emf_compute_schemes = list(EMFComputeScheme)
-    fig, axs = manage_plots.create_figure_grid(
-        num_rows=len(reconstruction_schemes),
-        num_cols=len(emf_compute_schemes),
-        axis_shape=(4, 4),
-        x_spacing=0.02,
-        y_spacing=0.02,
-        share_x=True,
-        share_y=True,
+    figure, panel_grid = manage_figure.create_figure_grid(
+        num_panel_rows=len(reconstruction_schemes),
+        num_panel_columns=len(emf_compute_schemes),
+        panel_aspect_ratio=1.01,
+        ## the panels carry no tick labels, so only their frames sit in the gaps
+        panel_column_gap=4.0,
+        panel_row_gap=4.0,
+        ## drawn at the width the paper prints it at, so its text is the size it asks for
+        figure_layout=style_figure.FigureLayout(
+            figure_width=style_figure.FigureWidth(width_fraction=0.95),
+            ## the top margin holds the column headings and the left one the row labels;
+            ## nothing sits below the panels, so the bottom only needs its clearance
+            figure_margins=style_figure.FigureMargins(
+                left=20.0,
+                right=6.0,
+                bottom=6.0,
+                top=21.0,
+            ),
+        ),
+        share_x_axis=True,
+        share_y_axis=True,
     )
     for row_index, reconstruction_scheme in enumerate(reconstruction_schemes):
         for col_index, emf_compute_scheme in enumerate(emf_compute_schemes):
-            ax = axs[row_index, col_index]
+            panel = panel_grid[row_index, col_index]
             ld04_sim = Simulation(
                 emf_compute_scheme=emf_compute_scheme,
                 emf_averaging_scheme=EMFAveragingScheme.LD04,
@@ -333,42 +345,41 @@ def main() -> None:
                 target_time=TARGET_TIME,
             )
             plot_comparison_contours(
-                ax=ax,
+                panel=panel,
                 upper_sarray=ld04_log10_sarray_slice,
                 lower_sarray=b25_log10_sarray_slice,
                 contour_value=CONTOUR_LOG10_VALUE,
                 upper_color=EMFAveragingScheme.LD04.value.color,
                 lower_color=EMFAveragingScheme.B25.value.color,
             )
-            ax.set_facecolor("white")
-            ax.set_xlim(AXIS_BOUNDS[0])
-            ax.set_ylim(AXIS_BOUNDS[1])
-            ax.set_xticks([])
-            ax.set_yticks([])
+            panel.set_facecolor("white")
+            panel.set_xlim(AXIS_BOUNDS[0])
+            panel.set_ylim(AXIS_BOUNDS[1])
+            panel.set_xticks([])
+            panel.set_yticks([])
             add_label(
-                ax=ax,
-                x_position=0.05,
-                y_position=0.95,
+                panel=panel,
+                x_position=0.035,
+                y_position=0.965,
                 x_alignment=box_positions.Positions.Side.Left,
                 y_alignment=box_positions.Positions.Side.Top,
                 label=EMFAveragingScheme.LD04.value.label,
             )
             add_label(
-                ax=ax,
-                x_position=0.95,
-                y_position=0.05,
+                panel=panel,
+                x_position=0.965,
+                y_position=0.035,
                 x_alignment=box_positions.Positions.Side.Right,
                 y_alignment=box_positions.Positions.Side.Bottom,
                 label=EMFAveragingScheme.B25.value.label,
             )
             if row_index == 0:
-                ax.set_title(emf_compute_scheme.value.label)
+                panel.set_title(emf_compute_scheme.value.label)
             if col_index == 0:
-                ax.set_ylabel(reconstruction_scheme.value.label)
-    manage_plots.save_figure(
-        fig=fig,
-        fig_path=FIGURE_PATH,
-        dpi=400,
+                panel.set_ylabel(reconstruction_scheme.value.label)
+    manage_figure.save_figure(
+        figure=figure,
+        figure_path=FIGURE_PATH,
     )
 
 

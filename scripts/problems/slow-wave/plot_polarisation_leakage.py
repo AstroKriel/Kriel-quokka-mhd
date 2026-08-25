@@ -12,7 +12,7 @@ import numpy
 
 ## personal
 from jormi.ww_io import json_io, manage_io, manage_log
-from jormi.ww_plots import manage_plots, style_plots, annotate_axis
+from jormi.ww_plots import manage_figure, style_figure, annotate_panel
 from jormi.ww_types import box_positions
 
 ##
@@ -108,17 +108,19 @@ def subsample_evenly(
 
 def add_saturation_annotation(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
 ) -> None:
     """Mark where the wave completes one period, so leakage growth saturates."""
-    ax.axvline(
+    figure_params = style_figure.get_figure_params()
+    data_artist_params = figure_params.data_artist_params
+    text_size_params = figure_params.text_size_params
+    panel.axvline(
         x=1.0,
         color="red",
         linestyle="--",
-        linewidth=1.25,
         zorder=1,
     )
-    ax.axvspan(
+    panel.axvspan(
         0.0,
         1.0,
         color="red",
@@ -126,51 +128,50 @@ def add_saturation_annotation(
         linewidth=0.0,
         zorder=0,
     )
-    annotate_axis.add_text(
-        ax=ax,
+    annotate_panel.add_text(
+        panel=panel,
         x_pos=0.27,
         y_pos=0.935,
         label="phase pollution",
         x_alignment=box_positions.Positions.Center.Center,
         y_alignment=box_positions.Positions.Side.Top,
-        text_size=18,
         text_color="red",
     )
-    ax.annotate(
+    panel.annotate(
         "",
         xytext=(1.0, 0.375),
         xy=(1.5, 0.375),
-        xycoords=ax.get_xaxis_transform(),
+        xycoords=panel.get_xaxis_transform(),
         arrowprops={
             "arrowstyle": "-|>",
             "color": "blue",
-            "linewidth": 1.5,
-            "mutation_scale": 15.0,
+            "linewidth": data_artist_params.line_width,
+            ## the head is sized in points, so tie it to the text it sits beside
+            "mutation_scale": text_size_params.annotation_size,
             "shrinkA": 0.0,
             "shrinkB": 0.0,
         },
     )
-    annotate_axis.add_text(
-        ax=ax,
+    annotate_panel.add_text(
+        panel=panel,
         x_pos=0.535,
         y_pos=0.32,
         label="wave returns to\nalready-polluted\nphases",
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Side.Top,
-        text_size=16,
         text_color="blue",
     )
 
 
 def add_tail_annotation(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
     tail_ave: float,
     tail_std: float,
     y_pos: float,
     y_alignment: box_positions.Positions.Side,
 ) -> None:
-    ax.axhspan(
+    panel.axhspan(
         tail_ave - tail_std,
         tail_ave + tail_std,
         color="blue",
@@ -178,21 +179,19 @@ def add_tail_annotation(
         linewidth=0.0,
         zorder=1,
     )
-    ax.axhline(
+    panel.axhline(
         tail_ave,
         color="blue",
         linestyle=":",
-        linewidth=1.5,
         zorder=2,
     )
-    annotate_axis.add_text(
-        ax=ax,
+    annotate_panel.add_text(
+        panel=panel,
         x_pos=0.95,
         y_pos=y_pos,
         label=rf"${tail_ave:.2f} \pm {tail_std:.2f}$",
         x_alignment=box_positions.Positions.Side.Right,
         y_alignment=y_alignment,
-        text_size=18,
         text_color="blue",
     )
 
@@ -204,7 +203,14 @@ def add_tail_annotation(
 
 def main() -> None:
     manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    style_plots.set_theme()
+    default_text_sizes = style_figure.TextSizeParams()
+    style_figure.set_figure_params(
+        figure_params=style_figure.FigureParams(
+            text_size_params=style_figure.TextSizeParams(
+                legend_level=default_text_sizes.annotation_level,
+            ),
+        ),
+    )
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,
@@ -226,33 +232,39 @@ def main() -> None:
         log10_leakage_ratio=ratio_high,
         num_samples=NUM_TIME_SAMPLES,
     )
-    fig, axs = manage_plots.create_figure_grid(
-        num_rows=1,
-        num_cols=1,
-        axis_shape=(5.65, 6),
-        fig_scale=0.9,
+    figure, panel_grid = manage_figure.create_figure_grid(
+        num_panel_rows=1,
+        num_panel_columns=1,
+        panel_aspect_ratio=1.195,
+        ## drawn at the width the paper prints it at, so its text is the size it asks for
+        figure_layout=style_figure.FigureLayout(
+            figure_width=style_figure.FigureWidth(width_fraction=0.5),
+            ## the y label is a stacked fraction, so the left margin holds it and the ticks
+            figure_margins=style_figure.FigureMargins(
+                left=58.0,
+                right=6.0,
+                bottom=28.0,
+                top=6.0,
+            ),
+        ),
     )
-    ax = axs[0, 0]
-    ax.plot(
+    panel = panel_grid[0, 0]
+    panel.plot(
         times_low,
         ratio_low,
         marker="o",
         color="black",
-        markersize=8,
-        linewidth=1.0,
         zorder=5,
     )
-    ax.plot(
+    panel.plot(
         times_high,
         ratio_high,
         color="black",
         marker="s",
-        markersize=8,
-        linewidth=1.0,
         zorder=5,
     )
-    annotate_axis.add_custom_legend(
-        ax=ax,
+    annotate_panel.add_custom_legend(
+        panel=panel,
         artists=[
             "o",
             "s",
@@ -264,37 +276,33 @@ def main() -> None:
         colors=["black", "black"],
         anchor_point=(0.15, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
-        text_size=20,
-        spacing=0.25,
     )
     add_tail_annotation(
-        ax=ax,
+        panel=panel,
         tail_ave=tail_ave_low,
         tail_std=tail_std_low,
         y_pos=0.925,
         y_alignment=box_positions.Positions.Side.Top,
     )
     add_tail_annotation(
-        ax=ax,
+        panel=panel,
         tail_ave=tail_ave_high,
         tail_std=tail_std_high,
         y_pos=0.615,
         y_alignment=box_positions.Positions.Side.Top,
     )
-    add_saturation_annotation(ax=ax)
-    ax.set_ylim((-13, -5))
-    ax.set_xlabel(r"$t / T$")
-    ax.set_ylabel(
+    add_saturation_annotation(panel=panel)
+    panel.set_ylim((-13, -5))
+    panel.set_xlabel(r"$t / T$")
+    panel.set_ylabel(
         r"$\log_{10}\!\left("
         r"\dfrac{\int (b_2 - \langle b_2 \rangle)^2 \mathrm{d}x_0}"
         r"{\int (b_0 - \langle b_0 \rangle)^2 \mathrm{d}x_0}"
         r"\right)$",
-        fontsize=23,
     )
-    manage_plots.save_figure(
-        fig=fig,
-        fig_path=FIGURE_PATH,
-        dpi=200,
+    manage_figure.save_figure(
+        figure=figure,
+        figure_path=FIGURE_PATH,
     )
 
 

@@ -22,9 +22,9 @@ from jormi.ww_io import (
     manage_log,
 )
 from jormi.ww_plots import (
-    annotate_axis,
-    manage_plots,
-    style_plots,
+    annotate_panel,
+    manage_figure,
+    style_figure,
 )
 from jormi.ww_types import box_positions
 from jormi.ww_validation import validate_arrays, validate_types
@@ -105,12 +105,12 @@ class EMFComputeScheme(Enum):
 class EMFAveragingScheme(Enum):
     B25 = EMFAveragingSchemeStyle(
         marker="D",
-        marker_size=8,
+        marker_size=5.0,
         label="B25b",
     )
     LD04 = EMFAveragingSchemeStyle(
         marker="o",
-        marker_size=4,
+        marker_size=2.5,
         label="LD04",
     )
 
@@ -277,14 +277,14 @@ def load_grouped_data_series(
 
 def plot_wave_panel(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
     grouped_data_series: list[ConvergenceSeries],
 ) -> None:
     for data_series in grouped_data_series:
         emf_compute_scheme_style = data_series.sim.emf_compute_scheme.value
         emf_averaging_scheme_style = data_series.sim.emf_averaging_scheme.value
         reconstruction_scheme_style = data_series.sim.reconstruction_scheme.value
-        ax.plot(
+        panel.plot(
             numpy.log10(data_series.cell_size),
             numpy.log10(data_series.error),
             color=emf_compute_scheme_style.color,
@@ -292,16 +292,15 @@ def plot_wave_panel(
             markersize=emf_averaging_scheme_style.marker_size,
             markerfacecolor="none",
             markeredgecolor=emf_compute_scheme_style.color,
-            markeredgewidth=1.5,
             linestyle=reconstruction_scheme_style.linestyle,
-            linewidth=1.5,
+            linewidth=0.9,
             zorder=emf_compute_scheme_style.zorder,
         )
 
 
 def overlay_reference_slope(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
     wave_config: WaveConfig,
     grouped_data_series: list[ConvergenceSeries],
 ) -> None:
@@ -339,13 +338,13 @@ def overlay_reference_slope(
     end_index = int(numpy.argmin(numpy.abs(data_series_ppm.ncells - max_ncells)))
     x_values = numpy.log10(data_series_ppm.cell_size[[start_index, end_index]])
     y_values = reference_slope * x_values + intercept
-    annotate_axis.overlay_curve(
-        ax=ax,
+    annotate_panel.overlay_curve(
+        panel=panel,
         x_values=x_values,
         y_values=y_values,
         color="black",
         linestyle="-.",
-        linewidth=1.5,
+        linewidth=0.9,
         alpha=1.0,
         zorder=0.5,
     )
@@ -353,28 +352,28 @@ def overlay_reference_slope(
 
 def set_resolution_ticks(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
     ncells: NDArray[numpy.float64],
     cell_sizes: NDArray[numpy.float64],
     show_tick_labels: bool,
     show_axis_label: bool,
 ) -> None:
-    ax.set_xticks(numpy.log10(cell_sizes))
-    ax.set_xticklabels([str(int(n)) for n in ncells])
-    ax.tick_params(labelbottom=show_tick_labels)
-    ax.minorticks_off()
+    panel.set_xticks(numpy.log10(cell_sizes))
+    panel.set_xticklabels([str(int(n)) for n in ncells])
+    panel.tick_params(labelbottom=show_tick_labels)
+    panel.minorticks_off()
     if show_axis_label:
-        ax.set_xlabel("resolution", labelpad=10.0)
+        panel.set_xlabel("resolution", labelpad=10.0)
 
 
 def add_delta_x_axis(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
     show_tick_labels: bool,
     show_axis_label: bool,
 ) -> None:
-    top_ax = ax.twiny()
-    top_ax.set_xlim(ax.get_xlim())
+    top_ax = panel.twiny()
+    top_ax.set_xlim(panel.get_xlim())
     top_ax.tick_params(labeltop=show_tick_labels)
     if show_axis_label:
         top_ax.set_xlabel(r"$\log_{10} (\Delta x / L)$", labelpad=10.0)
@@ -382,30 +381,26 @@ def add_delta_x_axis(
 
 def add_emf_compute_scheme_legend(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
 ) -> None:
-    annotate_axis.add_custom_legend(
-        ax=ax,
-        artists=["o" for _ in EMFComputeScheme],
+    annotate_panel.add_custom_legend(
+        panel=panel,
+        artists=[None for _ in EMFComputeScheme],
         labels=[scheme.value.label for scheme in EMFComputeScheme],
-        colors=[scheme.value.color for scheme in EMFComputeScheme],
-        marker_size=0,  # hide the marker handle, only leave the coloured label text
-        text_color="markerfacecolor",
-        anchor_point=(1.0, 1.0),
+        colors=[scheme.value.color for scheme in EMFComputeScheme],        anchor_point=(1.0, 1.0),
         anchor_at_corner=box_positions.Positions.Corner.TopRight,
     )
 
 
 def add_emf_averaging_scheme_legend(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
 ) -> None:
-    annotate_axis.add_custom_legend(
-        ax=ax,
+    annotate_panel.add_custom_legend(
+        panel=panel,
         artists=[scheme.value.marker for scheme in EMFAveragingScheme],
         labels=[scheme.value.label for scheme in EMFAveragingScheme],
         colors=["black" for _ in EMFAveragingScheme],
-        marker_size=7,
         text_color="black",
         anchor_point=(1.0, 1.0),
         anchor_at_corner=box_positions.Positions.Corner.TopRight,
@@ -414,14 +409,13 @@ def add_emf_averaging_scheme_legend(
 
 def add_reconstruction_scheme_legend(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
 ) -> None:
-    annotate_axis.add_custom_legend(
-        ax=ax,
+    annotate_panel.add_custom_legend(
+        panel=panel,
         artists=[scheme.value.linestyle for scheme in ReconstructionScheme],
         labels=[scheme.value.label for scheme in ReconstructionScheme],
         colors=["black" for _ in ReconstructionScheme],
-        line_width=1.2,
         text_color="black",
         anchor_point=(1.0, 1.0),
         anchor_at_corner=box_positions.Positions.Corner.TopRight,
@@ -434,65 +428,89 @@ def add_reconstruction_scheme_legend(
 
 
 def main() -> None:
-    style_plots.set_theme()
+    ## the legends name the curves the same way the wave annotations do, so they are read as
+    ## the same kind of text and sit at the same level
+    default_text_sizes = style_figure.TextSizeParams()
+    style_figure.set_figure_params(
+        figure_params=style_figure.FigureParams(
+            text_size_params=style_figure.TextSizeParams(
+                legend_level=default_text_sizes.annotation_level,
+            ),
+        ),
+    )
     manage_log.set_block_width_mode(manage_log.BlockWidthMode.PRACTICAL)
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
-    fig, axs = manage_plots.create_figure(
-        num_rows=len(WAVE_CONFIGS),
-        num_cols=1,
-        axis_shape=(3.75, 6),
-        share_x=True,
-        share_y=False,
+    figure, panel_grid = manage_figure.create_figure(
+        num_panel_rows=len(WAVE_CONFIGS),
+        num_panel_columns=1,
+        panel_aspect_ratio=1.797,
+        ## the panels share an x axis, so only their frames sit in the gap, not tick labels
+        panel_row_gap=5.0,
+        ## drawn at the width the paper prints it at, so its text is the size it asks for
+        figure_layout=style_figure.FigureLayout(
+            figure_width=style_figure.FigureWidth(width_fraction=0.5),
+            ## the left margin holds the shared y label, and the top one a second x axis
+            ## with its own ticks and label, so both need more room than the default
+            figure_margins=style_figure.FigureMargins(
+                left=52.0,
+                right=6.0,
+                bottom=37.0,
+                top=36.0,
+            ),
+        ),
+        share_x_axis=True,
+        share_y_axis=False,
     )
-    axs[0, 0].invert_xaxis()
+    panel_grid[0, 0].invert_xaxis()
     for row_index, wave_config in enumerate(WAVE_CONFIGS):
-        ax = axs[row_index, 0]
+        panel = panel_grid[row_index, 0]
         grouped_data_series = load_grouped_data_series(wave_config=wave_config)
         is_first_row: bool = row_index == 0
         is_last_row: bool = row_index == len(WAVE_CONFIGS) - 1
         set_resolution_ticks(
-            ax=ax,
+            panel=panel,
             ncells=grouped_data_series[0].ncells,
             cell_sizes=grouped_data_series[0].cell_size,
             show_tick_labels=is_last_row,
             show_axis_label=is_last_row,
         )
         plot_wave_panel(
-            ax=ax,
+            panel=panel,
             grouped_data_series=grouped_data_series,
         )
         overlay_reference_slope(
-            ax=ax,
+            panel=panel,
             wave_config=wave_config,
             grouped_data_series=grouped_data_series,
         )
-        ax.set_ylim(wave_config.axis_y_range)
+        panel.set_ylim(wave_config.axis_y_range)
         ## captured only after real data is plotted, so the view limits it copies
         ## reflect the true autoscaled range rather than the pre-data default
         add_delta_x_axis(
-            ax=ax,
+            panel=panel,
             show_tick_labels=is_first_row,
             show_axis_label=is_first_row,
         )
-        annotate_axis.add_text(
-            ax=ax,
+        annotate_panel.add_text(
+            panel=panel,
             x_pos=0.05,
             y_pos=0.05,
             x_alignment=box_positions.Positions.Side.Left,
             y_alignment=box_positions.Positions.Side.Bottom,
             label=wave_config.wave_label,
         )
-    add_emf_compute_scheme_legend(ax=axs[0, 0])
-    add_emf_averaging_scheme_legend(ax=axs[1, 0])
-    add_reconstruction_scheme_legend(ax=axs[2, 0])
-    fig.supylabel(r"$\log_{10} (\mbox{relative error})$", x=-0.05)
-    manage_plots.save_figure(
-        fig=fig,
-        fig_path=FIGURE_PATH,
-        dpi=200,
+    add_emf_compute_scheme_legend(panel=panel_grid[0, 0])
+    add_emf_averaging_scheme_legend(panel=panel_grid[1, 0])
+    add_reconstruction_scheme_legend(panel=panel_grid[2, 0])
+    ## a share of the figure width, so it has to sit inside it; a negative x would place the
+    ## label off the canvas whatever the left margin holds
+    figure.supylabel(r"$\log_{10} (\mbox{relative error})$", x=0.04)
+    manage_figure.save_figure(
+        figure=figure,
+        figure_path=FIGURE_PATH,
     )
 
 

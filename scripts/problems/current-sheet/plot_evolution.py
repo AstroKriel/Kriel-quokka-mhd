@@ -15,7 +15,7 @@ from numpy.typing import NDArray
 
 ## personal
 from jormi.ww_io import manage_io, manage_log
-from jormi.ww_plots import add_color, annotate_axis, manage_plots, plot_data, style_plots
+from jormi.ww_plots import add_color, annotate_panel, manage_figure, plot_data, style_figure
 from jormi.ww_types import box_positions
 
 ##
@@ -41,13 +41,13 @@ class DataPanel:
 
 ## inputs and outputs
 ROOT_DIR = Path(__file__).parents[3]
-DATASET_DIR = ROOT_DIR / "datasets/problems/current-sheet/ncells=1024/q26-b25-ppm_ep"
+DATASET_DIR = ROOT_DIR / "datasets/problems/current-sheet/ncells=1024/q26-b25-ppm"
 DATASET_GLOB = "current_density-comp=x_2-slice=x_2-index=*.npz"
-TARGET_TIMES = (0.0, 0.5, 4.5, 10.0)
+TARGET_TIMES = (0.0, 0.5, 3.0, 10.0)
 FIGURE_PATH = ROOT_DIR / "figures/problems/current-sheet/current-density-evolution.png"
 
 ## plotting details
-AXIS_BOUNDS: plot_data.AxisBounds = ((-0.5, 0.5), (-0.5, 0.5))
+AXIS_BOUNDS: plot_data.AxisRanges = ((-0.5, 0.5), (-0.5, 0.5))
 MAJOR_TICK_STEP = 0.25
 MINOR_TICK_STEP = 0.05
 LABELED_TICK_VALUES = (-0.25, 0.25)
@@ -111,9 +111,13 @@ def format_domain_tick(
     tick_value: float,
     _tick_position: int,
 ) -> str:
-    """Label only `LABELED_TICK_VALUES`; every other major tick is drawn unlabeled."""
+    """
+    Label only `LABELED_TICK_VALUES`; every other major tick is drawn unlabeled.
+
+    Labels are math mode, so their minus signs match the ones Matplotlib formats itself.
+    """
     is_labeled = any(numpy.isclose(tick_value, labeled_value) for labeled_value in LABELED_TICK_VALUES)
-    return f"{tick_value:.2f}" if is_labeled else ""
+    return f"${tick_value:.2f}$" if is_labeled else ""
 
 
 ##
@@ -123,7 +127,16 @@ def format_domain_tick(
 
 def main() -> None:
     manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    style_plots.set_theme()
+    style_figure.set_figure_params()
+    figure_params = style_figure.get_figure_params()
+    panel_frame_params = figure_params.panel_frame_params
+    text_size_params = figure_params.text_size_params
+    theme_params = figure_params.theme_params
+    ## the panels share both axes, so only their frames sit in the gaps
+    panel_gaps = style_figure.PanelGaps(
+        column=5.0,
+        row=5.0,
+    )
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,
@@ -144,12 +157,23 @@ def main() -> None:
     )
     num_rows = 2
     num_cols = 2
-    fig, axs = manage_plots.create_figure_grid(
-        num_rows=num_rows,
-        num_cols=num_cols,
-        axis_shape=(3, 3),
-        x_spacing=0.05,
-        y_spacing=0.05,
+    figure, panel_grid = manage_figure.create_figure_grid(
+        num_panel_rows=num_rows,
+        num_panel_columns=num_cols,
+        panel_aspect_ratio=0.860,
+        ## drawn at the width the paper prints it at, so its text is the size it asks for
+        figure_layout=style_figure.FigureLayout(
+            figure_width=style_figure.FigureWidth(width_fraction=0.5),
+            ## the shared colorbar sits above the grid, so the top margin holds it, its ticks,
+            ## and its label
+            figure_margins=style_figure.FigureMargins(
+                left=34.0,
+                right=6.0,
+                bottom=28.0,
+                top=49.0,
+            ),
+            panel_gaps=panel_gaps,
+        ),
     )
     shared_upper_bound_value = max(
         compute_upper_bound_value(slice_values=data_slice.current_density) for data_slice in data_slices
@@ -158,44 +182,42 @@ def main() -> None:
     shared_log10_bounds = (-shared_log10_upper_bound_value, shared_log10_upper_bound_value)
     for panel_index, data_panel in enumerate(data_panels):
         row_index, col_index = divmod(panel_index, num_cols)
-        ax = axs[row_index, col_index]
+        panel = panel_grid[row_index, col_index]
         plot_data.plot_2d_array(
-            ax=ax,
+            panel=panel,
             array_2d=compute_signed_log10(data_panel.data_slice.current_density),
             data_format="xy",
-            axis_bounds=AXIS_BOUNDS,
-            cbar_bounds=shared_log10_bounds,
+            axis_ranges=AXIS_BOUNDS,
+            colorbar_range=shared_log10_bounds,
             palette_config=palette_config,
-            add_cbar=False,
+            add_colorbar=False,
         )
-        annotate_axis.add_text(
-            ax=ax,
+        annotate_panel.add_text(
+            panel=panel,
             x_pos=0.5,
-            y_pos=0.5,
+            y_pos=0.95,
             label=rf"$t = {data_panel.data_slice.step_time:.1f}$",
             x_alignment=box_positions.Positions.Center.Center,
-            y_alignment=box_positions.Positions.Center.Center,
-            text_size=20,
-            text_color="black",
-            box_alpha=0.0,
+            y_alignment=box_positions.Positions.Side.Top,
         )
-        ax.text(
+        panel.text(
             0.9,
             0.5,
             rf"$j_2 \in [{data_panel.data_range[0]:.1f},\ {data_panel.data_range[1]:.1f}]$",
-            transform=ax.transAxes,
+            transform=panel.transAxes,
             rotation=90.0,
             rotation_mode="anchor",
             horizontalalignment="center",
             verticalalignment="center",
-            fontsize=16,
-            color="black",
+            ## it runs the full height of a panel, so it is set a point tighter than the rest
+            fontsize=text_size_params.annotation_size - 1.0,
+            color=theme_params.foreground_color,
         )
-        for axis in (ax.xaxis, ax.yaxis):
+        for axis in (panel.xaxis, panel.yaxis):
             axis.set_major_locator(MultipleLocator(MAJOR_TICK_STEP))
             axis.set_minor_locator(MultipleLocator(MINOR_TICK_STEP))
             axis.set_major_formatter(FuncFormatter(format_domain_tick))
-        ax.tick_params(
+        panel.tick_params(
             labelbottom=(row_index == num_rows - 1),
             labelleft=(col_index == 0),
         )
@@ -204,10 +226,10 @@ def main() -> None:
         value_range=shared_log10_bounds,
     )
     ## one shared colorbar spanning the full width of the grid
-    top_left_bounds = axs[0, 0].get_position()
-    top_right_bounds = axs[0, -1].get_position()
-    bottom_left_bounds = axs[-1, 0].get_position()
-    cbar_anchor_ax = fig.add_axes(
+    top_left_bounds = panel_grid[0, 0].get_position()
+    top_right_bounds = panel_grid[0, -1].get_position()
+    bottom_left_bounds = panel_grid[-1, 0].get_position()
+    cbar_anchor_ax = figure.add_axes(
         (
             top_left_bounds.x0,
             bottom_left_bounds.y0,
@@ -217,34 +239,36 @@ def main() -> None:
     )
     cbar_anchor_ax.set_axis_off()
     add_color.add_colorbar(
-        ax=cbar_anchor_ax,
+        panel=cbar_anchor_ax,
         palette=palette,
         label=r"$\mathrm{sgn}(j_2)\,\log_{10}\!\left(1 + |j_2|\right)$",
-        cbar_side="top",
-        label_size=26,
+        colorbar_side="top",
+        ## nothing sits between the grid and the bar, so it needs less room than two panels do
+        colorbar_gap=panel_gaps.row / 2.0,
+        ## the label clears a row of tick labels here, not just the bar, so it sits further out
+        label_gap=panel_frame_params.axis_label_gap * 2.0,
     )
     ## one shared x_0/x_1 axis label, centred across the full grid
-    fig.text(
+    figure.text(
         (bottom_left_bounds.x0 + top_right_bounds.x1) / 2.0,
         bottom_left_bounds.y0 - 0.05,
         r"$x_0$",
         ha="center",
         va="top",
-        fontsize=30,
+        fontsize=text_size_params.axis_label_size,
     )
-    fig.text(
+    figure.text(
         top_left_bounds.x0 - 0.1,
         (bottom_left_bounds.y0 + top_left_bounds.y1) / 2.0,
         r"$x_1$",
         ha="right",
         va="center",
         rotation=90.0,
-        fontsize=30,
+        fontsize=text_size_params.axis_label_size,
     )
-    manage_plots.save_figure(
-        fig=fig,
-        fig_path=FIGURE_PATH,
-        dpi=400,
+    manage_figure.save_figure(
+        figure=figure,
+        figure_path=FIGURE_PATH,
     )
 
 

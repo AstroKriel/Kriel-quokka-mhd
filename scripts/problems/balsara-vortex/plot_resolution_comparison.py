@@ -288,18 +288,11 @@ def main() -> None:
         bottom_right=first_snapshot_lookup[right_side_resolution],
     )
     figure, panel = manage_figure.create_figure(
-        panel_aspect_ratio=1.076,
+        ## the domain is square; the figure is fitted around it once its labels exist
+        panel_aspect=1.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.5),
-            ## the panel carries no ticks, so the margins hold the colorbar on the right and
-            ## the two labels that sit outside the panel above and below it
-            figure_margins=style_figure.FigureMargins(
-                left=6.0,
-                right=50.0,
-                bottom=20.0,
-                top=20.0,
-            ),
         ),
     )
     plot_data.plot_2d_array(
@@ -385,7 +378,7 @@ def main() -> None:
         value_range=VALUE_RANGE,
     )
     add_color.add_colorbar(
-        panel=panel,
+        panels=panel,
         palette=palette,
         label=r"$\log_{10}(b^2 / 2)$",
         colorbar_side="right",

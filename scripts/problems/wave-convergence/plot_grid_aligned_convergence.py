@@ -211,14 +211,14 @@ WAVE_CONFIGS: tuple[WaveConfig, ...] = (
         wave_label="Alfvén (linear)",
         wave_data_dir=Path("alfven-wave-linear/convergence/ideal/angle=0-nx=1-ny=0-nz=0"),
         wave_data_file_name="alfven_wave_convergence.csv",
-        axis_y_range=(-12.5, -6),
+        axis_y_range=(-12.5, -6.5),
         fit_x_range=(16, 512),
     ),
     WaveConfig(
         wave_label="Alfvén (circular)",
         wave_data_dir=Path("alfven-wave-circular/convergence"),
         wave_data_file_name="alfven_wave_circular_convergence.csv",
-        axis_y_range=(-13, -6),
+        axis_y_range=(-13.5, -6.5),
         fit_x_range=(16, 2048),
     ),
     WaveConfig(
@@ -446,20 +446,12 @@ def main() -> None:
     figure, panel_grid = manage_figure.create_figure(
         num_panel_rows=len(WAVE_CONFIGS),
         num_panel_columns=1,
-        panel_aspect_ratio=1.797,
+        panel_aspect=1.7,
         ## the panels share an x axis, so only their frames sit in the gap, not tick labels
         panel_row_gap=5.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.5),
-            ## the left margin holds the shared y label, and the top one a second x axis
-            ## with its own ticks and label, so both need more room than the default
-            figure_margins=style_figure.FigureMargins(
-                left=52.0,
-                right=6.0,
-                bottom=37.0,
-                top=36.0,
-            ),
         ),
         share_x_axis=True,
         share_y_axis=False,
@@ -507,7 +499,11 @@ def main() -> None:
     add_reconstruction_scheme_legend(panel=panel_grid[2, 0])
     ## a share of the figure width, so it has to sit inside it; a negative x would place the
     ## label off the canvas whatever the left margin holds
-    figure.supylabel(r"$\log_{10} (\mbox{relative error})$", x=0.04)
+    annotate_panel.add_shared_axis_label(
+        panels=panel_grid,
+        label=r"$\log_{10} (\mbox{relative error})$",
+        side=box_positions.Positions.Side.Left,
+    )
     manage_figure.save_figure(
         figure=figure,
         figure_path=FIGURE_PATH,

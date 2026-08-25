@@ -144,16 +144,10 @@ def main() -> None:
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=1,
         num_panel_columns=1,
-        panel_aspect_ratio=1.188,
+        panel_aspect=1.160,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.475),
-            figure_margins=style_figure.FigureMargins(
-                left=42.0,
-                right=6.0,
-                bottom=31.0,
-                top=6.0,
-            ),
         ),
     )
     plot_decay_rate_panel(

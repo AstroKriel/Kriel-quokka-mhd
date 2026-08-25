@@ -248,17 +248,11 @@ def main() -> None:
         palette_range=compute_zero_centred_palette_range(value_range=CBAR_BOUNDS),
     )
     figure, panel = manage_figure.create_figure(
-        panel_aspect_ratio=0.860,
+        ## the domain is square; the figure is fitted around it once its labels exist
+        panel_aspect=1.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.5),
-            ## the colorbar sits above the panel, so the top margin holds it, its ticks, and its label
-            figure_margins=style_figure.FigureMargins(
-                left=34.0,
-                right=6.0,
-                bottom=28.0,
-                top=49.0,
-            ),
         ),
     )
     composite = combine_arrays_split_diagonally(
@@ -315,7 +309,7 @@ def main() -> None:
         value_range=CBAR_BOUNDS,
     )
     cbar = add_color.add_colorbar(
-        panel=panel,
+        panels=panel,
         palette=palette,
         label=r"$\log_{10}(\rho / \rho_\mathrm{bg})$",
         colorbar_side="top",

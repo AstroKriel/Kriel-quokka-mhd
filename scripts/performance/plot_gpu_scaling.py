@@ -295,20 +295,12 @@ def main() -> None:
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=1,
         num_panel_columns=2,
-        panel_aspect_ratio=1.115,
+        panel_aspect=1.597,
         ## the panels share a y axis, so only their frames sit in the gap
         panel_column_gap=5.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.90),
-            ## each panel carries a second x axis above it, with its own ticks and label,
-            ## so the top margin has to hold all of that
-            figure_margins=style_figure.FigureMargins(
-                left=33.0,
-                right=6.0,
-                bottom=32.0,
-                top=37.0,
-            ),
         ),
         share_y_axis=True,
     )

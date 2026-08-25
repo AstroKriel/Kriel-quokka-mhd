@@ -167,11 +167,11 @@ MAIN_MAJOR_TICK_STEP = 0.25
 MAIN_MINOR_TICK_STEP = 0.05
 MAIN_LABELED_TICK_VALUES_X = (-0.5, -0.25, 0, 0.25)
 MAIN_LABELED_TICK_VALUES_Y = (-0.5, -0.25, 0, 0.25, 0.5)
-FIGURE_ASPECT_RATIO = 1.354
+FIGURE_ASPECT_RATIO = 1.368
 ## the panels carry no labels between them, so only their frames sit in the gaps
 FIGURE_MARGINS = style_figure.FigureMargins(
     left=42.0,
-    right=31.0,
+    right=36.0,
     bottom=28.0,
     top=54.0,
 )
@@ -196,7 +196,6 @@ ZOOM_REGIONS: tuple[ZoomRegion, ...] = (
         x_lo=0.275,
         y_lo=-0.25,
         width=0.15,
-        y_label_step=0.05,
     ),
 )
 

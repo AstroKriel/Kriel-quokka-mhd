@@ -14,7 +14,7 @@ from numpy.typing import NDArray
 
 ## personal
 from jormi.ww_io import manage_io, manage_log
-from jormi.ww_plots import annotate_axis, manage_plots, style_plots
+from jormi.ww_plots import annotate_panel, manage_figure, style_figure
 from jormi.ww_types import box_positions
 
 ##
@@ -71,27 +71,25 @@ def load_snapshots(
 
 def plot_even_odd_profiles(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
     snapshot: PressureSnapshot,
-    color: annotate_axis.ColorType,
+    color: annotate_panel.ColorType,
     zorder: int,
 ) -> None:
     num_cells = snapshot.pressure.shape[0]
     x_0 = (numpy.arange(num_cells) + 0.5) / num_cells
-    ax.plot(
+    panel.plot(
         x_0,
         snapshot.pressure[:, EVEN_ROW_INDEX],
         color=color,
         linestyle="-",
-        linewidth=1.5,
         zorder=zorder,
     )
-    ax.plot(
+    panel.plot(
         x_0,
         snapshot.pressure[:, ODD_ROW_INDEX],
         color=color,
         linestyle="--",
-        linewidth=1.5,
         zorder=zorder,
     )
 
@@ -103,7 +101,14 @@ def plot_even_odd_profiles(
 
 def main() -> None:
     manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    style_plots.set_theme()
+    default_text_sizes = style_figure.TextSizeParams()
+    style_figure.set_figure_params(
+        figure_params=style_figure.FigureParams(
+            text_size_params=style_figure.TextSizeParams(
+                legend_level=default_text_sizes.annotation_level,
+            ),
+        ),
+    )
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,
@@ -112,55 +117,57 @@ def main() -> None:
     snapshots_on = load_snapshots(combo=COMBO_ON)
     representative_off = snapshots_off[-1]
     representative_on = snapshots_on[-1]
-    fig, ax = manage_plots.create_figure(axis_shape=(5, 6))
+    figure, panel = manage_figure.create_figure(
+        panel_aspect_ratio=1.195,
+        ## drawn at the width the paper prints it at, so its text is the size it asks for
+        figure_layout=style_figure.FigureLayout(
+            figure_width=style_figure.FigureWidth(width_fraction=0.5),
+        ),
+    )
     plot_even_odd_profiles(
-        ax=ax,
+        panel=panel,
         snapshot=representative_off,
         color="red",
         zorder=2,
     )
     plot_even_odd_profiles(
-        ax=ax,
+        panel=panel,
         snapshot=representative_on,
         color="blue",
         zorder=3,
     )
-    ax.set_ylabel(r"$p$", labelpad=10.0)
-    ax.set_xlabel(r"$x_0$")
-    ax.set_ylim((24.4, 30.2))
-    annotate_axis.add_text(
-        ax=ax,
+    panel.set_ylabel(r"$p$", labelpad=10.0)
+    panel.set_xlabel(r"$x_0$")
+    panel.set_ylim((24.4, 30.2))
+    annotate_panel.add_text(
+        panel=panel,
         x_pos=0.085,
         y_pos=0.65,
         label=rf"$t = {representative_off.step_time:.2f}$",
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Side.Top,
-        text_size=22,
-        text_color="black",
+        ## math italic reads smaller than upright text, so this sits with the axis labels
+        text_size=default_text_sizes.axis_label_size,
     )
-    annotate_axis.add_custom_legend(
-        ax=ax,
+    annotate_panel.add_custom_legend(
+        panel=panel,
         artists=["-", "--"],
         labels=["even row", "odd row"],
         colors=["black", "black"],
         anchor_point=(0.025, 0.975),
         anchor_at_corner=box_positions.Positions.Corner.TopLeft,
-        text_size=20,
     )
-    annotate_axis.add_custom_legend(
-        ax=ax,
+    annotate_panel.add_custom_legend(
+        panel=panel,
         artists=["o", "o"],
         labels=["carbuncle phenomenon", "corrected shock-anisotropy"],
         colors=["red", "blue"],
         anchor_point=(0.0, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
-        text_size=20,
-        marker_size=10,
     )
-    manage_plots.save_figure(
-        fig=fig,
-        fig_path=FIGURE_PATH,
-        dpi=300,
+    manage_figure.save_figure(
+        figure=figure,
+        figure_path=FIGURE_PATH,
     )
 
 

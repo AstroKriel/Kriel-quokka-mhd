@@ -16,7 +16,7 @@ from numpy.typing import NDArray
 from jormi.ww_data import fit_series
 from jormi.ww_data.series_types import GaussianSeries
 from jormi.ww_io import json_io, manage_io, manage_log
-from jormi.ww_plots import manage_plots, style_plots
+from jormi.ww_plots import manage_figure, style_figure
 
 ##
 ## === DATA STRUCTURES
@@ -97,27 +97,25 @@ def measure_decay_rate(
 
 def plot_decay_rate_panel(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
     eta_labels: tuple[str, ...],
 ) -> None:
     input_etas = numpy.asarray([float(label) for label in eta_labels])
     measured_lambdas = numpy.asarray([measure_decay_rate(eta_label=label) for label in eta_labels])
     analytic_lambdas = input_etas * (2.0 * numpy.pi)**2 / 2.0
-    ax.plot(
+    panel.plot(
         numpy.log10(input_etas),
         numpy.log10(analytic_lambdas),
         color="black",
         linestyle=":",
-        linewidth=1.5,
         zorder=1,
         label=r"$\lambda = \eta k^2 / 2$",
     )
-    ax.plot(
+    panel.plot(
         numpy.log10(input_etas),
         numpy.log10(measured_lambdas),
         color="black",
         marker="o",
-        markersize=9,
         linestyle="",
         zorder=2,
     )
@@ -130,32 +128,47 @@ def plot_decay_rate_panel(
 
 def main() -> None:
     manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    style_plots.set_theme()
+    default_text_sizes = style_figure.TextSizeParams()
+    style_figure.set_figure_params(
+        figure_params=style_figure.FigureParams(
+            text_size_params=style_figure.TextSizeParams(
+                legend_level=default_text_sizes.annotation_level,
+            ),
+        ),
+    )
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
     eta_labels = discover_eta_labels(dataset_dir=DATASET_DIR)
-    fig, axs = manage_plots.create_figure_grid(
-        num_rows=1,
-        num_cols=1,
-        axis_shape=(5, 6),
+    figure, panel_grid = manage_figure.create_figure_grid(
+        num_panel_rows=1,
+        num_panel_columns=1,
+        panel_aspect_ratio=1.188,
+        ## drawn at the width the paper prints it at, so its text is the size it asks for
+        figure_layout=style_figure.FigureLayout(
+            figure_width=style_figure.FigureWidth(width_fraction=0.475),
+            figure_margins=style_figure.FigureMargins(
+                left=42.0,
+                right=6.0,
+                bottom=31.0,
+                top=6.0,
+            ),
+        ),
     )
     plot_decay_rate_panel(
-        ax=axs[0, 0],
+        panel=panel_grid[0, 0],
         eta_labels=eta_labels,
     )
-    axs[0, 0].set_xlabel(r"$\log_{10}\ (\mathrm{input}\ \eta)$")
-    axs[0, 0].set_ylabel(r"$\log_{10}\ (\mathrm{measured}\ \lambda)$")
-    axs[0, 0].legend(
+    panel_grid[0, 0].set_xlabel(r"$\log_{10}\ (\mathrm{input}\ \eta)$")
+    panel_grid[0, 0].set_ylabel(r"$\log_{10}\ (\mathrm{measured}\ \lambda)$")
+    panel_grid[0, 0].legend(
         loc="upper left",
         frameon=False,
-        fontsize=24,
     )
-    manage_plots.save_figure(
-        fig=fig,
-        fig_path=FIGURE_PATH,
-        dpi=200,
+    manage_figure.save_figure(
+        figure=figure,
+        figure_path=FIGURE_PATH,
     )
 
 

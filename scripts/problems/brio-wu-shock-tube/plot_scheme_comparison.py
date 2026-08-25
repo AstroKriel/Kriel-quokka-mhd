@@ -19,9 +19,9 @@ from numpy.typing import NDArray
 ## personal (local)
 from jormi.ww_io import manage_io, manage_log
 from jormi.ww_plots import (
-    annotate_axis,
-    manage_plots,
-    style_plots,
+    annotate_panel,
+    manage_figure,
+    style_figure,
 )
 from jormi.ww_types import box_positions
 from ww_quokka_sims.sim_io.profile_models import (
@@ -112,7 +112,7 @@ DISCONTINUITY_POSITION: float = 0.5
 ## plotting details
 MARKER_PLOT_KWARGS: dict[str, Any] = {
     "markerfacecolor": "none",
-    "markersize": 6,
+    "markersize": 2.5,
     "markeredgewidth": 0.3,
     "linestyle": "",
 }
@@ -153,14 +153,17 @@ def load_sim_profiles(
         density=ComponentArrays(
             position=density_profile.position,
             field_value=density_profile.field_value,
+            label=r"$\rho$",
         ),
         pressure=ComponentArrays(
             position=pressure_profile.position,
             field_value=pressure_profile.field_value,
+            label=r"$p$",
         ),
         pressure_ratio=ComponentArrays(
             position=pressure_profile.position,
             field_value=pressure_profile.field_value / density_profile.field_value,
+            label=r"$p / \rho$",
         ),
         velocity_x0=velocity_profile.components["x_0"],
         velocity_x1=velocity_profile.components["x_1"],
@@ -202,26 +205,32 @@ def compute_smoothed_profiles(
         density=ComponentArrays(
             position=profiles.density.position,
             field_value=compute_moving_average(profiles.density.field_value),
+            label=r"$\rho$",
         ),
         pressure=ComponentArrays(
             position=profiles.pressure.position,
             field_value=compute_moving_average(profiles.pressure.field_value),
+            label=r"$p$",
         ),
         pressure_ratio=ComponentArrays(
             position=profiles.pressure_ratio.position,
             field_value=compute_moving_average(profiles.pressure_ratio.field_value),
+            label=r"$p / \rho$",
         ),
         velocity_x0=ComponentArrays(
             position=profiles.velocity_x0.position,
             field_value=compute_moving_average(profiles.velocity_x0.field_value),
+            label=r"$\left[\vec{v}\right]_0$",
         ),
         velocity_x1=ComponentArrays(
             position=profiles.velocity_x1.position,
             field_value=compute_moving_average(profiles.velocity_x1.field_value),
+            label=r"$\left[\vec{v}\right]_1$",
         ),
         magnetic_x1=ComponentArrays(
             position=profiles.magnetic_x1.position,
             field_value=compute_moving_average(profiles.magnetic_x1.field_value),
+            label=r"$\left[\vec{b}\right]_1$",
         ),
     )
 
@@ -238,6 +247,7 @@ def shift_profiles(
         return ComponentArrays(
             position=component.position - shift,
             field_value=component.field_value,
+            label=component.label,
         )
 
     return ShockTubeProfiles(
@@ -252,36 +262,36 @@ def shift_profiles(
 
 def plot_profiles(
     *,
-    axs: manage_plots.PlotAxesGrid,
+    panel_grid: manage_figure.PanelGrid,
     profiles: ShockTubeProfiles,
     plot_kwargs: dict[str, Any],
 ) -> None:
-    axs[0, 0].plot(
+    panel_grid[0, 0].plot(
         profiles.density.position,
         profiles.density.field_value,
         **plot_kwargs,
     )
-    axs[0, 1].plot(
+    panel_grid[0, 1].plot(
         profiles.pressure.position,
         profiles.pressure.field_value,
         **plot_kwargs,
     )
-    axs[1, 0].plot(
+    panel_grid[1, 0].plot(
         profiles.velocity_x0.position,
         profiles.velocity_x0.field_value,
         **plot_kwargs,
     )
-    axs[1, 1].plot(
+    panel_grid[1, 1].plot(
         profiles.pressure_ratio.position,
         profiles.pressure_ratio.field_value,
         **plot_kwargs,
     )
-    axs[2, 0].plot(
+    panel_grid[2, 0].plot(
         profiles.velocity_x1.position,
         profiles.velocity_x1.field_value,
         **plot_kwargs,
     )
-    axs[2, 1].plot(
+    panel_grid[2, 1].plot(
         profiles.magnetic_x1.position,
         profiles.magnetic_x1.field_value,
         **plot_kwargs,
@@ -294,8 +304,8 @@ def build_axis_bounds(
     x_hi: float,
     y_lo: float,
     y_hi: float,
-) -> manage_plots.AxisBounds:
-    return manage_plots.AxisBounds(
+) -> manage_figure.PanelBounds:
+    return manage_figure.PanelBounds(
         x_min=x_lo,
         y_min=y_lo,
         x_width=x_hi - x_lo,
@@ -305,21 +315,21 @@ def build_axis_bounds(
 
 def add_zoom_inset(
     *,
-    ax: manage_plots.PlotAxis,
-    axis_bounds: manage_plots.AxisBounds,
+    panel: manage_figure.Panel,
+    axis_ranges: manage_figure.PanelBounds,
     x_range: tuple[float, float],
     y_range: tuple[float, float],
     color: str,
 ) -> None:
-    inset_ax = ax.inset_axes(
+    inset_ax = panel.inset_axes(
         (
-            axis_bounds.x_min,
-            axis_bounds.y_min,
-            axis_bounds.x_width,
-            axis_bounds.y_width,
+            axis_ranges.x_min,
+            axis_ranges.y_min,
+            axis_ranges.x_width,
+            axis_ranges.y_width,
         ),
     )
-    for line in ax.get_lines():
+    for line in panel.get_lines():
         inset_ax.plot(
             line.get_xdata(),
             line.get_ydata(),
@@ -328,7 +338,7 @@ def add_zoom_inset(
             markeredgecolor=line.get_markeredgecolor(),
             markerfacecolor=line.get_markerfacecolor(),
             markersize=line.get_markersize(),
-            markeredgewidth=line.get_markeredgewidth() * 3.0,
+            markeredgewidth=line.get_markeredgewidth(),
             linestyle=line.get_linestyle(),
             linewidth=line.get_linewidth(),
             zorder=line.get_zorder(),
@@ -339,20 +349,18 @@ def add_zoom_inset(
     inset_ax.set_yticks([])
     for spine in inset_ax.spines.values():
         spine.set_edgecolor(color)
-    ax.indicate_inset_zoom(inset_ax, edgecolor=color)
+    panel.indicate_inset_zoom(inset_ax, edgecolor=color)
 
 
 def add_emf_compute_scheme_legend(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
 ) -> None:
-    annotate_axis.add_custom_legend(
-        ax=ax,
-        artists=["o" for _ in EMFComputeScheme],
+    annotate_panel.add_custom_legend(
+        panel=panel,
+        artists=[None for _ in EMFComputeScheme],
         labels=[scheme.value.label for scheme in EMFComputeScheme],
         colors=[scheme.value.color for scheme in EMFComputeScheme],
-        marker_size=0,
-        text_color="markerfacecolor",
         marker_first=False,  # put the (invisible) handle after the text, so text hugs the left edge
         anchor_point=(0.0, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
@@ -361,15 +369,14 @@ def add_emf_compute_scheme_legend(
 
 def add_emf_averaging_scheme_legend(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
 ) -> None:
-    annotate_axis.add_custom_legend(
-        ax=ax,
+    annotate_panel.add_custom_legend(
+        panel=panel,
         artists=[scheme.value.marker for scheme in EMFAveragingScheme],
         labels=[scheme.value.label for scheme in EMFAveragingScheme],
         colors=["black" for _ in EMFAveragingScheme],
-        marker_size=7,
-        text_color="black",
+        marker_size=4,
         anchor_point=(0.0, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
     )
@@ -383,7 +390,7 @@ class ReferenceSchemeStyle:
 
 def add_reference_scheme_legend(
     *,
-    ax: manage_plots.PlotAxis,
+    panel: manage_figure.Panel,
     styles: tuple[ReferenceSchemeStyle, ...],
 ) -> None:
     handles = [
@@ -395,21 +402,17 @@ def add_reference_scheme_legend(
             markeredgecolor=style.color,
             markerfacecolor="none",
             markeredgewidth=0.3,
-            markersize=7,
+            markersize=4,
         ) for style in styles
     ]
-    legend = ax.legend(
+    legend = panel.legend(
         handles=handles,
         labels=[style.label for style in styles],
         loc="lower left",
         bbox_to_anchor=(0.0, 0.0),
-        fontsize=16,
-        labelcolor="black",
         frameon=False,
-        borderpad=0.45,
-        handletextpad=0.5,
     )
-    ax.add_artist(legend)
+    panel.add_artist(legend)
 
 
 ##
@@ -419,7 +422,18 @@ def add_reference_scheme_legend(
 
 def main() -> None:
     manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    style_plots.set_theme()
+    default_text_sizes = style_figure.TextSizeParams()
+    style_figure.set_figure_params(
+        figure_params=style_figure.FigureParams(
+            text_size_params=style_figure.TextSizeParams(
+                legend_level=default_text_sizes.annotation_level,
+            ),
+            legend_params=style_figure.LegendParams(
+                frame_margin=0.0,
+                handle_gap=0.05,
+            ),
+        ),
+    )
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,
@@ -444,23 +458,38 @@ def main() -> None:
         ),
         shift=DISCONTINUITY_POSITION,
     )
-    fig, axs = manage_plots.create_figure(
-        num_cols=2,
-        num_rows=3,
-        share_x=True,
+    figure, panel_grid = manage_figure.create_figure(
+        num_panel_columns=2,
+        num_panel_rows=3,
+        panel_aspect_ratio=1.717,
+        ## the rows share an x axis, so only their frames sit in the gap, not tick labels
+        panel_row_gap=5.0,
+        ## drawn at the width the paper prints it at, so its text is the size it asks for
+        figure_layout=style_figure.FigureLayout(
+            figure_width=style_figure.FigureWidth(width_fraction=0.85),
+            ## the right column carries its labels on the right, so that margin has to hold
+            ## as much as the left one does
+            figure_margins=style_figure.FigureMargins(
+                left=44.0,
+                right=40.0,
+                bottom=28.0,
+                top=6.0,
+            ),
+        ),
+        share_x_axis=True,
     )
     plot_profiles(
-        axs=axs,
+        panel_grid=panel_grid,
         profiles=reference_sim_profiles,
         plot_kwargs={
             "color": "black",
-            "linewidth": 1.5,
+            "linewidth": 0.9,
             "linestyle": "-",
             "zorder": 4,
         },
     )
     plot_profiles(
-        axs=axs,
+        panel_grid=panel_grid,
         profiles=llf_sim_profiles,
         plot_kwargs={
             **MARKER_PLOT_KWARGS,
@@ -476,7 +505,7 @@ def main() -> None:
         shift=DISCONTINUITY_POSITION,
     )
     plot_profiles(
-        axs=axs,
+        panel_grid=panel_grid,
         profiles=ppm_sim_profiles,
         plot_kwargs={
             **MARKER_PLOT_KWARGS,
@@ -496,7 +525,7 @@ def main() -> None:
                 shift=DISCONTINUITY_POSITION,
             )
             plot_profiles(
-                axs=axs,
+                panel_grid=panel_grid,
                 profiles=sim_profiles,
                 plot_kwargs={
                     **MARKER_PLOT_KWARGS,
@@ -506,8 +535,8 @@ def main() -> None:
                 },
             )
     add_zoom_inset(
-        ax=axs[1, 0],
-        axis_bounds=build_axis_bounds(
+        panel=panel_grid[1, 0],
+        axis_ranges=build_axis_bounds(
             x_lo=0.7,
             x_hi=0.965,
             y_lo=0.5,
@@ -518,8 +547,8 @@ def main() -> None:
         color="lightgrey",
     )
     add_zoom_inset(
-        ax=axs[1, 1],
-        axis_bounds=build_axis_bounds(
+        panel=panel_grid[1, 1],
+        axis_ranges=build_axis_bounds(
             x_lo=0.035,
             x_hi=0.4,
             y_lo=0.35,
@@ -529,10 +558,10 @@ def main() -> None:
         y_range=(1.4, 1.55),
         color="lightgrey",
     )
-    add_emf_compute_scheme_legend(ax=axs[0, 0])
-    add_emf_averaging_scheme_legend(ax=axs[0, 1])
-    annotate_axis.add_text(
-        ax=axs[0, 0],
+    add_emf_compute_scheme_legend(panel=panel_grid[0, 0])
+    add_emf_averaging_scheme_legend(panel=panel_grid[0, 1])
+    annotate_panel.add_text(
+        panel=panel_grid[0, 0],
         x_pos=0.95,
         y_pos=0.925,
         label=rf"$t = {solution_time:.2f}$",
@@ -540,7 +569,7 @@ def main() -> None:
         y_alignment=box_positions.Positions.Side.Top,
     )
     add_reference_scheme_legend(
-        ax=axs[1, 0],
+        panel=panel_grid[1, 0],
         styles=(
             ReferenceSchemeStyle(
                 label="PPM-EP + LLF",
@@ -552,16 +581,16 @@ def main() -> None:
             ),
         ),
     )
-    axs[0, 0].set_ylabel(r"$\rho$")
-    axs[0, 1].set_ylabel(r"$p$")
-    axs[1, 0].set_ylabel(r"$u_0$")
-    axs[1, 1].set_ylabel(r"$p / \rho$")
-    axs[2, 0].set_ylabel(r"$u_1$")
-    axs[2, 1].set_ylabel(r"$b_1$")
-    axs[2, 0].set_xlabel(r"$x_0 - x_\mathrm{shock}$")
-    axs[2, 1].set_xlabel(r"$x_0 - x_\mathrm{shock}$")
-    for ax in axs[:, 1]:
-        ax.tick_params(
+    panel_grid[0, 0].set_ylabel(r"$\rho$")
+    panel_grid[0, 1].set_ylabel(r"$p$")
+    panel_grid[1, 0].set_ylabel(r"$u_0$")
+    panel_grid[1, 1].set_ylabel(r"$p / \rho$")
+    panel_grid[2, 0].set_ylabel(r"$u_1$")
+    panel_grid[2, 1].set_ylabel(r"$b_1$")
+    panel_grid[2, 0].set_xlabel(r"$x_0 - x_\mathrm{shock}$")
+    panel_grid[2, 1].set_xlabel(r"$x_0 - x_\mathrm{shock}$")
+    for panel in panel_grid[:, 1]:
+        panel.tick_params(
             axis="y",
             which="both",
             left=True,
@@ -569,11 +598,10 @@ def main() -> None:
             labelleft=False,
             labelright=True,
         )
-        ax.yaxis.set_label_position("right")
-    manage_plots.save_figure(
-        fig=fig,
-        fig_path=FIGURE_PATH,
-        dpi=300,
+        panel.yaxis.set_label_position("right")
+    manage_figure.save_figure(
+        figure=figure,
+        figure_path=FIGURE_PATH,
     )
 
 

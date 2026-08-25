@@ -258,18 +258,10 @@ def main() -> None:
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=1,
         num_panel_columns=1,
-        panel_aspect_ratio=1.006,
+        panel_aspect=1.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.475),
-            ## the panel carries no ticks or axis labels, so every margin holds only the
-            ## clearance the figure's edges want
-            figure_margins=style_figure.FigureMargins(
-                left=6.0,
-                right=6.0,
-                bottom=6.0,
-                top=6.0,
-            ),
         ),
     )
     panel = panel_grid[0, 0]

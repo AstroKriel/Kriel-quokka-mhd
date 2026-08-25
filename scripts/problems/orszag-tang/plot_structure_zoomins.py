@@ -310,7 +310,7 @@ def plot_sarray_2d(
             value_range=cbar_bounds,
         )
         add_color.add_colorbar(
-            panel=panel,
+            panels=panel,
             palette=palette,
             label=field_label,
             colorbar_side="top",

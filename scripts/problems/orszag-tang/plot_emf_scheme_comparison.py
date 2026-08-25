@@ -304,21 +304,13 @@ def main() -> None:
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=len(reconstruction_schemes),
         num_panel_columns=len(emf_compute_schemes),
-        panel_aspect_ratio=1.01,
+        panel_aspect=1.0,
         ## the panels carry no tick labels, so only their frames sit in the gaps
         panel_column_gap=4.0,
         panel_row_gap=4.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.95),
-            ## the top margin holds the column headings and the left one the row labels;
-            ## nothing sits below the panels, so the bottom only needs its clearance
-            figure_margins=style_figure.FigureMargins(
-                left=20.0,
-                right=6.0,
-                bottom=6.0,
-                top=21.0,
-            ),
         ),
         share_x_axis=True,
         share_y_axis=True,

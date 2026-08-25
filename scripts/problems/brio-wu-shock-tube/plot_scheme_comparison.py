@@ -475,20 +475,12 @@ def main() -> None:
     figure, panel_grid = manage_figure.create_figure(
         num_panel_columns=2,
         num_panel_rows=3,
-        panel_aspect_ratio=1.717,
+        panel_aspect=1.494,
         ## the rows share an x axis, so only their frames sit in the gap, not tick labels
         panel_row_gap=5.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.85),
-            ## the right column carries its labels on the right, so that margin has to hold
-            ## as much as the left one does
-            figure_margins=style_figure.FigureMargins(
-                left=44.0,
-                right=40.0,
-                bottom=28.0,
-                top=6.0,
-            ),
         ),
         share_x_axis=True,
     )

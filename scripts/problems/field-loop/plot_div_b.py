@@ -233,7 +233,7 @@ def plot_pdf_panel(
     panel_gaps = figure_params.figure_layout.panel_gaps
     panel_frame_params = figure_params.panel_frame_params
     add_color.add_colorbar(
-        panel=panel,
+        panels=panel,
         palette=time_palette,
         label=r"$t / T$",
         colorbar_side="top",
@@ -275,7 +275,7 @@ def plot_slice_panel(
         value_range=cbar_bounds,
     )
     add_color.add_colorbar(
-        panel=panel,
+        panels=panel,
         palette=palette,
         label=r"$10^{16} \ (\nabla \cdot \vec{b})$",
         colorbar_side="top",
@@ -338,18 +338,10 @@ def plot_field_loop_divb(
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=1,
         num_panel_columns=2,
-        panel_aspect_ratio=1.113,
+        panel_aspect=1.5,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.95),
-            ## each panel carries a colorbar above it, and the right panel puts its y axis on
-            ## the outside, so both the top and right margins have to hold labels
-            figure_margins=style_figure.FigureMargins(
-                left=38.0,
-                right=42.0,
-                bottom=34.0,
-                top=46.0,
-            ),
         ),
     )
     plot_slice_panel(

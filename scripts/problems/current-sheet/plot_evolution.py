@@ -160,18 +160,11 @@ def main() -> None:
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=num_rows,
         num_panel_columns=num_cols,
-        panel_aspect_ratio=0.860,
+        ## the domain is square; the figure is fitted around it once its labels exist
+        panel_aspect=1.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.5),
-            ## the shared colorbar sits above the grid, so the top margin holds it, its ticks,
-            ## and its label
-            figure_margins=style_figure.FigureMargins(
-                left=34.0,
-                right=6.0,
-                bottom=28.0,
-                top=49.0,
-            ),
             panel_gaps=panel_gaps,
         ),
     )
@@ -209,8 +202,9 @@ def main() -> None:
             rotation_mode="anchor",
             horizontalalignment="center",
             verticalalignment="center",
-            ## it runs the full height of a panel, so it is set a point tighter than the rest
-            fontsize=text_size_params.annotation_size - 1.0,
+            ## it runs the full height of a panel, so it is set tighter than the rest; usetex
+            ## picks from discrete design sizes, so nearby sizes do not all shrink it
+            fontsize=text_size_params.annotation_size - 2.0,
             color=theme_params.foreground_color,
         )
         for axis in (panel.xaxis, panel.yaxis):
@@ -225,21 +219,10 @@ def main() -> None:
         config=palette_config,
         value_range=shared_log10_bounds,
     )
-    ## one shared colorbar spanning the full width of the grid
-    top_left_bounds = panel_grid[0, 0].get_position()
-    top_right_bounds = panel_grid[0, -1].get_position()
-    bottom_left_bounds = panel_grid[-1, 0].get_position()
-    cbar_anchor_ax = figure.add_axes(
-        (
-            top_left_bounds.x0,
-            bottom_left_bounds.y0,
-            top_right_bounds.x1 - top_left_bounds.x0,
-            top_left_bounds.y1 - bottom_left_bounds.y0,
-        ),
-    )
-    cbar_anchor_ax.set_axis_off()
+    ## one shared colorbar and one shared label per axis, all spanning the whole grid; each
+    ## is placed once the panels are fitted, so none of them is positioned by hand here
     add_color.add_colorbar(
-        panel=cbar_anchor_ax,
+        panels=panel_grid,
         palette=palette,
         label=r"$\mathrm{sgn}(j_2)\,\log_{10}\!\left(1 + |j_2|\right)$",
         colorbar_side="top",
@@ -248,23 +231,15 @@ def main() -> None:
         ## the label clears a row of tick labels here, not just the bar, so it sits further out
         label_gap=panel_frame_params.axis_label_gap * 2.0,
     )
-    ## one shared x_0/x_1 axis label, centred across the full grid
-    figure.text(
-        (bottom_left_bounds.x0 + top_right_bounds.x1) / 2.0,
-        bottom_left_bounds.y0 - 0.05,
-        r"$x_0$",
-        ha="center",
-        va="top",
-        fontsize=text_size_params.axis_label_size,
+    annotate_panel.add_shared_axis_label(
+        panels=panel_grid,
+        label=r"$x_0$",
+        side=box_positions.Positions.Side.Bottom,
     )
-    figure.text(
-        top_left_bounds.x0 - 0.1,
-        (bottom_left_bounds.y0 + top_left_bounds.y1) / 2.0,
-        r"$x_1$",
-        ha="right",
-        va="center",
-        rotation=90.0,
-        fontsize=text_size_params.axis_label_size,
+    annotate_panel.add_shared_axis_label(
+        panels=panel_grid,
+        label=r"$x_1$",
+        side=box_positions.Positions.Side.Left,
     )
     manage_figure.save_figure(
         figure=figure,

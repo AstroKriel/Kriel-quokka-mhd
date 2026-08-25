@@ -118,7 +118,7 @@ def main() -> None:
     representative_off = snapshots_off[-1]
     representative_on = snapshots_on[-1]
     figure, panel = manage_figure.create_figure(
-        panel_aspect_ratio=1.195,
+        panel_aspect=1.199,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.5),

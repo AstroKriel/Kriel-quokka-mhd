@@ -226,8 +226,8 @@ def main() -> None:
         palette=palette,
         label=r"$\mathrm{sgn}(j_2)\,\log_{10}\!\left(1 + |j_2|\right)$",
         colorbar_side="top",
-        ## nothing sits between the grid and the bar, so it needs less room than two panels do
-        colorbar_gap=panel_gaps.row / 2.0,
+        ## the gap is left unset, so the bar sits off the grid by the same gap the panels
+        ## are spaced by
         ## the label clears a row of tick labels here, not just the bar, so it sits further out
         label_gap=panel_frame_params.axis_label_gap * 2.0,
     )

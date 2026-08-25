@@ -158,6 +158,17 @@ MARKER_PLOT_KWARGS: dict[str, Any] = {
 ##
 
 
+def compute_level_of_size(
+    *,
+    text_size: float,
+) -> float:
+    """Return the level a text size sits at, inverting how the style scales its levels."""
+    default_text_sizes = style_figure.TextSizeParams()
+    return float(
+        numpy.log(default_text_sizes.largest_size / text_size) / numpy.log(default_text_sizes.size_ratio),
+    )
+
+
 def get_sim_tag(
     *,
     emf_compute_scheme: EMFComputeScheme,
@@ -455,7 +466,7 @@ def add_emf_compute_scheme_legend(
         labels=[scheme.value.label for scheme in EMFComputeScheme],
         colors=[scheme.value.color for scheme in EMFComputeScheme],
         marker_first=False,  # put the (invisible) handle after the text, so text hugs the left edge
-        anchor_point=(0.015, 0.985),
+        anchor_point=(0.04, 0.985),
         anchor_at_corner=box_positions.Positions.Corner.TopLeft,
     )
 
@@ -523,13 +534,14 @@ def add_reference_scheme_legend(
 
 def main() -> None:
     manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    ## the legends name the curves the same way the panel annotations do, so they are read
-    ## as the same kind of text and sit at the same level
+    ## the legends name the curves the same way the panel annotations do, so they read as the
+    ## same kind of text, set a quarter point smaller so they stay the quieter of the two
     default_text_sizes = style_figure.TextSizeParams()
+    legend_size = default_text_sizes.annotation_size - 0.25
     style_figure.set_figure_params(
         figure_params=style_figure.FigureParams(
             text_size_params=style_figure.TextSizeParams(
-                legend_level=default_text_sizes.annotation_level,
+                legend_level=compute_level_of_size(text_size=legend_size),
             ),
             ## every legend here sits hard against its anchor with its label close to the
             ## swatch, so that the ones built by hand and the ones built by

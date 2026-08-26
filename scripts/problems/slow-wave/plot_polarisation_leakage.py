@@ -112,7 +112,7 @@ def add_saturation_annotation(
 ) -> None:
     """Mark where the wave completes one period, so leakage growth saturates."""
     figure_params = style_figure.get_figure_params()
-    data_artist_params = figure_params.data_artist_params
+    artist_params = figure_params.artist_params
     text_size_params = figure_params.text_size_params
     panel.axvline(
         x=1.0,
@@ -145,7 +145,7 @@ def add_saturation_annotation(
         arrowprops={
             "arrowstyle": "-|>",
             "color": "blue",
-            "linewidth": data_artist_params.line_width,
+            "linewidth": artist_params.line_width,
             ## the head is sized in points, so tie it to the text it sits beside
             "mutation_scale": text_size_params.annotation_size,
             "shrinkA": 0.0,

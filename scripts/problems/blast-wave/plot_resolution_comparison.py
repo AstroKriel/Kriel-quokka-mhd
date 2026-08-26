@@ -234,7 +234,7 @@ def main() -> None:
     manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
     style_figure.set_figure_params()
     figure_params = style_figure.get_figure_params()
-    panel_frame_params = figure_params.panel_frame_params
+    frame_params = figure_params.frame_params
     panel_gaps = figure_params.figure_layout.panel_gaps
     text_size_params = figure_params.text_size_params
     manage_io.create_directory(
@@ -280,7 +280,7 @@ def main() -> None:
         [AXIS_BOUNDS[0][0], AXIS_BOUNDS[0][1]],
         [AXIS_BOUNDS[1][0], AXIS_BOUNDS[1][1]],
         color="white",
-        linewidth=panel_frame_params.line_width,
+        linewidth=frame_params.line_width,
     )
     annotate_panel.add_text(
         panel=panel,
@@ -316,7 +316,7 @@ def main() -> None:
         ## nothing sits between the panel and the bar, so it needs less room than two panels do
         colorbar_gap=panel_gaps.row / 2.0,
         ## the label clears a row of tick labels here, not just the bar, so it sits further out
-        label_gap=panel_frame_params.axis_label_gap * 2.0,
+        label_gap=frame_params.axis_label_gap * 2.0,
     )
     mark_contour_levels_on_cbar(cbar=cbar)
     manage_figure.save_figure(

@@ -178,7 +178,7 @@ def add_reference_circle_and_drift_arrow(
 ) -> None:
     """Draw the reference circle and the drift-direction arrow, both anchored to `radius`."""
     figure_params = style_figure.get_figure_params()
-    data_artist_params = figure_params.data_artist_params
+    artist_params = figure_params.artist_params
     text_size_params = figure_params.text_size_params
     theme_params = figure_params.theme_params
     theta = numpy.linspace(0.0, 2.0 * numpy.pi, 200)
@@ -203,7 +203,7 @@ def add_reference_circle_and_drift_arrow(
             "arrowstyle": "-|>",
             "color": theme_params.foreground_color,
             "linestyle": "-",
-            "linewidth": data_artist_params.line_width,
+            "linewidth": artist_params.line_width,
             ## the head is sized in points, so tie it to the text it sits beside
             "mutation_scale": text_size_params.annotation_size,
             "shrinkA": 0.0,
@@ -244,7 +244,7 @@ def main() -> None:
     manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
     style_figure.set_figure_params()
     figure_params = style_figure.get_figure_params()
-    panel_frame_params = figure_params.panel_frame_params
+    frame_params = figure_params.frame_params
     panel_gaps = figure_params.figure_layout.panel_gaps
     text_size_params = figure_params.text_size_params
     theme_params = figure_params.theme_params
@@ -310,12 +310,12 @@ def main() -> None:
     panel.axhline(
         0.0,
         color=theme_params.foreground_color,
-        linewidth=panel_frame_params.line_width,
+        linewidth=frame_params.line_width,
     )
     panel.axvline(
         0.0,
         color=theme_params.foreground_color,
-        linewidth=panel_frame_params.line_width,
+        linewidth=frame_params.line_width,
     )
     add_reference_circle_and_drift_arrow(
         panel=panel,

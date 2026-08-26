@@ -129,7 +129,7 @@ def main() -> None:
     manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
     style_figure.set_figure_params()
     figure_params = style_figure.get_figure_params()
-    panel_frame_params = figure_params.panel_frame_params
+    frame_params = figure_params.frame_params
     text_size_params = figure_params.text_size_params
     theme_params = figure_params.theme_params
     ## the panels share both axes, so only their frames sit in the gaps
@@ -229,7 +229,7 @@ def main() -> None:
         ## the gap is left unset, so the bar sits off the grid by the same gap the panels
         ## are spaced by
         ## the label clears a row of tick labels here, not just the bar, so it sits further out
-        label_gap=panel_frame_params.axis_label_gap * 2.0,
+        label_gap=frame_params.axis_label_gap * 2.0,
     )
     annotate_panel.add_shared_axis_label(
         panels=panel_grid,

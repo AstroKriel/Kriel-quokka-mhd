@@ -229,7 +229,7 @@ def overlay_zoomin_box(
     bounds: plot_data.AxisRanges,
 ) -> None:
     figure_params = style_figure.get_figure_params()
-    panel_frame_params = figure_params.panel_frame_params
+    frame_params = figure_params.frame_params
     (x_lo, x_hi), (y_lo, y_hi) = bounds
     panel.add_patch(
         mpl_patches.Rectangle(
@@ -238,7 +238,7 @@ def overlay_zoomin_box(
             y_hi - y_lo,
             facecolor=mpl_colors.to_rgba("white", alpha=0.15),
             edgecolor="white",
-            linewidth=panel_frame_params.line_width,
+            linewidth=frame_params.line_width,
             zorder=ZOOMIN_BOX_ZORDER,
         ),
     )
@@ -257,7 +257,7 @@ def connect_zoomin_to_panel(
     over them; a figure-level artist would always land on top of everything an axis holds.
     """
     figure_params = style_figure.get_figure_params()
-    panel_frame_params = figure_params.panel_frame_params
+    frame_params = figure_params.frame_params
     (x_lo, _), (y_lo, y_hi) = bounds
     ## the corners are paired top-to-top and bottom-to-bottom, so the two lines never cross
     for region_corner, panel_corner in (
@@ -271,7 +271,7 @@ def connect_zoomin_to_panel(
                 xyB=panel_corner,
                 coordsB=zoom_panel.transAxes,
                 color="white",
-                linewidth=panel_frame_params.line_width,
+                linewidth=frame_params.line_width,
                 clip_on=False,
                 zorder=ZOOMIN_CONNECTOR_ZORDER,
             ),
@@ -304,7 +304,7 @@ def plot_sarray_2d(
     )
     if add_colorbar:
         figure_params = style_figure.get_figure_params()
-        panel_frame_params = figure_params.panel_frame_params
+        frame_params = figure_params.frame_params
         palette = add_color.make_palette(
             config=palette_config,
             value_range=cbar_bounds,
@@ -317,7 +317,7 @@ def plot_sarray_2d(
             ## nothing sits between the panel and the bar, so it needs less room than two panels do
             colorbar_gap=PANEL_GAP,
             ## the label clears a row of tick labels here, not just the bar, so it sits further out
-            label_gap=panel_frame_params.axis_label_gap * 2.0,
+            label_gap=frame_params.axis_label_gap * 2.0,
         )
 
 

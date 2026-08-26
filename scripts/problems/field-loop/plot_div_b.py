@@ -133,7 +133,7 @@ def add_advection_arrow(
     loop_center: tuple[float, float],
 ) -> None:
     figure_params = style_figure.get_figure_params()
-    data_artist_params = figure_params.data_artist_params
+    artist_params = figure_params.artist_params
     text_size_params = figure_params.text_size_params
     arrow_start = (
         loop_center[0] + LOOP_INITIAL_RADIUS * ADVECTION_DIRECTION[0],
@@ -151,7 +151,7 @@ def add_advection_arrow(
         arrowprops={
             "arrowstyle": "-|>",
             "color": "red",
-            "linewidth": data_artist_params.line_width,
+            "linewidth": artist_params.line_width,
             ## the head is sized in points, so tie it to the text it sits beside
             "mutation_scale": text_size_params.annotation_size,
             "shrinkA": 0.0,
@@ -231,7 +231,7 @@ def plot_pdf_panel(
     axis_height = SLICE_BOUNDS[1][1] - SLICE_BOUNDS[1][0]
     panel.set_box_aspect(axis_height / axis_width)
     panel_gaps = figure_params.figure_layout.panel_gaps
-    panel_frame_params = figure_params.panel_frame_params
+    frame_params = figure_params.frame_params
     add_color.add_colorbar(
         panels=panel,
         palette=time_palette,
@@ -240,7 +240,7 @@ def plot_pdf_panel(
         ## nothing sits between the panel and the bar, so it needs less room than two panels do
         colorbar_gap=panel_gaps.row / 2.0,
         ## the label clears a row of tick labels here, not just the bar, so it sits further out
-        label_gap=panel_frame_params.axis_label_gap * 2.0,
+        label_gap=frame_params.axis_label_gap * 2.0,
     )
 
 
@@ -251,8 +251,8 @@ def plot_slice_panel(
 ) -> None:
     """Plot the div-b slice nearest `TARGET_TIME`, with a colorbar and a time label."""
     figure_params = style_figure.get_figure_params()
-    data_artist_params = figure_params.data_artist_params
-    panel_frame_params = figure_params.panel_frame_params
+    artist_params = figure_params.artist_params
+    frame_params = figure_params.frame_params
     panel_gaps = figure_params.figure_layout.panel_gaps
     palette_config = add_color.DivergingConfig(
         mid_value=0.0,
@@ -282,7 +282,7 @@ def plot_slice_panel(
         ## nothing sits between the panel and the bar, so it needs less room than two panels do
         colorbar_gap=panel_gaps.row / 2.0,
         ## the label clears a row of tick labels here, not just the bar, so it sits further out
-        label_gap=panel_frame_params.axis_label_gap * 2.0,
+        label_gap=frame_params.axis_label_gap * 2.0,
     )
     loop_center = compute_loop_center_at_time(step_time=divb_slice.step_time)
     panel.add_patch(
@@ -292,7 +292,7 @@ def plot_slice_panel(
             fill=False,
             edgecolor="red",
             linestyle="--",
-            linewidth=data_artist_params.line_width,
+            linewidth=artist_params.line_width,
         ),
     )
     (amr_x_lo, amr_x_hi), (amr_y_lo, amr_y_hi) = AMR_REGION_BOUNDS
@@ -304,7 +304,7 @@ def plot_slice_panel(
             fill=False,
             edgecolor="blue",
             linestyle="--",
-            linewidth=data_artist_params.line_width,
+            linewidth=artist_params.line_width,
         ),
     )
     add_advection_arrow(panel=panel, loop_center=loop_center)

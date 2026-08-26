@@ -53,7 +53,7 @@ class FigureGrid:
     num_rows: int
     num_cols: int
     fig_size: tuple[float, float]
-    figure_margins: style_figure.FigureMargins
+    figure_margins: manage_figure.FigureMargins
     panel_gaps: style_figure.PanelGaps
     figure: mpl_Figure = field(init=False)
     grid_spec: mpl_gridspec.GridSpec = field(init=False)
@@ -169,7 +169,7 @@ MAIN_LABELED_TICK_VALUES_X = (-0.5, -0.25, 0, 0.25)
 MAIN_LABELED_TICK_VALUES_Y = (-0.5, -0.25, 0, 0.25, 0.5)
 FIGURE_ASPECT_RATIO = 1.368
 ## the panels carry no labels between them, so only their frames sit in the gaps
-FIGURE_MARGINS = style_figure.FigureMargins(
+FIGURE_MARGINS = manage_figure.FigureMargins(
     left=42.0,
     right=36.0,
     bottom=28.0,

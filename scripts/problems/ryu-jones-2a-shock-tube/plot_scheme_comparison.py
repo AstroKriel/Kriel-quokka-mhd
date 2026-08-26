@@ -158,17 +158,6 @@ MARKER_PLOT_KWARGS: dict[str, Any] = {
 ##
 
 
-def compute_level_of_size(
-    *,
-    text_size: float,
-) -> float:
-    """Return the level a text size sits at, inverting how the style scales its levels."""
-    default_text_sizes = style_figure.TextSizeParams()
-    return float(
-        numpy.log(default_text_sizes.largest_size / text_size) / numpy.log(default_text_sizes.size_ratio),
-    )
-
-
 def get_sim_tag(
     *,
     emf_compute_scheme: EMFComputeScheme,
@@ -541,7 +530,7 @@ def main() -> None:
     style_figure.set_figure_params(
         figure_params=style_figure.FigureParams(
             text_size_params=style_figure.TextSizeParams(
-                legend_level=compute_level_of_size(text_size=legend_size),
+                legend_level=default_text_sizes.compute_level_at_size(text_size=legend_size),
             ),
             ## every legend here sits hard against its anchor with its label close to the
             ## swatch, so that the ones built by hand and the ones built by

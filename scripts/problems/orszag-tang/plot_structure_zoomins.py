@@ -417,7 +417,7 @@ def add_time_label(
         y_alignment=box_positions.Positions.Side.Top,
         ## it sits over the image, not the page, so it is keyed to the data behind it
         text_color="white",
-        text_size_pt=text_size_params.axis_label_size,
+        text_size_pt=text_size_params.axis_label_size_pt,
     )
 
 

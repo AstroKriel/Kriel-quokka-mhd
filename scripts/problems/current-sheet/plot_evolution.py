@@ -204,7 +204,7 @@ def main() -> None:
             verticalalignment="center",
             ## it runs the full height of a panel, so it is set tighter than the rest; usetex
             ## picks from discrete design sizes, so nearby sizes do not all shrink it
-            fontsize=text_size_params.annotation_size - 2.0,
+            fontsize=text_size_params.annotation_size_pt - 2.0,
             color=theme_params.foreground_color,
         )
         for axis in (panel.xaxis, panel.yaxis):

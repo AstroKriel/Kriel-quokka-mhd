@@ -147,7 +147,7 @@ def main() -> None:
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Side.Top,
         ## math italic reads smaller than upright text, so this sits with the axis labels
-        text_size_pt=default_text_sizes.axis_label_size,
+        text_size_pt=default_text_sizes.axis_label_size_pt,
     )
     annotate_panel.add_custom_legend(
         panel=panel,

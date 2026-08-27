@@ -205,7 +205,7 @@ def add_reference_circle_and_drift_arrow(
             "linestyle": "-",
             "linewidth": artist_params.line_width_pt,
             ## the head is sized in points, so tie it to the text it sits beside
-            "mutation_scale": text_size_params.annotation_size,
+            "mutation_scale": text_size_params.annotation_size_pt,
             "shrinkA": 0.0,
             "shrinkB": 0.0,
         },
@@ -219,7 +219,7 @@ def add_reference_circle_and_drift_arrow(
         multialignment="left",
         rotation=45.0,
         rotation_mode="anchor",
-        fontsize=text_size_params.annotation_size,
+        fontsize=text_size_params.annotation_size_pt,
         color=theme_params.foreground_color,
     )
     panel.text(
@@ -230,7 +230,7 @@ def add_reference_circle_and_drift_arrow(
         va="center",
         rotation=45.0,
         rotation_mode="anchor",
-        fontsize=text_size_params.annotation_size,
+        fontsize=text_size_params.annotation_size_pt,
         color=theme_params.foreground_color,
     )
 
@@ -336,7 +336,7 @@ def main() -> None:
             if x_pos < 0.5 else box_positions.Positions.Side.Right,
             y_alignment=box_positions.Positions.Side.Top,
             ## these name what each half of the panel shows, so they sit with the axis labels
-            text_size_pt=text_size_params.axis_label_size,
+            text_size_pt=text_size_params.axis_label_size_pt,
         )
     for x_pos, num_cells in ((0.025, left_side_resolution), (0.975, right_side_resolution)):
         annotate_panel.add_text(
@@ -357,7 +357,7 @@ def main() -> None:
         transform=panel.transAxes,
         ha="center",
         va="bottom",
-        fontsize=text_size_params.axis_label_size,
+        fontsize=text_size_params.axis_label_size_pt,
         color=theme_params.foreground_color,
     )
     panel.text(
@@ -367,7 +367,7 @@ def main() -> None:
         transform=panel.transAxes,
         ha="center",
         va="top",
-        fontsize=text_size_params.axis_label_size,
+        fontsize=text_size_params.axis_label_size_pt,
         color=theme_params.foreground_color,
     )
     palette = add_color.make_palette(

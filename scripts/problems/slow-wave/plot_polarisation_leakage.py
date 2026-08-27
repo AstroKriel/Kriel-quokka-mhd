@@ -76,8 +76,14 @@ def compute_leakage_ratio(
     ncells: int,
 ) -> tuple[numpy.ndarray, numpy.ndarray]:
     """Return (normalized time, log10 leakage ratio) for one resolution, excluding t=0."""
-    times, primary_energy = load_energy_time_series(ncells=ncells, component=PRIMARY_COMPONENT)
-    _, spurious_energy = load_energy_time_series(ncells=ncells, component=SPURIOUS_COMPONENT)
+    times, primary_energy = load_energy_time_series(
+        ncells=ncells,
+        component=PRIMARY_COMPONENT,
+    )
+    _, spurious_energy = load_energy_time_series(
+        ncells=ncells,
+        component=SPURIOUS_COMPONENT,
+    )
     ## the run spans exactly two wave periods (t = 4*pi/omega), so the last recorded time is
     ## twice the period; normalizing by this lets the x-axis read as wave phase, not raw time
     wave_period = times[-1] / 2.0
@@ -101,7 +107,8 @@ def subsample_evenly(
     of 23). `linspace` anchors both endpoints exactly.
     """
     indices_to_keep = numpy.unique(
-        numpy.linspace(0, len(normalized_times) - 1, num_samples).round().astype(int),
+        numpy.linspace(0,
+                       len(normalized_times) - 1, num_samples).round().astype(int),
     )
     return normalized_times[indices_to_keep], log10_leakage_ratio[indices_to_keep]
 
@@ -130,8 +137,8 @@ def add_saturation_annotation(
     )
     annotate_panel.add_text(
         panel=panel,
-        x_pos=0.27,
-        y_pos=0.935,
+        x_pos_fraction=0.27,
+        y_pos_fraction=0.935,
         label="phase pollution",
         x_alignment=box_positions.Positions.Center.Center,
         y_alignment=box_positions.Positions.Side.Top,
@@ -145,7 +152,7 @@ def add_saturation_annotation(
         arrowprops={
             "arrowstyle": "-|>",
             "color": "blue",
-            "linewidth": artist_params.line_width,
+            "linewidth": artist_params.line_width_pt,
             ## the head is sized in points, so tie it to the text it sits beside
             "mutation_scale": text_size_params.annotation_size,
             "shrinkA": 0.0,
@@ -154,8 +161,8 @@ def add_saturation_annotation(
     )
     annotate_panel.add_text(
         panel=panel,
-        x_pos=0.535,
-        y_pos=0.32,
+        x_pos_fraction=0.535,
+        y_pos_fraction=0.32,
         label="wave returns to\nalready-polluted\nphases",
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Side.Top,
@@ -168,7 +175,7 @@ def add_tail_annotation(
     panel: manage_figure.Panel,
     tail_ave: float,
     tail_std: float,
-    y_pos: float,
+    y_pos_fraction: float,
     y_alignment: box_positions.Positions.Side,
 ) -> None:
     panel.axhspan(
@@ -187,8 +194,8 @@ def add_tail_annotation(
     )
     annotate_panel.add_text(
         panel=panel,
-        x_pos=0.95,
-        y_pos=y_pos,
+        x_pos_fraction=0.95,
+        y_pos_fraction=y_pos_fraction,
         label=rf"${tail_ave:.2f} \pm {tail_std:.2f}$",
         x_alignment=box_positions.Positions.Side.Right,
         y_alignment=y_alignment,
@@ -234,8 +241,8 @@ def main() -> None:
     )
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=1,
-        num_panel_columns=1,
-        panel_aspect=1.045,
+        num_panel_cols=1,
+        panel_aspect_ratio=1.045,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.5),
@@ -267,21 +274,21 @@ def main() -> None:
             f"${NCELLS_HIGH}^3$",
         ],
         colors=["black", "black"],
-        anchor_point=(0.15, 0.0),
+        anchor_point_fraction=(0.15, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
     )
     add_tail_annotation(
         panel=panel,
         tail_ave=tail_ave_low,
         tail_std=tail_std_low,
-        y_pos=0.925,
+        y_pos_fraction=0.925,
         y_alignment=box_positions.Positions.Side.Top,
     )
     add_tail_annotation(
         panel=panel,
         tail_ave=tail_ave_high,
         tail_std=tail_std_high,
-        y_pos=0.615,
+        y_pos_fraction=0.615,
         y_alignment=box_positions.Positions.Side.Top,
     )
     add_saturation_annotation(panel=panel)

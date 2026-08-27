@@ -118,7 +118,7 @@ def main() -> None:
     representative_off = snapshots_off[-1]
     representative_on = snapshots_on[-1]
     figure, panel = manage_figure.create_figure(
-        panel_aspect=1.199,
+        panel_aspect_ratio=1.199,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.5),
@@ -141,20 +141,20 @@ def main() -> None:
     panel.set_ylim((24.4, 30.2))
     annotate_panel.add_text(
         panel=panel,
-        x_pos=0.085,
-        y_pos=0.65,
+        x_pos_fraction=0.085,
+        y_pos_fraction=0.65,
         label=rf"$t = {representative_off.step_time:.2f}$",
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Side.Top,
         ## math italic reads smaller than upright text, so this sits with the axis labels
-        text_size=default_text_sizes.axis_label_size,
+        text_size_pt=default_text_sizes.axis_label_size,
     )
     annotate_panel.add_custom_legend(
         panel=panel,
         artists=["-", "--"],
         labels=["even row", "odd row"],
         colors=["black", "black"],
-        anchor_point=(0.025, 0.975),
+        anchor_point_fraction=(0.025, 0.975),
         anchor_at_corner=box_positions.Positions.Corner.TopLeft,
     )
     annotate_panel.add_custom_legend(
@@ -162,7 +162,7 @@ def main() -> None:
         artists=["o", "o"],
         labels=["carbuncle phenomenon", "corrected shock-anisotropy"],
         colors=["red", "blue"],
-        anchor_point=(0.0, 0.0),
+        anchor_point_fraction=(0.0, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
     )
     manage_figure.save_figure(

@@ -249,7 +249,7 @@ def main() -> None:
     )
     figure, panel = manage_figure.create_figure(
         ## the domain is square; the figure is fitted around it once its labels exist
-        panel_aspect=1.0,
+        panel_aspect_ratio=1.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.5),
@@ -280,26 +280,26 @@ def main() -> None:
         [AXIS_BOUNDS[0][0], AXIS_BOUNDS[0][1]],
         [AXIS_BOUNDS[1][0], AXIS_BOUNDS[1][1]],
         color="white",
-        linewidth=frame_params.line_width,
+        linewidth=frame_params.line_width_pt,
     )
     annotate_panel.add_text(
         panel=panel,
-        x_pos=0.05,
-        y_pos=0.95,
+        x_pos_fraction=0.05,
+        y_pos_fraction=0.95,
         label=rf"${NCELLS_UPPER}^3$",
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Side.Top,
         ## these name what each half of the panel shows, so they sit with the axis labels
-        text_size=text_size_params.axis_label_size,
+        text_size_pt=text_size_params.axis_label_size,
     )
     annotate_panel.add_text(
         panel=panel,
-        x_pos=0.95,
-        y_pos=0.05,
+        x_pos_fraction=0.95,
+        y_pos_fraction=0.05,
         label=rf"${NCELLS_LOWER}^3$",
         x_alignment=box_positions.Positions.Side.Right,
         y_alignment=box_positions.Positions.Side.Bottom,
-        text_size=text_size_params.axis_label_size,
+        text_size_pt=text_size_params.axis_label_size,
     )
     configure_domain_ticks(panel=panel)
     panel.set_xlabel(r"$x_0$")
@@ -314,9 +314,9 @@ def main() -> None:
         label=r"$\log_{10}(\rho / \rho_\mathrm{bg})$",
         colorbar_side="top",
         ## nothing sits between the panel and the bar, so it needs less room than two panels do
-        colorbar_gap=panel_gaps.row / 2.0,
+        colorbar_gap_pt=panel_gaps.row_pt / 2.0,
         ## the label clears a row of tick labels here, not just the bar, so it sits further out
-        label_gap=frame_params.axis_label_gap * 2.0,
+        label_gap_pt=frame_params.axis_label_gap_pt * 2.0,
     )
     mark_contour_levels_on_cbar(cbar=cbar)
     manage_figure.save_figure(

@@ -303,11 +303,11 @@ def main() -> None:
     emf_compute_schemes = list(EMFComputeScheme)
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=len(reconstruction_schemes),
-        num_panel_columns=len(emf_compute_schemes),
-        panel_aspect=1.0,
+        num_panel_cols=len(emf_compute_schemes),
+        panel_aspect_ratio=1.0,
         ## the panels carry no tick labels, so only their frames sit in the gaps
-        panel_column_gap=4.0,
-        panel_row_gap=4.0,
+        panel_row_gap_pt=4.0,
+        panel_col_gap_pt=4.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.95),

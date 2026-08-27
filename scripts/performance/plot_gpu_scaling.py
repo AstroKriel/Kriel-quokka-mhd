@@ -245,7 +245,7 @@ def add_emf_compute_scheme_legend(
         labels=[scheme.value.label for scheme in EMFComputeScheme],
         colors=[scheme.value.color for scheme in EMFComputeScheme],
         marker_first=False,  # put the (invisible) handle after the text, so text hugs the left edge
-        anchor_point=(0.0125, 0.0),
+        anchor_point_fraction=(0.0125, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
     )
 
@@ -259,8 +259,7 @@ def add_emf_averaging_scheme_legend(
         artists=[scheme.value.linestyle for scheme in EMFAveragingScheme],
         labels=["" for _ in EMFAveragingScheme],
         colors=["black" for _ in EMFAveragingScheme],
-
-        anchor_point=(0.0125, 0.0),
+        anchor_point_fraction=(0.0125, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
     )
     annotate_panel.add_custom_legend(
@@ -268,8 +267,7 @@ def add_emf_averaging_scheme_legend(
         artists=[scheme.value.marker for scheme in EMFAveragingScheme],
         labels=[scheme.value.label for scheme in EMFAveragingScheme],
         colors=["black" for _ in EMFAveragingScheme],
-
-        anchor_point=(0.0125, 0.0),
+        anchor_point_fraction=(0.0125, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
     )
 
@@ -294,10 +292,10 @@ def main() -> None:
     manage_io.create_directory(figures_dir)
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=1,
-        num_panel_columns=2,
-        panel_aspect=1.597,
+        num_panel_cols=2,
+        panel_aspect_ratio=1.597,
         ## the panels share a y axis, so only their frames sit in the gap
-        panel_column_gap=5.0,
+        panel_col_gap_pt=5.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.90),
@@ -328,20 +326,20 @@ def main() -> None:
     add_emf_averaging_scheme_legend(panel=weak_scaling_ax)
     strong_scaling_ax.set_ylim([8, 70])
     annotate_panel.add_text(
-        panel = strong_scaling_ax,
-        x_pos = 0.95,
-        y_pos = 0.95,
-        label = "strong scaling",
-        x_alignment = box_positions.Positions.Side.Right,
-        y_alignment = box_positions.Positions.Side.Top,
+        panel=strong_scaling_ax,
+        x_pos_fraction=0.95,
+        y_pos_fraction=0.95,
+        label="strong scaling",
+        x_alignment=box_positions.Positions.Side.Right,
+        y_alignment=box_positions.Positions.Side.Top,
     )
     annotate_panel.add_text(
-        panel = weak_scaling_ax,
-        x_pos = 0.95,
-        y_pos = 0.95,
-        label = "weak scaling",
-        x_alignment = box_positions.Positions.Side.Right,
-        y_alignment = box_positions.Positions.Side.Top,
+        panel=weak_scaling_ax,
+        x_pos_fraction=0.95,
+        y_pos_fraction=0.95,
+        label="weak scaling",
+        x_alignment=box_positions.Positions.Side.Right,
+        y_alignment=box_positions.Positions.Side.Top,
     )
     manage_figure.save_figure(
         figure=figure,

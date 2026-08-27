@@ -344,7 +344,7 @@ def overlay_reference_slope(
         y_values=y_values,
         color="black",
         linestyle="-.",
-        linewidth=0.9,
+        linewidth_pt=0.9,
         alpha=1.0,
         zorder=0.5,
     )
@@ -387,7 +387,8 @@ def add_emf_compute_scheme_legend(
         panel=panel,
         artists=[None for _ in EMFComputeScheme],
         labels=[scheme.value.label for scheme in EMFComputeScheme],
-        colors=[scheme.value.color for scheme in EMFComputeScheme],        anchor_point=(1.0, 1.0),
+        colors=[scheme.value.color for scheme in EMFComputeScheme],
+        anchor_point_fraction=(1.0, 1.0),
         anchor_at_corner=box_positions.Positions.Corner.TopRight,
     )
 
@@ -402,7 +403,7 @@ def add_emf_averaging_scheme_legend(
         labels=[scheme.value.label for scheme in EMFAveragingScheme],
         colors=["black" for _ in EMFAveragingScheme],
         text_color="black",
-        anchor_point=(1.0, 1.0),
+        anchor_point_fraction=(1.0, 1.0),
         anchor_at_corner=box_positions.Positions.Corner.TopRight,
     )
 
@@ -417,7 +418,7 @@ def add_reconstruction_scheme_legend(
         labels=[scheme.value.label for scheme in ReconstructionScheme],
         colors=["black" for _ in ReconstructionScheme],
         text_color="black",
-        anchor_point=(1.0, 1.0),
+        anchor_point_fraction=(1.0, 1.0),
         anchor_at_corner=box_positions.Positions.Corner.TopRight,
     )
 
@@ -445,10 +446,10 @@ def main() -> None:
     )
     figure, panel_grid = manage_figure.create_figure(
         num_panel_rows=len(WAVE_CONFIGS),
-        num_panel_columns=1,
-        panel_aspect=1.7,
+        num_panel_cols=1,
+        panel_aspect_ratio=1.7,
         ## the panels share an x axis, so only their frames sit in the gap, not tick labels
-        panel_row_gap=5.0,
+        panel_row_gap_pt=5.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.5),
@@ -488,8 +489,8 @@ def main() -> None:
         )
         annotate_panel.add_text(
             panel=panel,
-            x_pos=0.05,
-            y_pos=0.05,
+            x_pos_fraction=0.05,
+            y_pos_fraction=0.05,
             x_alignment=box_positions.Positions.Side.Left,
             y_alignment=box_positions.Positions.Side.Bottom,
             label=wave_config.wave_label,

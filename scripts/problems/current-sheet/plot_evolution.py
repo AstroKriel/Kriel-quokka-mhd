@@ -134,8 +134,8 @@ def main() -> None:
     theme_params = figure_params.theme_params
     ## the panels share both axes, so only their frames sit in the gaps
     panel_gaps = style_figure.PanelGaps(
-        column=5.0,
-        row=5.0,
+        row_pt=5.0,
+        col_pt=5.0,
     )
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
@@ -159,9 +159,9 @@ def main() -> None:
     num_cols = 2
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=num_rows,
-        num_panel_columns=num_cols,
+        num_panel_cols=num_cols,
         ## the domain is square; the figure is fitted around it once its labels exist
-        panel_aspect=1.0,
+        panel_aspect_ratio=1.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.5),
@@ -187,8 +187,8 @@ def main() -> None:
         )
         annotate_panel.add_text(
             panel=panel,
-            x_pos=0.5,
-            y_pos=0.95,
+            x_pos_fraction=0.5,
+            y_pos_fraction=0.95,
             label=rf"$t = {data_panel.data_slice.step_time:.1f}$",
             x_alignment=box_positions.Positions.Center.Center,
             y_alignment=box_positions.Positions.Side.Top,
@@ -229,7 +229,7 @@ def main() -> None:
         ## the gap is left unset, so the bar sits off the grid by the same gap the panels
         ## are spaced by
         ## the label clears a row of tick labels here, not just the bar, so it sits further out
-        label_gap=frame_params.axis_label_gap * 2.0,
+        label_gap_pt=frame_params.axis_label_gap_pt * 2.0,
     )
     annotate_panel.add_shared_axis_label(
         panels=panel_grid,

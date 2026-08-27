@@ -290,7 +290,7 @@ def main() -> None:
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Side.Top,
         ## these name what each half of the panel shows, so they sit with the axis labels
-        text_size_pt=text_size_params.axis_label_size,
+        text_size_pt=text_size_params.axis_label_size_pt,
     )
     annotate_panel.add_text(
         panel=panel,
@@ -299,7 +299,7 @@ def main() -> None:
         label=rf"${NCELLS_LOWER}^3$",
         x_alignment=box_positions.Positions.Side.Right,
         y_alignment=box_positions.Positions.Side.Bottom,
-        text_size_pt=text_size_params.axis_label_size,
+        text_size_pt=text_size_params.axis_label_size_pt,
     )
     configure_domain_ticks(panel=panel)
     panel.set_xlabel(r"$x_0$")

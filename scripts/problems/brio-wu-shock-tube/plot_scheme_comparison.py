@@ -425,7 +425,7 @@ def main() -> None:
     ## the legends name the curves the same way the panel annotations do, so they read as the
     ## same kind of text, set a quarter point smaller so they stay the quieter of the two
     default_text_sizes = style_figure.TextSizeParams()
-    legend_size = default_text_sizes.annotation_size - 0.25
+    legend_size = default_text_sizes.annotation_size_pt - 0.25
     style_figure.set_figure_params(
         figure_params=style_figure.FigureParams(
             text_size_params=style_figure.TextSizeParams(
@@ -433,7 +433,7 @@ def main() -> None:
             ),
             legend_params=style_figure.LegendParams(
                 frame_margin_em=0.0,
-                artist_text_gap_em=0.05,
+                entry_text_gap_em=0.05,
             ),
         ),
     )

@@ -157,7 +157,7 @@ def add_advection_arrow(
             "color": "red",
             "linewidth": artist_params.line_width_pt,
             ## the head is sized in points, so tie it to the text it sits beside
-            "mutation_scale": text_size_params.annotation_size,
+            "mutation_scale": text_size_params.annotation_size_pt,
             "shrinkA": 0.0,
             "shrinkB": 0.0,
         },
@@ -171,7 +171,7 @@ def add_advection_arrow(
         color="red",
         rotation=180 / numpy.pi * numpy.atan(2 / 3),
         rotation_mode="anchor",
-        fontsize=text_size_params.annotation_size,
+        fontsize=text_size_params.annotation_size_pt,
     )
 
 

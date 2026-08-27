@@ -107,8 +107,11 @@ def subsample_evenly(
     of 23). `linspace` anchors both endpoints exactly.
     """
     indices_to_keep = numpy.unique(
-        numpy.linspace(0,
-                       len(normalized_times) - 1, num_samples).round().astype(int),
+        numpy.linspace(
+            0,
+            len(normalized_times) - 1,
+            num_samples,
+        ).round().astype(int),
     )
     return normalized_times[indices_to_keep], log10_leakage_ratio[indices_to_keep]
 
@@ -154,7 +157,7 @@ def add_saturation_annotation(
             "color": "blue",
             "linewidth": artist_params.line_width_pt,
             ## the head is sized in points, so tie it to the text it sits beside
-            "mutation_scale": text_size_params.annotation_size,
+            "mutation_scale": text_size_params.annotation_size_pt,
             "shrinkA": 0.0,
             "shrinkB": 0.0,
         },

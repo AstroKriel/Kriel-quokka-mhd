@@ -306,10 +306,10 @@ def build_axis_bounds(
     y_hi: float,
 ) -> manage_figure.PanelBounds:
     return manage_figure.PanelBounds(
-        x_min=x_lo,
-        y_min=y_lo,
-        x_width=x_hi - x_lo,
-        y_width=y_hi - y_lo,
+        x_min_fraction=x_lo,
+        y_min_fraction=y_lo,
+        x_width_fraction=x_hi - x_lo,
+        y_width_fraction=y_hi - y_lo,
     )
 
 
@@ -323,10 +323,10 @@ def add_zoom_inset(
 ) -> None:
     inset_ax = panel.inset_axes(
         (
-            axis_ranges.x_min,
-            axis_ranges.y_min,
-            axis_ranges.x_width,
-            axis_ranges.y_width,
+            axis_ranges.x_min_fraction,
+            axis_ranges.y_min_fraction,
+            axis_ranges.x_width_fraction,
+            axis_ranges.y_width_fraction,
         ),
     )
     for line in panel.get_lines():
@@ -362,7 +362,7 @@ def add_emf_compute_scheme_legend(
         labels=[scheme.value.label for scheme in EMFComputeScheme],
         colors=[scheme.value.color for scheme in EMFComputeScheme],
         marker_first=False,  # put the (invisible) handle after the text, so text hugs the left edge
-        anchor_point=(0.025, 0.0),
+        anchor_point_fraction=(0.025, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
     )
 
@@ -376,8 +376,8 @@ def add_emf_averaging_scheme_legend(
         artists=[scheme.value.marker for scheme in EMFAveragingScheme],
         labels=[scheme.value.label for scheme in EMFAveragingScheme],
         colors=["black" for _ in EMFAveragingScheme],
-        marker_size=4,
-        anchor_point=(0.0, 0.0),
+        marker_size_pt=4,
+        anchor_point_fraction=(0.0, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
     )
 
@@ -429,11 +429,11 @@ def main() -> None:
     style_figure.set_figure_params(
         figure_params=style_figure.FigureParams(
             text_size_params=style_figure.TextSizeParams(
-                legend_level=default_text_sizes.compute_level_at_size(text_size=legend_size),
+                legend_level=default_text_sizes.compute_level_at_size(text_size_pt=legend_size),
             ),
             legend_params=style_figure.LegendParams(
-                frame_margin=0.0,
-                handle_gap=0.05,
+                frame_margin_em=0.0,
+                artist_text_gap_em=0.05,
             ),
         ),
     )
@@ -462,11 +462,11 @@ def main() -> None:
         shift=DISCONTINUITY_POSITION,
     )
     figure, panel_grid = manage_figure.create_figure(
-        num_panel_columns=2,
+        num_panel_cols=2,
         num_panel_rows=3,
-        panel_aspect=1.494,
+        panel_aspect_ratio=1.494,
         ## the rows share an x axis, so only their frames sit in the gap, not tick labels
-        panel_row_gap=5.0,
+        panel_row_gap_pt=5.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.85),
@@ -557,8 +557,8 @@ def main() -> None:
     add_emf_averaging_scheme_legend(panel=panel_grid[0, 1])
     annotate_panel.add_text(
         panel=panel_grid[0, 0],
-        x_pos=0.95,
-        y_pos=0.925,
+        x_pos_fraction=0.95,
+        y_pos_fraction=0.925,
         label=rf"$t = {solution_time:.2f}$",
         x_alignment=box_positions.Positions.Side.Right,
         y_alignment=box_positions.Positions.Side.Top,

@@ -143,8 +143,8 @@ def main() -> None:
     eta_labels = discover_eta_labels(dataset_dir=DATASET_DIR)
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=1,
-        num_panel_columns=1,
-        panel_aspect=1.160,
+        num_panel_cols=1,
+        panel_aspect_ratio=1.160,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.475),

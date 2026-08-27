@@ -203,7 +203,7 @@ def add_reference_circle_and_drift_arrow(
             "arrowstyle": "-|>",
             "color": theme_params.foreground_color,
             "linestyle": "-",
-            "linewidth": artist_params.line_width,
+            "linewidth": artist_params.line_width_pt,
             ## the head is sized in points, so tie it to the text it sits beside
             "mutation_scale": text_size_params.annotation_size,
             "shrinkA": 0.0,
@@ -289,7 +289,7 @@ def main() -> None:
     )
     figure, panel = manage_figure.create_figure(
         ## the domain is square; the figure is fitted around it once its labels exist
-        panel_aspect=1.0,
+        panel_aspect_ratio=1.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.5),
@@ -310,12 +310,12 @@ def main() -> None:
     panel.axhline(
         0.0,
         color=theme_params.foreground_color,
-        linewidth=frame_params.line_width,
+        linewidth=frame_params.line_width_pt,
     )
     panel.axvline(
         0.0,
         color=theme_params.foreground_color,
-        linewidth=frame_params.line_width,
+        linewidth=frame_params.line_width_pt,
     )
     add_reference_circle_and_drift_arrow(
         panel=panel,
@@ -329,20 +329,20 @@ def main() -> None:
     ):
         annotate_panel.add_text(
             panel=panel,
-            x_pos=x_pos,
-            y_pos=0.965,
+            x_pos_fraction=x_pos,
+            y_pos_fraction=0.965,
             label=rf"${num_cells}^2$",
             x_alignment=box_positions.Positions.Side.Left
             if x_pos < 0.5 else box_positions.Positions.Side.Right,
             y_alignment=box_positions.Positions.Side.Top,
             ## these name what each half of the panel shows, so they sit with the axis labels
-            text_size=text_size_params.axis_label_size,
+            text_size_pt=text_size_params.axis_label_size,
         )
     for x_pos, num_cells in ((0.025, left_side_resolution), (0.975, right_side_resolution)):
         annotate_panel.add_text(
             panel=panel,
-            x_pos=x_pos,
-            y_pos=0.025,
+            x_pos_fraction=x_pos,
+            y_pos_fraction=0.025,
             label=f"conserves\n{100.0 * energy_conservation_lookup[num_cells]:.1f}\\% / orbit",
             x_alignment=(
                 box_positions.Positions.Side.Left if x_pos < 0.5 else box_positions.Positions.Side.Right
@@ -383,7 +383,7 @@ def main() -> None:
         label=r"$\log_{10}(b^2 / 2)$",
         colorbar_side="right",
         ## nothing sits between the panel and the bar, so it needs less room than two panels do
-        colorbar_gap=panel_gaps.column / 2.0,
+        colorbar_gap_pt=panel_gaps.col_pt / 2.0,
     )
     manage_figure.save_figure(
         figure=figure,

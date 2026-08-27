@@ -118,7 +118,11 @@ def compute_loop_center_at_time(
     step_time: float,
 ) -> tuple[float, float]:
     """Return the loop's true advected centre at `step_time`, wrapped into the periodic domain."""
-    def wrap(value: float, bounds: tuple[float, float]) -> float:
+
+    def wrap(
+        value: float,
+        bounds: tuple[float, float],
+    ) -> float:
         span = bounds[1] - bounds[0]
         return (value - bounds[0]) % span + bounds[0]
 
@@ -151,7 +155,7 @@ def add_advection_arrow(
         arrowprops={
             "arrowstyle": "-|>",
             "color": "red",
-            "linewidth": artist_params.line_width,
+            "linewidth": artist_params.line_width_pt,
             ## the head is sized in points, so tie it to the text it sits beside
             "mutation_scale": text_size_params.annotation_size,
             "shrinkA": 0.0,
@@ -165,7 +169,7 @@ def add_advection_arrow(
         ha="left",
         va="bottom",
         color="red",
-        rotation=180 / numpy.pi * numpy.atan(2/3),
+        rotation=180 / numpy.pi * numpy.atan(2 / 3),
         rotation_mode="anchor",
         fontsize=text_size_params.annotation_size,
     )
@@ -238,9 +242,9 @@ def plot_pdf_panel(
         label=r"$t / T$",
         colorbar_side="top",
         ## nothing sits between the panel and the bar, so it needs less room than two panels do
-        colorbar_gap=panel_gaps.row / 2.0,
+        colorbar_gap_pt=panel_gaps.row_pt / 2.0,
         ## the label clears a row of tick labels here, not just the bar, so it sits further out
-        label_gap=frame_params.axis_label_gap * 2.0,
+        label_gap_pt=frame_params.axis_label_gap_pt * 2.0,
     )
 
 
@@ -280,9 +284,9 @@ def plot_slice_panel(
         label=r"$10^{16} \ (\nabla \cdot \vec{b})$",
         colorbar_side="top",
         ## nothing sits between the panel and the bar, so it needs less room than two panels do
-        colorbar_gap=panel_gaps.row / 2.0,
+        colorbar_gap_pt=panel_gaps.row_pt / 2.0,
         ## the label clears a row of tick labels here, not just the bar, so it sits further out
-        label_gap=frame_params.axis_label_gap * 2.0,
+        label_gap_pt=frame_params.axis_label_gap_pt * 2.0,
     )
     loop_center = compute_loop_center_at_time(step_time=divb_slice.step_time)
     panel.add_patch(
@@ -292,7 +296,7 @@ def plot_slice_panel(
             fill=False,
             edgecolor="red",
             linestyle="--",
-            linewidth=artist_params.line_width,
+            linewidth=artist_params.line_width_pt,
         ),
     )
     (amr_x_lo, amr_x_hi), (amr_y_lo, amr_y_hi) = AMR_REGION_BOUNDS
@@ -304,14 +308,17 @@ def plot_slice_panel(
             fill=False,
             edgecolor="blue",
             linestyle="--",
-            linewidth=artist_params.line_width,
+            linewidth=artist_params.line_width_pt,
         ),
     )
-    add_advection_arrow(panel=panel, loop_center=loop_center)
+    add_advection_arrow(
+        panel=panel,
+        loop_center=loop_center,
+    )
     annotate_panel.add_text(
         panel=panel,
-        x_pos=0.15,
-        y_pos=0.65,
+        x_pos_fraction=0.15,
+        y_pos_fraction=0.65,
         label=r"\shortstack{refinement\\region}",
         rotate_deg=90.0,
         x_alignment=box_positions.Positions.Side.Left,
@@ -322,8 +329,8 @@ def plot_slice_panel(
     panel.set_ylabel(r"$x_1$")
     annotate_panel.add_text(
         panel=panel,
-        x_pos=0.5,
-        y_pos=0.05,
+        x_pos_fraction=0.5,
+        y_pos_fraction=0.05,
         label=rf"$t / T = {divb_slice.step_time / ADVECTION_PERIOD:.2f}$",
         x_alignment=box_positions.Positions.Center.Center,
         y_alignment=box_positions.Positions.Side.Bottom,
@@ -337,8 +344,8 @@ def plot_field_loop_divb(
 ) -> mpl_Figure:
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=1,
-        num_panel_columns=2,
-        panel_aspect=1.5,
+        num_panel_cols=2,
+        panel_aspect_ratio=1.5,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.95),

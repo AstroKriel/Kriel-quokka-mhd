@@ -68,23 +68,23 @@ class FigureGrid:
         ## gridspec takes its margins as figure fractions and its gaps as a fraction of the
         ## mean panel, so the house units in pt are converted here rather than named twice
         panel_width = (
-            figure_width - self.figure_margins.left - self.figure_margins.right -
-            (self.num_cols - 1) * self.panel_gaps.column
+            figure_width - self.figure_margins.left_pt - self.figure_margins.right_pt -
+            (self.num_cols - 1) * self.panel_gaps.col_pt
         ) / self.num_cols
         panel_height = (
-            figure_height - self.figure_margins.bottom - self.figure_margins.top -
-            (self.num_rows - 1) * self.panel_gaps.row
+            figure_height - self.figure_margins.bottom_pt - self.figure_margins.top_pt -
+            (self.num_rows - 1) * self.panel_gaps.row_pt
         ) / self.num_rows
         self.grid_spec = mpl_gridspec.GridSpec(
             nrows=self.num_rows,
             ncols=self.num_cols,
             figure=self.fig,
-            left=self.figure_margins.left / figure_width,
-            right=1.0 - self.figure_margins.right / figure_width,
-            bottom=self.figure_margins.bottom / figure_height,
-            top=1.0 - self.figure_margins.top / figure_height,
-            wspace=self.panel_gaps.column / panel_width,
-            hspace=self.panel_gaps.row / panel_height,
+            left=self.figure_margins.left_pt / figure_width,
+            right=1.0 - self.figure_margins.right_pt / figure_width,
+            bottom=self.figure_margins.bottom_pt / figure_height,
+            top=1.0 - self.figure_margins.top_pt / figure_height,
+            wspace=self.panel_gaps.col_pt / panel_width,
+            hspace=self.panel_gaps.row_pt / panel_height,
         )
         self.claimed = numpy.zeros((self.num_rows, self.num_cols), dtype=numpy.bool_)
 
@@ -170,16 +170,16 @@ MAIN_LABELED_TICK_VALUES_Y = (-0.5, -0.25, 0, 0.25, 0.5)
 FIGURE_ASPECT_RATIO = 1.368
 ## the panels carry no labels between them, so only their frames sit in the gaps
 FIGURE_MARGINS = manage_figure.FigureMargins(
-    left=42.0,
-    right=36.0,
-    bottom=28.0,
-    top=54.0,
+    left_pt=42.0,
+    right_pt=36.0,
+    bottom_pt=28.0,
+    top_pt=54.0,
 )
 ## every gap in the figure is this one, including the colorbar's, so none of them read as odd
 PANEL_GAP = 2.5
 PANEL_GAPS = style_figure.PanelGaps(
-    column=PANEL_GAP,
-    row=PANEL_GAP,
+    row_pt=PANEL_GAP,
+    col_pt=PANEL_GAP,
 )
 ## the box is drawn over the lines that run from it to its zoom panel
 ZOOMIN_CONNECTOR_ZORDER = 2
@@ -238,7 +238,7 @@ def overlay_zoomin_box(
             y_hi - y_lo,
             facecolor=mpl_colors.to_rgba("white", alpha=0.15),
             edgecolor="white",
-            linewidth=frame_params.line_width,
+            linewidth=frame_params.line_width_pt,
             zorder=ZOOMIN_BOX_ZORDER,
         ),
     )
@@ -271,7 +271,7 @@ def connect_zoomin_to_panel(
                 xyB=panel_corner,
                 coordsB=zoom_panel.transAxes,
                 color="white",
-                linewidth=frame_params.line_width,
+                linewidth=frame_params.line_width_pt,
                 clip_on=False,
                 zorder=ZOOMIN_CONNECTOR_ZORDER,
             ),
@@ -315,9 +315,9 @@ def plot_sarray_2d(
             label=field_label,
             colorbar_side="top",
             ## nothing sits between the panel and the bar, so it needs less room than two panels do
-            colorbar_gap=PANEL_GAP,
+            colorbar_gap_pt=PANEL_GAP,
             ## the label clears a row of tick labels here, not just the bar, so it sits further out
-            label_gap=frame_params.axis_label_gap * 2.0,
+            label_gap_pt=frame_params.axis_label_gap_pt * 2.0,
         )
 
 
@@ -410,14 +410,14 @@ def add_time_label(
     text_size_params = figure_params.text_size_params
     annotate_panel.add_text(
         panel=panel,
-        x_pos=0.5,
-        y_pos=0.875,
+        x_pos_fraction=0.5,
+        y_pos_fraction=0.875,
         label=rf"$t = {step_time:.2f}$",
         x_alignment=box_positions.Positions.Center.Center,
         y_alignment=box_positions.Positions.Side.Top,
         ## it sits over the image, not the page, so it is keyed to the data behind it
         text_color="white",
-        text_size=text_size_params.axis_label_size,
+        text_size_pt=text_size_params.axis_label_size,
     )
 
 

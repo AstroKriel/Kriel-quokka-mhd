@@ -10,6 +10,8 @@ from pathlib import Path
 
 ## third-party
 import numpy
+
+from matplotlib import ticker as mpl_ticker
 from numpy.typing import NDArray
 
 ## personal
@@ -156,6 +158,7 @@ def main() -> None:
     )
     panel_grid[0, 0].set_xlabel(r"$\log_{10}\ (\mathrm{input}\ \eta)$")
     panel_grid[0, 0].set_ylabel(r"$\log_{10}\ (\mathrm{measured}\ \lambda)$")
+    panel_grid[0, 0].xaxis.set_major_locator(mpl_ticker.MultipleLocator(1))
     panel_grid[0, 0].legend(
         loc="upper left",
         frameon=False,

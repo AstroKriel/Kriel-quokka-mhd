@@ -15,7 +15,11 @@ from numpy import typing as numpy_typing
 
 ## personal
 from jormi.ww_io import manage_io
-from jormi.ww_plots import annotate_panel, manage_figure, style_figure
+from jormi.ww_plots import (
+    annotate_panel,
+    manage_figure,
+    style_figure,
+)
 from jormi.ww_types import box_positions
 
 ## local
@@ -37,15 +41,9 @@ class PressureSnapshot:
 ##
 
 ## inputs and outputs
-COMBO_OFF = "q26-b25-ppm_ep-no-carbuncle-fix"
-COMBO_ON = "q26-b25-ppm_ep"
 ROOT_DIR = Path(__file__).parents[3]
 DATASET_ROOT = ROOT_DIR / "datasets/problems/quirk/num_cells=128"
 FIGURE_PATH = ROOT_DIR / "figures/problems/quirk/ncells=128/odd_even_split.png"
-
-## annotations
-EVEN_ROW_INDEX = 0
-ODD_ROW_INDEX = 1
 
 ##
 ## === HELPER FUNCTIONS
@@ -80,18 +78,20 @@ def plot_even_odd_profiles(
     color: annotate_panel.ColorType,
     zorder: int,
 ) -> None:
+    even_row_index = 0
+    odd_row_index = 1
     num_cells = snapshot.pressure.shape[0]
     x_0 = (numpy.arange(num_cells) + 0.5) / num_cells
     panel.plot(
         x_0,
-        snapshot.pressure[:, EVEN_ROW_INDEX],
+        snapshot.pressure[:, even_row_index],
         color=color,
         linestyle="-",
         zorder=zorder,
     )
     panel.plot(
         x_0,
-        snapshot.pressure[:, ODD_ROW_INDEX],
+        snapshot.pressure[:, odd_row_index],
         color=color,
         linestyle="--",
         zorder=zorder,
@@ -109,14 +109,14 @@ def main() -> None:
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
-    snapshots_off = load_snapshots(combo=COMBO_OFF)
-    snapshots_on = load_snapshots(combo=COMBO_ON)
+    combo_off = "q26-b25-ppm_ep-no-carbuncle-fix"
+    combo_on = "q26-b25-ppm_ep"
+    snapshots_off = load_snapshots(combo=combo_off)
+    snapshots_on = load_snapshots(combo=combo_on)
     representative_off = snapshots_off[-1]
     representative_on = snapshots_on[-1]
     figure, panel = manage_figure.create_figure(
-        ## chosen by eye
         panel_aspect_ratio=6.0 / 5.0,
-        ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.5),
         ),
@@ -143,7 +143,6 @@ def main() -> None:
         label=rf"$t = {representative_off.step_time:.2f}$",
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Side.Top,
-        ## math italic reads smaller than upright text, so this sits with the axis labels
         text_size_pt=paper_style.FIGURE_PARAMS.text_size_params.axis_label_size_pt,
     )
     annotate_panel.add_custom_legend(

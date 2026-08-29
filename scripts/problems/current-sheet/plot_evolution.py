@@ -15,7 +15,7 @@ from matplotlib import ticker as mpl_ticker
 from numpy import typing as numpy_typing
 
 ## personal
-from jormi.ww_io import manage_io, manage_log
+from jormi.ww_io import manage_io
 from jormi.ww_plots import (
     add_color,
     annotate_panel,
@@ -24,6 +24,10 @@ from jormi.ww_plots import (
     style_figure,
 )
 from jormi.ww_types import box_positions
+from ww_quokka_sims.sim_io import find_snapshots
+
+## local
+from local_helpers import paper_style, plot_slices
 
 ##
 ## === DATA STRUCTURES
@@ -61,25 +65,14 @@ LABELED_TICK_VALUES = (-0.25, 0.25)
 ##
 
 
-def find_dataset_near_time(
-    *,
-    target_time: float,
-) -> Path:
-    dataset_glob = "current_density-comp=x_2-slice=x_2-index=*.npz"
-    extracted_dir = DATASET_DIR / "extracted"
-    data_paths = sorted(extracted_dir.glob(dataset_glob))
-    if not data_paths:
-        raise FileNotFoundError(f"no slice matching `{dataset_glob}` found in: {extracted_dir}")
-    return min(
-        data_paths,
-        key=lambda path: abs(float(numpy.load(path)["step_time"]) - target_time),
-    )
-
-
 def load_data_slices() -> list[DataSlice]:
     data_slices = []
     for target_time in TARGET_TIMES:
-        data_path = find_dataset_near_time(target_time=target_time)
+        data_path = find_snapshots.find_npz_near_time(
+            extracted_dir=DATASET_DIR / "extracted",
+            glob_pattern="current_density-comp=x_2-slice=x_2-index=*.npz",
+            target_time=target_time,
+        )
         with numpy.load(data_path) as dataset:
             data_slices.append(
                 DataSlice(
@@ -112,27 +105,13 @@ def compute_signed_log10(
     return numpy.sign(current_density) * numpy.log10(1.0 + numpy.abs(current_density))
 
 
-def format_domain_tick(
-    tick_value: float,
-    _tick_position: int,
-) -> str:
-    """
-    Label only `LABELED_TICK_VALUES`; every other major tick is drawn unlabeled.
-
-    Labels are math mode, so their minus signs match the ones Matplotlib formats itself.
-    """
-    is_labeled = any(numpy.isclose(tick_value, labeled_value) for labeled_value in LABELED_TICK_VALUES)
-    return f"${tick_value:.2f}$" if is_labeled else ""
-
-
 ##
 ## === PROGRAM MAIN
 ##
 
 
 def main() -> None:
-    manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    style_figure.set_figure_params()
+    paper_style.setup_plotting_script()
     figure_params = style_figure.get_figure_params()
     frame_params = figure_params.frame_params
     text_size_params = figure_params.text_size_params
@@ -212,7 +191,9 @@ def main() -> None:
         for axis in (panel.xaxis, panel.yaxis):
             axis.set_major_locator(mpl_ticker.MultipleLocator(major_tick_step))
             axis.set_minor_locator(mpl_ticker.MultipleLocator(minor_tick_step))
-            axis.set_major_formatter(mpl_ticker.FuncFormatter(format_domain_tick))
+            axis.set_major_formatter(
+                plot_slices.make_domain_tick_formatter(labeled_tick_values=LABELED_TICK_VALUES),
+            )
         panel.tick_params(
             labelbottom=(row_index == num_rows - 1),
             labelleft=(col_index == 0),

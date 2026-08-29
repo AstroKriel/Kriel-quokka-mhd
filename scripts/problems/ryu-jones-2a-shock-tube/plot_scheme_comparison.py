@@ -137,7 +137,7 @@ class QuokkaSetupParams:
 
 ## inputs and outputs
 ROOT_DIR: Path = Path(__file__).parents[3]
-DATASET_DIR: Path = ROOT_DIR / "datasets/problems/ryu-jones-2a-shock-tube/ncells=512"
+DATASET_DIR: Path = ROOT_DIR / "datasets/problems/ryu-jones-2a-shock-tube/num_cells=512"
 FIGURE_PATH: Path = ROOT_DIR / "figures/problems/ryu-jones-2a-shock-tube/ncells=512/scheme-comparison.png"
 SETUP_PARAMS: QuokkaSetupParams = QuokkaSetupParams(
     discontinuity_position=0.5,
@@ -569,7 +569,8 @@ def main() -> None:
     figure, panel_grid = manage_figure.create_figure(
         num_panel_cols=2,
         num_panel_rows=4,
-        panel_aspect_ratio=1.482,
+        ## chosen by eye
+        panel_aspect_ratio=3.0 / 2.0,
         ## the rows share an x axis, so only their frames sit in the gap, not tick labels
         panel_row_gap_pt=5.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for

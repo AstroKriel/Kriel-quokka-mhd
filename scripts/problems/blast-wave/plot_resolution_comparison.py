@@ -40,8 +40,8 @@ class DensitySlice:
 ROOT_DIR = Path(__file__).parents[3]
 DATASET_DIR = ROOT_DIR / "datasets/problems/blast-wave"
 FIGURE_PATH = ROOT_DIR / "figures/problems/blast-wave/resolution-comparison.png"
-NCELLS_UPPER = 128
-NCELLS_LOWER = 1024
+NUM_CELLS_UPPER = 128
+NUM_CELLS_LOWER = 1024
 TARGET_TIME = 0.05
 
 ## plotting details
@@ -52,8 +52,7 @@ LABELED_TICK_VALUES = (-0.25, 0.25)
 CBAR_BOUNDS = (-0.8, 0.55)
 CONTOUR_LEVELS = (-0.0075, 0.0075)
 CONTOUR_COLORS = ("blue", "red")
-## a fixed physical length (not a fixed cell count)
-SMOOTHING_LENGTH = 0.1 * (AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]) / NCELLS_UPPER
+SMOOTHING_LENGTH = 0.1 * (AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]) / NUM_CELLS_UPPER
 
 ##
 ## === HELPER FUNCTIONS
@@ -62,11 +61,10 @@ SMOOTHING_LENGTH = 0.1 * (AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]) / NCELLS_UPPER
 
 def find_slice_near_time(
     *,
-    ncells: int,
+    num_cells: int,
     target_time: float,
 ) -> Path:
-    """Return the saved density slice for `q26-b25-ppm` at `ncells` nearest `target_time`."""
-    extracted_dir = DATASET_DIR / f"ncells={ncells}" / "q26-b25-ppm_ep" / "extracted"
+    extracted_dir = DATASET_DIR / f"num_cells={num_cells}" / "q26-b25-ppm_ep" / "extracted"
     slice_paths = sorted(extracted_dir.glob("density-slice=x_2-index=*.npz"))
     if not slice_paths:
         raise FileNotFoundError(f"no density slice found in: {extracted_dir}")
@@ -78,11 +76,11 @@ def find_slice_near_time(
 
 def load_density_slice(
     *,
-    ncells: int,
+    num_cells: int,
 ) -> DensitySlice:
     """Load the density slice nearest `TARGET_TIME` for one resolution."""
     slice_path = find_slice_near_time(
-        ncells=ncells,
+        num_cells=num_cells,
         target_time=TARGET_TIME,
     )
     with numpy.load(slice_path) as data:
@@ -241,8 +239,8 @@ def main() -> None:
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
-    upper_slice = load_density_slice(ncells=NCELLS_UPPER)
-    lower_slice = load_density_slice(ncells=NCELLS_LOWER)
+    upper_slice = load_density_slice(num_cells=NUM_CELLS_UPPER)
+    lower_slice = load_density_slice(num_cells=NUM_CELLS_LOWER)
     palette_config = add_color.SequentialConfig(
         palette_name="blue-white-red",
         palette_range=compute_zero_centred_palette_range(value_range=CBAR_BOUNDS),
@@ -286,7 +284,7 @@ def main() -> None:
         panel=panel,
         x_pos_fraction=0.05,
         y_pos_fraction=0.95,
-        label=rf"${NCELLS_UPPER}^3$",
+        label=rf"${NUM_CELLS_UPPER}^3$",
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Side.Top,
         ## these name what each half of the panel shows, so they sit with the axis labels
@@ -296,7 +294,7 @@ def main() -> None:
         panel=panel,
         x_pos_fraction=0.95,
         y_pos_fraction=0.05,
-        label=rf"${NCELLS_LOWER}^3$",
+        label=rf"${NUM_CELLS_LOWER}^3$",
         x_alignment=box_positions.Positions.Side.Right,
         y_alignment=box_positions.Positions.Side.Bottom,
         text_size_pt=text_size_params.axis_label_size_pt,

@@ -441,7 +441,7 @@ def main() -> None:
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
-    reference_sim_dir = DATASET_DIR / "ncells=8192/hlld" / get_sim_tag(
+    reference_sim_dir = DATASET_DIR / "num_cells=8192/hlld" / get_sim_tag(
         emf_compute_scheme=EMFComputeScheme.Q26,
         emf_averaging_scheme=EMFAveragingScheme.B25,
     )
@@ -454,7 +454,7 @@ def main() -> None:
     )
     llf_sim_profiles = shift_profiles(
         profiles=load_sim_profiles(
-            sim_dir=DATASET_DIR / "ncells=256/llf" / get_sim_tag(
+            sim_dir=DATASET_DIR / "num_cells=256/llf" / get_sim_tag(
                 emf_compute_scheme=EMFComputeScheme.Q26,
                 emf_averaging_scheme=EMFAveragingScheme.B25,
             ),
@@ -464,7 +464,8 @@ def main() -> None:
     figure, panel_grid = manage_figure.create_figure(
         num_panel_cols=2,
         num_panel_rows=3,
-        panel_aspect_ratio=1.494,
+        ## chosen by eye
+        panel_aspect_ratio=3.0 / 2.0,
         ## the rows share an x axis, so only their frames sit in the gap, not tick labels
         panel_row_gap_pt=5.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
@@ -495,7 +496,7 @@ def main() -> None:
     )
     ppm_sim_profiles = shift_profiles(
         profiles=load_sim_profiles(
-            sim_dir=DATASET_DIR / "ncells=256/hlld/q26-b25-ppm",
+            sim_dir=DATASET_DIR / "num_cells=256/hlld/q26-b25-ppm",
         ),
         shift=DISCONTINUITY_POSITION,
     )
@@ -511,7 +512,7 @@ def main() -> None:
     )
     for emf_compute_scheme in EMFComputeScheme:
         for emf_averaging_scheme in EMFAveragingScheme:
-            sim_dir = DATASET_DIR / "ncells=256/hlld" / get_sim_tag(
+            sim_dir = DATASET_DIR / "num_cells=256/hlld" / get_sim_tag(
                 emf_compute_scheme=emf_compute_scheme,
                 emf_averaging_scheme=emf_averaging_scheme,
             )

@@ -59,7 +59,7 @@ class ReconstructionScheme(Enum):
 
 ## inputs and outputs
 ROOT_DIR: Path = Path(__file__).parents[3]
-DATASET_DIR: Path = ROOT_DIR / "datasets/problems/orszag-tang/ncells=4096"
+DATASET_DIR: Path = ROOT_DIR / "datasets/problems/orszag-tang/num_cells=4096"
 FIGURE_PATH: Path = ROOT_DIR / "figures/problems/orszag-tang/ncells=4096/reconstruction-scheme-comparison.png"
 FILE_NAME_GLOB = "current_density_magnitude-slice=x_2-index=*.npz"
 TARGET_TIME = 0.85
@@ -255,16 +255,13 @@ def main() -> None:
         reconstruction_scheme=ReconstructionScheme.PPM_EP,
         target_time=TARGET_TIME,
     )
-    figure, panel_grid = manage_figure.create_figure_grid(
-        num_panel_rows=1,
-        num_panel_cols=1,
+    figure, panel = manage_figure.create_figure(
         panel_aspect_ratio=1.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.475),
         ),
     )
-    panel = panel_grid[0, 0]
     plot_comparison_contours(
         panel=panel,
         upper_sarray=ppm_log10_sarray_slice,

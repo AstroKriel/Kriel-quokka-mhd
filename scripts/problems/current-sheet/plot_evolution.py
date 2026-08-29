@@ -41,7 +41,7 @@ class DataPanel:
 
 ## inputs and outputs
 ROOT_DIR = Path(__file__).parents[3]
-DATASET_DIR = ROOT_DIR / "datasets/problems/current-sheet/ncells=1024/q26-b25-ppm"
+DATASET_DIR = ROOT_DIR / "datasets/problems/current-sheet/num_cells=1024/q26-b25-ppm"
 DATASET_GLOB = "current_density-comp=x_2-slice=x_2-index=*.npz"
 TARGET_TIMES = (0.0, 0.5, 3.0, 10.0)
 FIGURE_PATH = ROOT_DIR / "figures/problems/current-sheet/current-density-evolution.png"

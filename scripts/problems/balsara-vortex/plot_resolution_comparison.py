@@ -32,18 +32,19 @@ from jormi.ww_types import box_positions
 ## dataset paths and file layout
 ROOT_DIR = Path(__file__).parents[3]
 DATASET_DIR = ROOT_DIR / "datasets/problems/balsara-vortex"
-DATASET_RESOLUTIONS = (64, 128)
-DATASET_SLICE_GLOB = "magnetic_energy-slice=x_2-index=*.npz"
-DATASET_TIME_NAME = "magnetic_energy-vi_evolution.json"
 FIGURE_PATH = ROOT_DIR / "figures/problems/balsara-vortex/resolution-comparison.png"
+NUM_CELLS_LEFT = 64
+NUM_CELLS_RIGHT = 128
+FIELD_NAME = "magnetic_energy"
+DATASET_SLICE_GLOB = f"{FIELD_NAME}-slice=x_2-index=*.npz"
+DATASET_TIME_NAME = f"{FIELD_NAME}-vi_evolution.json"
 
 ## plotting details
 AXIS_BOUNDS: plot_data.AxisRanges = ((-5.0, 5.0), (-5.0, 5.0))
 PALETTE_NAME = "cmr.horizon_r"
 PALETTE_RANGE = (0.0, 1.0)
 VALUE_RANGE = (-10, -3.5)
-
-## annotations
+COLORBAR_LABEL = r"$\log_{10}(b^2 / 2)$"
 REFERENCE_RADIUS = 2.0
 NUM_ORBITS = 3
 
@@ -56,7 +57,6 @@ def find_slice_paths(
     *,
     data_dir: Path,
 ) -> list[Path]:
-    """Return every slice in `data_dir`, sorted earliest (t = 0) to latest."""
     slice_paths = sorted(
         data_dir.glob(DATASET_SLICE_GLOB),
         key=lambda path: int(path.stem.split("index=")[-1].split("-")[0]),
@@ -253,11 +253,10 @@ def main() -> None:
         verbose=False,
     )
     data_dirs_lookup = {
-        num_cells: DATASET_DIR / f"ncells={num_cells}/q26-b25-ppm_ep/extracted"
-        for num_cells in DATASET_RESOLUTIONS
+        num_cells: DATASET_DIR / f"num_cells={num_cells}/q26-b25-ppm_ep/extracted"
+        for num_cells in (NUM_CELLS_LEFT, NUM_CELLS_RIGHT)
     }
-    highest_resolution = max(DATASET_RESOLUTIONS)
-    left_side_resolution, right_side_resolution = DATASET_RESOLUTIONS
+    highest_resolution = max(NUM_CELLS_LEFT, NUM_CELLS_RIGHT)
     first_snapshot_lookup = {
         num_cells:
         upsample_slice(
@@ -282,10 +281,10 @@ def main() -> None:
         for num_cells, data_dir in data_dirs_lookup.items()
     }
     composite = plot_slice_quadrants(
-        top_left=final_snapshot_lookup[left_side_resolution],
-        top_right=final_snapshot_lookup[right_side_resolution],
-        bottom_left=first_snapshot_lookup[left_side_resolution],
-        bottom_right=first_snapshot_lookup[right_side_resolution],
+        top_left=final_snapshot_lookup[NUM_CELLS_LEFT],
+        top_right=final_snapshot_lookup[NUM_CELLS_RIGHT],
+        bottom_left=first_snapshot_lookup[NUM_CELLS_LEFT],
+        bottom_right=first_snapshot_lookup[NUM_CELLS_RIGHT],
     )
     figure, panel = manage_figure.create_figure(
         ## the domain is square; the figure is fitted around it once its labels exist
@@ -324,8 +323,8 @@ def main() -> None:
     panel.set_xticks([])
     panel.set_yticks([])
     for x_pos, num_cells in (
-        (0.025, left_side_resolution),
-        (0.975, right_side_resolution),
+        (0.025, NUM_CELLS_LEFT),
+        (0.975, NUM_CELLS_RIGHT),
     ):
         annotate_panel.add_text(
             panel=panel,
@@ -338,7 +337,7 @@ def main() -> None:
             ## these name what each half of the panel shows, so they sit with the axis labels
             text_size_pt=text_size_params.axis_label_size_pt,
         )
-    for x_pos, num_cells in ((0.025, left_side_resolution), (0.975, right_side_resolution)):
+    for x_pos, num_cells in ((0.025, NUM_CELLS_LEFT), (0.975, NUM_CELLS_RIGHT)):
         annotate_panel.add_text(
             panel=panel,
             x_pos_fraction=x_pos,
@@ -380,7 +379,7 @@ def main() -> None:
     add_color.add_colorbar(
         panels=panel,
         palette=palette,
-        label=r"$\log_{10}(b^2 / 2)$",
+        label=COLORBAR_LABEL,
         colorbar_side="right",
         ## nothing sits between the panel and the bar, so it needs less room than two panels do
         colorbar_gap_pt=panel_gaps.col_pt / 2.0,

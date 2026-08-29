@@ -13,8 +13,8 @@ from typing import Any
 ## third-party
 import numpy
 
-from matplotlib.lines import Line2D as mpl_line2d
-from numpy.typing import NDArray
+from matplotlib import lines as mpl_lines
+from numpy import typing as numpy_typing
 
 ## personal (local)
 from jormi.ww_io import manage_io, manage_log
@@ -24,11 +24,7 @@ from jormi.ww_plots import (
     style_figure,
 )
 from jormi.ww_types import box_positions
-from ww_quokka_sims.sim_io.profile_models import (
-    ComponentArrays,
-    ScalarProfile,
-    VectorProfile,
-)
+from ww_quokka_sims.sim_io import profile_models
 
 ##
 ## === DATA STRUCTURES
@@ -91,12 +87,12 @@ class EMFAveragingScheme(Enum):
 
 @dataclass(frozen=True)
 class ShockTubeProfiles:
-    density: ComponentArrays
-    pressure: ComponentArrays
-    pressure_ratio: ComponentArrays
-    velocity_x0: ComponentArrays
-    velocity_x1: ComponentArrays
-    magnetic_x1: ComponentArrays
+    density: profile_models.ComponentArrays
+    pressure: profile_models.ComponentArrays
+    pressure_ratio: profile_models.ComponentArrays
+    velocity_x0: profile_models.ComponentArrays
+    velocity_x1: profile_models.ComponentArrays
+    magnetic_x1: profile_models.ComponentArrays
 
 
 ##
@@ -107,15 +103,6 @@ class ShockTubeProfiles:
 ROOT_DIR: Path = Path(__file__).parents[3]
 DATASET_DIR: Path = ROOT_DIR / "datasets/problems/brio-wu-shock-tube"
 FIGURE_PATH: Path = ROOT_DIR / "figures/problems/brio-wu-shock-tube/ncells=256/scheme-comparison.png"
-DISCONTINUITY_POSITION: float = 0.5
-
-## plotting details
-MARKER_PLOT_KWARGS: dict[str, Any] = {
-    "markerfacecolor": "none",
-    "markersize": 2.5,
-    "markeredgewidth": 0.3,
-    "linestyle": "",
-}
 
 ##
 ## === HELPER FUNCTIONS
@@ -137,30 +124,30 @@ def load_sim_profiles(
     extracted_dir = sim_dir / "extracted"
     density_path = next(extracted_dir.glob("density-axis=x_0-index=*.json"))
     index = density_path.stem.split("index=")[-1]
-    density_profile = ScalarProfile.load_from_file(
+    density_profile = profile_models.ScalarProfile.load_from_file(
         file_path=extracted_dir / f"density-axis=x_0-index={index}.json",
     )
-    pressure_profile = ScalarProfile.load_from_file(
+    pressure_profile = profile_models.ScalarProfile.load_from_file(
         file_path=extracted_dir / f"pressure-axis=x_0-index={index}.json",
     )
-    velocity_profile = VectorProfile.load_from_file(
+    velocity_profile = profile_models.VectorProfile.load_from_file(
         file_path=extracted_dir / f"velocity-axis=x_0-index={index}.json",
     )
-    magnetic_profile = VectorProfile.load_from_file(
+    magnetic_profile = profile_models.VectorProfile.load_from_file(
         file_path=extracted_dir / f"magnetic-axis=x_0-index={index}.json",
     )
     return ShockTubeProfiles(
-        density=ComponentArrays(
+        density=profile_models.ComponentArrays(
             position=density_profile.position,
             field_value=density_profile.field_value,
             label=r"$\rho$",
         ),
-        pressure=ComponentArrays(
+        pressure=profile_models.ComponentArrays(
             position=pressure_profile.position,
             field_value=pressure_profile.field_value,
             label=r"$p$",
         ),
-        pressure_ratio=ComponentArrays(
+        pressure_ratio=profile_models.ComponentArrays(
             position=pressure_profile.position,
             field_value=pressure_profile.field_value / density_profile.field_value,
             label=r"$p / \rho$",
@@ -177,14 +164,14 @@ def load_solution_time(
 ) -> float:
     """Load the plotted snapshot time from a simulation's density profile."""
     density_path = next((sim_dir / "extracted").glob("density-axis=x_0-index=*.json"))
-    return ScalarProfile.load_from_file(file_path=density_path).step_time
+    return profile_models.ScalarProfile.load_from_file(file_path=density_path).step_time
 
 
 def compute_moving_average(
-    values: NDArray[numpy.floating],
+    values: numpy_typing.NDArray[numpy.floating],
     *,
     window_width: int = 35,
-) -> NDArray[numpy.floating]:
+) -> numpy_typing.NDArray[numpy.floating]:
     averaging_kernel = numpy.ones(window_width) / window_width
     pad_width = window_width // 2
     padded_values = numpy.pad(values, pad_width, mode="edge")
@@ -202,32 +189,32 @@ def compute_smoothed_profiles(
     discontinuities, unaffected.
     """
     return ShockTubeProfiles(
-        density=ComponentArrays(
+        density=profile_models.ComponentArrays(
             position=profiles.density.position,
             field_value=compute_moving_average(profiles.density.field_value),
             label=r"$\rho$",
         ),
-        pressure=ComponentArrays(
+        pressure=profile_models.ComponentArrays(
             position=profiles.pressure.position,
             field_value=compute_moving_average(profiles.pressure.field_value),
             label=r"$p$",
         ),
-        pressure_ratio=ComponentArrays(
+        pressure_ratio=profile_models.ComponentArrays(
             position=profiles.pressure_ratio.position,
             field_value=compute_moving_average(profiles.pressure_ratio.field_value),
             label=r"$p / \rho$",
         ),
-        velocity_x0=ComponentArrays(
+        velocity_x0=profile_models.ComponentArrays(
             position=profiles.velocity_x0.position,
             field_value=compute_moving_average(profiles.velocity_x0.field_value),
             label=r"$\left[\vec{v}\right]_0$",
         ),
-        velocity_x1=ComponentArrays(
+        velocity_x1=profile_models.ComponentArrays(
             position=profiles.velocity_x1.position,
             field_value=compute_moving_average(profiles.velocity_x1.field_value),
             label=r"$\left[\vec{v}\right]_1$",
         ),
-        magnetic_x1=ComponentArrays(
+        magnetic_x1=profile_models.ComponentArrays(
             position=profiles.magnetic_x1.position,
             field_value=compute_moving_average(profiles.magnetic_x1.field_value),
             label=r"$\left[\vec{b}\right]_1$",
@@ -242,9 +229,9 @@ def shift_profiles(
 ) -> ShockTubeProfiles:
 
     def _shifted(
-        component: ComponentArrays,
-    ) -> ComponentArrays:
-        return ComponentArrays(
+        component: profile_models.ComponentArrays,
+    ) -> profile_models.ComponentArrays:
+        return profile_models.ComponentArrays(
             position=component.position - shift,
             field_value=component.field_value,
             label=component.label,
@@ -394,7 +381,7 @@ def add_reference_scheme_legend(
     styles: tuple[ReferenceSchemeStyle, ...],
 ) -> None:
     handles = [
-        mpl_line2d(
+        mpl_lines.Line2D(
             [0],
             [0],
             marker="s",
@@ -422,8 +409,13 @@ def add_reference_scheme_legend(
 
 def main() -> None:
     manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    ## the legends name the curves the same way the panel annotations do, so they read as the
-    ## same kind of text, set a quarter point smaller so they stay the quieter of the two
+    discontinuity_position = 0.5
+    marker_plot_kwargs: dict[str, Any] = {
+        "markerfacecolor": "none",
+        "markersize": 2.5,
+        "markeredgewidth": 0.3,
+        "linestyle": "",
+    }
     default_text_sizes = style_figure.TextSizeParams()
     legend_size = default_text_sizes.annotation_size_pt - 0.25
     style_figure.set_figure_params(
@@ -450,7 +442,7 @@ def main() -> None:
         profiles=compute_smoothed_profiles(
             profiles=load_sim_profiles(sim_dir=reference_sim_dir),
         ),
-        shift=DISCONTINUITY_POSITION,
+        shift=discontinuity_position,
     )
     llf_sim_profiles = shift_profiles(
         profiles=load_sim_profiles(
@@ -459,16 +451,13 @@ def main() -> None:
                 emf_averaging_scheme=EMFAveragingScheme.B25,
             ),
         ),
-        shift=DISCONTINUITY_POSITION,
+        shift=discontinuity_position,
     )
     figure, panel_grid = manage_figure.create_figure(
         num_panel_cols=2,
         num_panel_rows=3,
-        ## chosen by eye
         panel_aspect_ratio=3.0 / 2.0,
-        ## the rows share an x axis, so only their frames sit in the gap, not tick labels
         panel_row_gap_pt=5.0,
-        ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.85),
         ),
@@ -488,7 +477,7 @@ def main() -> None:
         panel_grid=panel_grid,
         profiles=llf_sim_profiles,
         plot_kwargs={
-            **MARKER_PLOT_KWARGS,
+            **marker_plot_kwargs,
             "marker": "s",
             "markeredgecolor": "deeppink",
             "zorder": 0,
@@ -498,13 +487,13 @@ def main() -> None:
         profiles=load_sim_profiles(
             sim_dir=DATASET_DIR / "num_cells=256/hlld/q26-b25-ppm",
         ),
-        shift=DISCONTINUITY_POSITION,
+        shift=discontinuity_position,
     )
     plot_profiles(
         panel_grid=panel_grid,
         profiles=ppm_sim_profiles,
         plot_kwargs={
-            **MARKER_PLOT_KWARGS,
+            **marker_plot_kwargs,
             "marker": "s",
             "markeredgecolor": "purple",
             "zorder": 0,
@@ -518,13 +507,13 @@ def main() -> None:
             )
             sim_profiles = shift_profiles(
                 profiles=load_sim_profiles(sim_dir=sim_dir),
-                shift=DISCONTINUITY_POSITION,
+                shift=discontinuity_position,
             )
             plot_profiles(
                 panel_grid=panel_grid,
                 profiles=sim_profiles,
                 plot_kwargs={
-                    **MARKER_PLOT_KWARGS,
+                    **marker_plot_kwargs,
                     "marker": emf_averaging_scheme.value.marker,
                     "markeredgecolor": emf_compute_scheme.value.color,
                     "zorder": emf_compute_scheme.value.zorder,

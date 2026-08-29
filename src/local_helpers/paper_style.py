@@ -12,8 +12,6 @@ from jormi.ww_plots import style_figure
 ## === FIGURE PARAMS
 ##
 
-## legends across every figure in the paper read at the annotation size, not the
-## smaller default legend size
 _default_text_sizes = style_figure.TextSizeParams()
 
 FIGURE_PARAMS = style_figure.FigureParams(

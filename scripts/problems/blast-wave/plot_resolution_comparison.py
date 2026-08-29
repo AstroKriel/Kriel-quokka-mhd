@@ -10,15 +10,22 @@ from pathlib import Path
 
 ## third-party
 import numpy
-from matplotlib.colorbar import Colorbar as mpl_Colorbar
-from matplotlib.ticker import FuncFormatter, MultipleLocator
-from numpy.typing import NDArray
+
+from matplotlib import colorbar as mpl_colorbar
+from matplotlib import ticker as mpl_ticker
+from numpy import typing as numpy_typing
 from scipy import ndimage as scipy_ndimage
 
 ## personal
-from jormi.ww_arrays.mask_2d_arrays import DiagonalMasks2D
+from jormi.ww_arrays import mask_2d_arrays
 from jormi.ww_io import manage_io, manage_log
-from jormi.ww_plots import add_color, annotate_panel, manage_figure, plot_data, style_figure
+from jormi.ww_plots import (
+    add_color,
+    annotate_panel,
+    manage_figure,
+    plot_data,
+    style_figure,
+)
 from jormi.ww_types import box_positions
 
 ##
@@ -29,7 +36,7 @@ from jormi.ww_types import box_positions
 @dataclass(frozen=True)
 class DensitySlice:
     step_time: float
-    log10_density: NDArray[numpy.floating]
+    log10_density: numpy_typing.NDArray[numpy.floating]
 
 
 ##
@@ -42,17 +49,14 @@ DATASET_DIR = ROOT_DIR / "datasets/problems/blast-wave"
 FIGURE_PATH = ROOT_DIR / "figures/problems/blast-wave/resolution-comparison.png"
 NUM_CELLS_UPPER = 128
 NUM_CELLS_LOWER = 1024
-TARGET_TIME = 0.05
 
 ## plotting details
 AXIS_BOUNDS: plot_data.AxisRanges = ((-0.5, 0.5), (-0.5, 0.5))
 MAJOR_TICK_STEP = 0.25
 MINOR_TICK_STEP = 0.05
 LABELED_TICK_VALUES = (-0.25, 0.25)
-CBAR_BOUNDS = (-0.8, 0.55)
 CONTOUR_LEVELS = (-0.0075, 0.0075)
 CONTOUR_COLORS = ("blue", "red")
-SMOOTHING_LENGTH = 0.1 * (AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]) / NUM_CELLS_UPPER
 
 ##
 ## === HELPER FUNCTIONS
@@ -78,10 +82,10 @@ def load_density_slice(
     *,
     num_cells: int,
 ) -> DensitySlice:
-    """Load the density slice nearest `TARGET_TIME` for one resolution."""
+    """Load the density slice nearest `target_time` for one resolution."""
     slice_path = find_slice_near_time(
         num_cells=num_cells,
-        target_time=TARGET_TIME,
+        target_time=0.05,
     )
     with numpy.load(slice_path) as data:
         return DensitySlice(
@@ -92,9 +96,9 @@ def load_density_slice(
 
 def upsample_slice(
     *,
-    array_2d: NDArray[numpy.floating],
+    array_2d: numpy_typing.NDArray[numpy.floating],
     target_num_cells: int,
-) -> NDArray[numpy.floating]:
+) -> numpy_typing.NDArray[numpy.floating]:
     """Block-replicate a coarser array up to `target_num_cells` (not interpolation)."""
     num_rows, num_cols = array_2d.shape
     if (num_rows == target_num_cells) and (num_cols == target_num_cells):
@@ -106,15 +110,15 @@ def upsample_slice(
 
 def combine_arrays_split_diagonally(
     *,
-    upper_array: NDArray[numpy.floating],
-    lower_array: NDArray[numpy.floating],
-) -> NDArray[numpy.floating]:
+    upper_array: numpy_typing.NDArray[numpy.floating],
+    lower_array: numpy_typing.NDArray[numpy.floating],
+) -> numpy_typing.NDArray[numpy.floating]:
     upper_array = upsample_slice(
         array_2d=upper_array,
         target_num_cells=lower_array.shape[0],
     )
     num_rows, num_cols = upper_array.shape
-    upper_mask = DiagonalMasks2D.get_mask_above_main_diagonal(
+    upper_mask = mask_2d_arrays.DiagonalMasks2D.get_mask_above_main_diagonal(
         num_rows=num_rows,
         num_cols=num_cols,
     )
@@ -123,22 +127,23 @@ def combine_arrays_split_diagonally(
 
 def compute_smoothed_slice(
     *,
-    array_2d: NDArray[numpy.floating],
-) -> NDArray[numpy.floating]:
+    array_2d: numpy_typing.NDArray[numpy.floating],
+) -> numpy_typing.NDArray[numpy.floating]:
     """
     Smooth by a fixed physical length (not a fixed cell count), so background noise is suppressed
     the same way at every resolution, rather than the coarser grid looking artificially cleaner.
     """
     domain_width = AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]
     cell_size = domain_width / array_2d.shape[0]
-    smoothing_sigma = SMOOTHING_LENGTH / cell_size
+    smoothing_length = 0.1 * domain_width / NUM_CELLS_UPPER
+    smoothing_sigma = smoothing_length / cell_size
     return scipy_ndimage.gaussian_filter(array_2d, sigma=smoothing_sigma)
 
 
 def overlay_contours(
     *,
     panel: manage_figure.Panel,
-    slice_2d: NDArray[numpy.floating],
+    slice_2d: numpy_typing.NDArray[numpy.floating],
 ) -> None:
     num_rows, num_cols = slice_2d.shape
     grid_x, grid_y = numpy.meshgrid(
@@ -160,7 +165,7 @@ def overlay_contours(
 
 def mark_contour_levels_on_cbar(
     *,
-    cbar: mpl_Colorbar,
+    cbar: mpl_colorbar.Colorbar,
 ) -> None:
     for level, color in zip(CONTOUR_LEVELS, CONTOUR_COLORS, strict=True):
         cbar.ax.axvline(
@@ -210,9 +215,9 @@ def configure_domain_ticks(
     figure_params = style_figure.get_figure_params()
     theme_params = figure_params.theme_params
     for axis in (panel.xaxis, panel.yaxis):
-        axis.set_major_locator(MultipleLocator(MAJOR_TICK_STEP))
-        axis.set_minor_locator(MultipleLocator(MINOR_TICK_STEP))
-        axis.set_major_formatter(FuncFormatter(format_domain_tick))
+        axis.set_major_locator(mpl_ticker.MultipleLocator(MAJOR_TICK_STEP))
+        axis.set_minor_locator(mpl_ticker.MultipleLocator(MINOR_TICK_STEP))
+        axis.set_major_formatter(mpl_ticker.FuncFormatter(format_domain_tick))
     panel.tick_params(
         which="both",
         color=theme_params.foreground_color,
@@ -241,14 +246,14 @@ def main() -> None:
     )
     upper_slice = load_density_slice(num_cells=NUM_CELLS_UPPER)
     lower_slice = load_density_slice(num_cells=NUM_CELLS_LOWER)
+    palette_name = "blue-white-red"
+    cbar_bounds = (-0.8, 0.55)
     palette_config = add_color.SequentialConfig(
-        palette_name="blue-white-red",
-        palette_range=compute_zero_centred_palette_range(value_range=CBAR_BOUNDS),
+        palette_name=palette_name,
+        palette_range=compute_zero_centred_palette_range(value_range=cbar_bounds),
     )
     figure, panel = manage_figure.create_figure(
-        ## the domain is square; the figure is fitted around it once its labels exist
         panel_aspect_ratio=1.0,
-        ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.5),
         ),
@@ -262,7 +267,7 @@ def main() -> None:
         array_2d=composite,
         data_format="xy",
         axis_ranges=AXIS_BOUNDS,
-        colorbar_range=CBAR_BOUNDS,
+        colorbar_range=cbar_bounds,
         palette_config=palette_config,
         add_colorbar=False,
     )
@@ -287,7 +292,6 @@ def main() -> None:
         label=rf"${NUM_CELLS_UPPER}^3$",
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Side.Top,
-        ## these name what each half of the panel shows, so they sit with the axis labels
         text_size_pt=text_size_params.axis_label_size_pt,
     )
     annotate_panel.add_text(
@@ -304,16 +308,14 @@ def main() -> None:
     panel.set_ylabel(r"$x_1$")
     palette = add_color.make_palette(
         config=palette_config,
-        value_range=CBAR_BOUNDS,
+        value_range=cbar_bounds,
     )
     cbar = add_color.add_colorbar(
         panels=panel,
         palette=palette,
         label=r"$\log_{10}(\rho / \rho_\mathrm{bg})$",
         colorbar_side="top",
-        ## nothing sits between the panel and the bar, so it needs less room than two panels do
         colorbar_gap_pt=panel_gaps.row_pt / 2.0,
-        ## the label clears a row of tick labels here, not just the bar, so it sits further out
         label_gap_pt=frame_params.axis_label_gap_pt * 2.0,
     )
     mark_contour_levels_on_cbar(cbar=cbar)

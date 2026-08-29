@@ -46,15 +46,6 @@ def load_energy_time_series(
     num_cells: int,
     component: str,
 ) -> tuple[numpy.ndarray, numpy.ndarray]:
-    """
-    Return (time, line-integrated energy) of `component`'s deviation from its mean, per snapshot.
-
-    The domain is periodic, so this uses a plain equal-weight Riemann sum (sum * dx), not
-    `numpy.trapezoid`: trapezoidal quadrature halves the weight of the first and last sample,
-    which is only correct for an open (non-periodic) interval. On a periodic grid there is no such
-    edge, and using trapz here introduced a spurious ~1-2% time-dependent oscillation, since the
-    profile's phase shifts snapshot to snapshot -- the plain sum is stable to ~0.2% instead.
-    """
     extracted_dir = DATASET_DIR / f"num_cells={num_cells}" / "q26-b25-ppm_ep" / "extracted"
     file_glob = f"magnetic-axis={PROFILE_AXIS}-index=*.json"
     file_paths = sorted(
@@ -80,7 +71,6 @@ def compute_leakage_ratio(
     *,
     num_cells: int,
 ) -> tuple[numpy.ndarray, numpy.ndarray]:
-    """Return (normalized time, log10 leakage ratio) for one resolution, excluding t=0."""
     times, primary_energy = load_energy_time_series(
         num_cells=num_cells,
         component=PRIMARY_COMPONENT,
@@ -101,14 +91,7 @@ def subsample_evenly(
     log10_leakage_ratio: numpy.ndarray,
     num_samples: int,
 ) -> tuple[numpy.ndarray, numpy.ndarray]:
-    """
-    Down-select to `num_samples` points, evenly spread across the series.
-
-    Uses `linspace` rather than `jormi.ww_lists.sample_list`: that helper's stride is an integer
-    floor-division (`(num_elems - 1) // (num_samples - 1)`), which does not generally reach the
-    final element, silently dropping the series' tail (e.g. 24 points down to 10 stops at index 18
-    of 23). `linspace` anchors both endpoints exactly.
-    """
+    """Down-select to `num_samples` points, evenly spread across the series."""
     indices_to_keep = numpy.unique(
         numpy.linspace(
             0,

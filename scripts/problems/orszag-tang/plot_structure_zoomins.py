@@ -10,18 +10,14 @@ from pathlib import Path
 
 ## third-party
 import numpy
+
 from matplotlib import colors as mpl_colors
+from matplotlib import figure as mpl_figure
 from matplotlib import gridspec as mpl_gridspec
 from matplotlib import patches as mpl_patches
 from matplotlib import pyplot as mpl_plot
-
-from matplotlib.figure import Figure as mpl_Figure
-from matplotlib.ticker import (
-    AutoMinorLocator,
-    FuncFormatter,
-    MultipleLocator,
-)
-from numpy.typing import NDArray
+from matplotlib import ticker as mpl_ticker
+from numpy import typing as numpy_typing
 
 ## personal
 from jormi.ww_arrays import compute_array_stats
@@ -44,7 +40,7 @@ from ww_quokka_sims.sim_io import find_snapshots
 
 @dataclass(frozen=True)
 class BoundedSlice:
-    sarray_2d: NDArray[numpy.floating]
+    sarray_2d: numpy_typing.NDArray[numpy.floating]
     axis_ranges: plot_data.AxisRanges
 
 
@@ -52,21 +48,19 @@ class BoundedSlice:
 class FigureGrid:
     num_rows: int
     num_cols: int
-    fig_size: tuple[float, float]
+    figure_size: tuple[float, float]
     figure_margins: manage_figure.FigureMargins
     panel_gaps: style_figure.PanelGaps
-    figure: mpl_Figure = field(init=False)
+    figure: mpl_figure.Figure = field(init=False)
     grid_spec: mpl_gridspec.GridSpec = field(init=False)
-    claimed: NDArray[numpy.bool_] = field(init=False)
+    claimed: numpy_typing.NDArray[numpy.bool_] = field(init=False)
 
     def __post_init__(
         self,
     ) -> None:
-        self.fig = mpl_plot.figure(figsize=self.fig_size)
-        figure_width = self.fig_size[0] * style_figure.PT_PER_INCH
-        figure_height = self.fig_size[1] * style_figure.PT_PER_INCH
-        ## gridspec takes its margins as figure fractions and its gaps as a fraction of the
-        ## mean panel, so the house units in pt are converted here rather than named twice
+        self.figure = mpl_plot.figure(figsize=self.figure_size)
+        figure_width = self.figure_size[0] * style_figure.PT_PER_INCH
+        figure_height = self.figure_size[1] * style_figure.PT_PER_INCH
         panel_width = (
             figure_width - self.figure_margins.left_pt - self.figure_margins.right_pt -
             (self.num_cols - 1) * self.panel_gaps.col_pt
@@ -78,7 +72,7 @@ class FigureGrid:
         self.grid_spec = mpl_gridspec.GridSpec(
             nrows=self.num_rows,
             ncols=self.num_cols,
-            figure=self.fig,
+            figure=self.figure,
             left=self.figure_margins.left_pt / figure_width,
             right=1.0 - self.figure_margins.right_pt / figure_width,
             bottom=self.figure_margins.bottom_pt / figure_height,
@@ -104,7 +98,7 @@ class FigureGrid:
         if self.claimed[row_slice, col_slice].any():
             raise ValueError(f"grid zoom_region rows={row_slice}, cols={col_slice} is already claimed.")
         self.claimed[row_slice, col_slice] = True
-        panel = self.fig.add_subplot(self.grid_spec[row_slice, col_slice])
+        panel = self.figure.add_subplot(self.grid_spec[row_slice, col_slice])
         plot_sarray_2d(
             panel=panel,
             bounded_slice=bounded_slice,
@@ -157,33 +151,22 @@ class ZoomRegion:
 ## inputs and outputs
 ROOT_DIR = Path(__file__).parents[3]
 EXTRACTED_DIR: Path = ROOT_DIR / "datasets/problems/orszag-tang/num_cells=8192/q26-b25-ppm/extracted"
-DATA_GLOB_PATTERN = "current_density_magnitude-slice=x_2-index=*-amr_level=0.npz"
-TARGET_TIME = 0.85
 FIGURE_PATH: Path = ROOT_DIR / "figures/problems/orszag-tang/ncells=8192/q26-b25-ppm/structure-zoomins.png"
 
 ## plotting details
 AXIS_BOUNDS: plot_data.AxisRanges = ((-0.5, 0.5), (-0.5, 0.5))
-MAIN_MAJOR_TICK_STEP = 0.25
-MAIN_MINOR_TICK_STEP = 0.05
 MAIN_LABELED_TICK_VALUES_X = (-0.5, -0.25, 0, 0.25)
 MAIN_LABELED_TICK_VALUES_Y = (-0.5, -0.25, 0, 0.25, 0.5)
-FIGURE_ASPECT_RATIO = 1.368
-## the panels carry no labels between them, so only their frames sit in the gaps
+MAIN_MAJOR_TICK_STEP = 0.25
+MAIN_MINOR_TICK_STEP = 0.05
+PANEL_GAP = 2.5
+FIGURE_ASPECT_RATIO = 171.0 / 125.0
 FIGURE_MARGINS = manage_figure.FigureMargins(
     left_pt=42.0,
     right_pt=36.0,
     bottom_pt=28.0,
     top_pt=54.0,
 )
-## every gap in the figure is this one, including the colorbar's, so none of them read as odd
-PANEL_GAP = 2.5
-PANEL_GAPS = style_figure.PanelGaps(
-    row_pt=PANEL_GAP,
-    col_pt=PANEL_GAP,
-)
-## the box is drawn over the lines that run from it to its zoom panel
-ZOOMIN_CONNECTOR_ZORDER = 2
-ZOOMIN_BOX_ZORDER = 3
 
 ## annotations
 ZOOM_REGIONS: tuple[ZoomRegion, ...] = (
@@ -239,7 +222,7 @@ def overlay_zoomin_box(
             facecolor=mpl_colors.to_rgba("white", alpha=0.15),
             edgecolor="white",
             linewidth=frame_params.line_width_pt,
-            zorder=ZOOMIN_BOX_ZORDER,
+            zorder=3,
         ),
     )
 
@@ -259,7 +242,6 @@ def connect_zoomin_to_panel(
     figure_params = style_figure.get_figure_params()
     frame_params = figure_params.frame_params
     (x_lo, _), (y_lo, y_hi) = bounds
-    ## the corners are paired top-to-top and bottom-to-bottom, so the two lines never cross
     for region_corner, panel_corner in (
         ((x_lo, y_hi), (0.0, 1.0)),
         ((x_lo, y_lo), (0.0, 0.0)),
@@ -273,7 +255,7 @@ def connect_zoomin_to_panel(
                 color="white",
                 linewidth=frame_params.line_width_pt,
                 clip_on=False,
-                zorder=ZOOMIN_CONNECTOR_ZORDER,
+                zorder=2,
             ),
         )
 
@@ -290,8 +272,6 @@ def plot_sarray_2d(
     )
     field_label = r"$\log_{10} \left( \Delta x \, |\nabla \times \vec{b}| \right)$"
     cbar_bounds = (-3.0, -1.25)
-    ## early-time slices (e.g. t=0) sit entirely below `cbar_bounds`, before any current sheets have
-    ## formed; clip rather than let `plot_2d_array` reject the out-of-range array outright
     clipped_sarray_2d = numpy.clip(bounded_slice.sarray_2d, cbar_bounds[0], cbar_bounds[1])
     plot_data.plot_2d_array(
         panel=panel,
@@ -314,9 +294,7 @@ def plot_sarray_2d(
             palette=palette,
             label=field_label,
             colorbar_side="top",
-            ## nothing sits between the panel and the bar, so it needs less room than two panels do
             colorbar_gap_pt=PANEL_GAP,
-            ## the label clears a row of tick labels here, not just the bar, so it sits further out
             label_gap_pt=frame_params.axis_label_gap_pt * 2.0,
         )
 
@@ -348,10 +326,10 @@ def configure_main_ticks(
     panel: manage_figure.Panel,
 ) -> None:
     for axis in (panel.xaxis, panel.yaxis):
-        axis.set_major_locator(MultipleLocator(MAIN_MAJOR_TICK_STEP))
-        axis.set_minor_locator(MultipleLocator(MAIN_MINOR_TICK_STEP))
-    panel.xaxis.set_major_formatter(FuncFormatter(format_main_ticks_x))
-    panel.yaxis.set_major_formatter(FuncFormatter(format_main_ticks_y))
+        axis.set_major_locator(mpl_ticker.MultipleLocator(MAIN_MAJOR_TICK_STEP))
+        axis.set_minor_locator(mpl_ticker.MultipleLocator(MAIN_MINOR_TICK_STEP))
+    panel.xaxis.set_major_formatter(mpl_ticker.FuncFormatter(format_main_ticks_x))
+    panel.yaxis.set_major_formatter(mpl_ticker.FuncFormatter(format_main_ticks_y))
     panel.tick_params(
         which="both",
         color="white",
@@ -365,7 +343,7 @@ def configure_main_ticks(
 def make_step_tick_formatter(
     *,
     label_step: float,
-) -> FuncFormatter:
+) -> mpl_ticker.FuncFormatter:
     """Label only ticks landing on a multiple of `label_step`; draw the rest unlabeled."""
 
     def format_tick(
@@ -376,7 +354,7 @@ def make_step_tick_formatter(
         is_labeled = numpy.isclose(tick_value, nearest_multiple)
         return f"${tick_value:.2f}$" if is_labeled else ""
 
-    return FuncFormatter(format_tick)
+    return mpl_ticker.FuncFormatter(format_tick)
 
 
 def configure_zoomin_ticks(
@@ -388,7 +366,7 @@ def configure_zoomin_ticks(
 ) -> None:
     """Add automatic domain ticks (each zoom region's extent is too small for a fixed step)."""
     for axis in (panel.xaxis, panel.yaxis):
-        axis.set_minor_locator(AutoMinorLocator())
+        axis.set_minor_locator(mpl_ticker.AutoMinorLocator())
     if y_label_step is not None:
         panel.yaxis.set_major_formatter(make_step_tick_formatter(label_step=y_label_step))
     panel.tick_params(
@@ -415,7 +393,6 @@ def add_time_label(
         label=rf"$t = {step_time:.2f}$",
         x_alignment=box_positions.Positions.Center.Center,
         y_alignment=box_positions.Positions.Side.Top,
-        ## it sits over the image, not the page, so it is keyed to the data behind it
         text_color="white",
         text_size_pt=text_size_params.axis_label_size_pt,
     )
@@ -425,27 +402,29 @@ def plot_structures(
     *,
     bounded_slice: BoundedSlice,
     step_time: float,
-) -> mpl_Figure:
+) -> mpl_figure.Figure:
     num_zoomin_rows = len(ZOOM_REGIONS)
     num_zoomin_cols = 1
     num_main_rows = num_zoomin_rows
     num_main_cols = num_main_rows
     num_rows = num_main_rows
     num_cols = num_main_cols + num_zoomin_cols
-    ## this figure lays itself out through gridspec rather than `create_figure`, since the
-    ## main panel spans cells a panel grid cannot express, so it is sized here by hand
     figure_width_inches = style_figure.FULL_PAGE_FIGURE_LAYOUT.figure_width.width_cm / style_figure.CM_PER_INCH
-    fig_grid = FigureGrid(
+    panel_gaps = style_figure.PanelGaps(
+        row_pt=PANEL_GAP,
+        col_pt=PANEL_GAP,
+    )
+    figure_grid = FigureGrid(
         num_rows=num_rows,
         num_cols=num_cols,
-        fig_size=(
+        figure_size=(
             figure_width_inches,
             figure_width_inches / FIGURE_ASPECT_RATIO,
         ),
         figure_margins=FIGURE_MARGINS,
-        panel_gaps=PANEL_GAPS,
+        panel_gaps=panel_gaps,
     )
-    main_ax = fig_grid.plot(
+    main_ax = figure_grid.plot(
         row_slice=slice(0, num_main_rows),
         col_slice=slice(0, num_main_cols),
         bounded_slice=bounded_slice,
@@ -465,7 +444,7 @@ def plot_structures(
             bounded_slice=bounded_slice,
             zoom_region=zoom_region,
         )
-        zoom_ax = fig_grid.plot(
+        zoom_ax = figure_grid.plot(
             row_slice=slice(grid_row_start, grid_row_end),
             col_slice=slice(num_main_cols, num_cols),
             bounded_slice=cropped_field,
@@ -486,7 +465,7 @@ def plot_structures(
             zoom_panel=zoom_ax,
             bounds=cropped_field.axis_ranges,
         )
-    return fig_grid.fig
+    return figure_grid.figure
 
 
 ##
@@ -505,8 +484,8 @@ def main() -> None:
     )
     data_path = find_snapshots.find_npz_near_time(
         extracted_dir=EXTRACTED_DIR,
-        glob_pattern=DATA_GLOB_PATTERN,
-        target_time=TARGET_TIME,
+        glob_pattern="current_density_magnitude-slice=x_2-index=*-amr_level=0.npz",
+        target_time=0.85,
     )
     with numpy.load(data_path) as data:
         sarray_2d = data["sarray_2d"]

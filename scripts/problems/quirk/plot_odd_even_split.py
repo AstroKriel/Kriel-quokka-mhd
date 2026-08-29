@@ -10,12 +10,16 @@ from pathlib import Path
 
 ## third-party
 import numpy
-from numpy.typing import NDArray
+
+from numpy import typing as numpy_typing
 
 ## personal
-from jormi.ww_io import manage_io, manage_log
+from jormi.ww_io import manage_io
 from jormi.ww_plots import annotate_panel, manage_figure, style_figure
 from jormi.ww_types import box_positions
+
+## local
+from local_helpers import paper_style
 
 ##
 ## === DATA STRUCTURES
@@ -25,7 +29,7 @@ from jormi.ww_types import box_positions
 @dataclass(frozen=True)
 class PressureSnapshot:
     step_time: float
-    pressure: NDArray[numpy.floating]
+    pressure: numpy_typing.NDArray[numpy.floating]
 
 
 ##
@@ -36,7 +40,7 @@ class PressureSnapshot:
 COMBO_OFF = "q26-b25-ppm_ep-no-carbuncle-fix"
 COMBO_ON = "q26-b25-ppm_ep"
 ROOT_DIR = Path(__file__).parents[3]
-DATASET_ROOT = ROOT_DIR / "datasets/problems/quirk/ncells=128"
+DATASET_ROOT = ROOT_DIR / "datasets/problems/quirk/num_cells=128"
 FIGURE_PATH = ROOT_DIR / "figures/problems/quirk/ncells=128/odd_even_split.png"
 
 ## annotations
@@ -100,15 +104,7 @@ def plot_even_odd_profiles(
 
 
 def main() -> None:
-    manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    default_text_sizes = style_figure.TextSizeParams()
-    style_figure.set_figure_params(
-        figure_params=style_figure.FigureParams(
-            text_size_params=style_figure.TextSizeParams(
-                legend_level=default_text_sizes.annotation_level,
-            ),
-        ),
-    )
+    paper_style.setup_plotting_script()
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,
@@ -118,7 +114,8 @@ def main() -> None:
     representative_off = snapshots_off[-1]
     representative_on = snapshots_on[-1]
     figure, panel = manage_figure.create_figure(
-        panel_aspect_ratio=1.199,
+        ## chosen by eye
+        panel_aspect_ratio=6.0 / 5.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.5),
@@ -147,7 +144,7 @@ def main() -> None:
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Side.Top,
         ## math italic reads smaller than upright text, so this sits with the axis labels
-        text_size_pt=default_text_sizes.axis_label_size_pt,
+        text_size_pt=paper_style.FIGURE_PARAMS.text_size_params.axis_label_size_pt,
     )
     annotate_panel.add_custom_legend(
         panel=panel,

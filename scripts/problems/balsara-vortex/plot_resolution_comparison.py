@@ -10,11 +10,11 @@ from pathlib import Path
 
 ## third-party
 import numpy
-from numpy.typing import NDArray
+
+from numpy import typing as numpy_typing
 
 ## personal
-from jormi.ww_arrays import compute_array_stats
-from jormi.ww_arrays.mask_2d_arrays import QuadrantMasks2D
+from jormi.ww_arrays import compute_array_stats, mask_2d_arrays
 from jormi.ww_io import manage_io, manage_log
 from jormi.ww_plots import (
     add_color,
@@ -26,26 +26,19 @@ from jormi.ww_plots import (
 from jormi.ww_types import box_positions
 
 ##
-## === CONFIGURATION
+## === CONSTANTS
 ##
 
-## dataset paths and file layout
+## inputs and outputs
 ROOT_DIR = Path(__file__).parents[3]
 DATASET_DIR = ROOT_DIR / "datasets/problems/balsara-vortex"
 FIGURE_PATH = ROOT_DIR / "figures/problems/balsara-vortex/resolution-comparison.png"
 NUM_CELLS_LEFT = 64
 NUM_CELLS_RIGHT = 128
 FIELD_NAME = "magnetic_energy"
-DATASET_SLICE_GLOB = f"{FIELD_NAME}-slice=x_2-index=*.npz"
-DATASET_TIME_NAME = f"{FIELD_NAME}-vi_evolution.json"
 
 ## plotting details
 AXIS_BOUNDS: plot_data.AxisRanges = ((-5.0, 5.0), (-5.0, 5.0))
-PALETTE_NAME = "cmr.horizon_r"
-PALETTE_RANGE = (0.0, 1.0)
-VALUE_RANGE = (-10, -3.5)
-COLORBAR_LABEL = r"$\log_{10}(b^2 / 2)$"
-REFERENCE_RADIUS = 2.0
 NUM_ORBITS = 3
 
 ##
@@ -57,20 +50,21 @@ def find_slice_paths(
     *,
     data_dir: Path,
 ) -> list[Path]:
+    dataset_slice_glob = f"{FIELD_NAME}-slice=x_2-index=*.npz"
     slice_paths = sorted(
-        data_dir.glob(DATASET_SLICE_GLOB),
+        data_dir.glob(dataset_slice_glob),
         key=lambda path: int(path.stem.split("index=")[-1].split("-")[0]),
     )
     if not slice_paths:
-        raise FileNotFoundError(f"no slice matching `{DATASET_SLICE_GLOB}` found in: {data_dir}")
+        raise FileNotFoundError(f"no slice matching `{dataset_slice_glob}` found in: {data_dir}")
     return slice_paths
 
 
 def upsample_slice(
     *,
-    array_2d: NDArray[numpy.floating],
+    array_2d: numpy_typing.NDArray[numpy.floating],
     target_num_cells: int,
-) -> NDArray[numpy.floating]:
+) -> numpy_typing.NDArray[numpy.floating]:
     """Block-replicate a coarser array up to `target_num_cells` (not interpolation)."""
     num_rows, num_cols = array_2d.shape
     if (num_rows == target_num_cells) and (num_cols == target_num_cells):
@@ -82,7 +76,7 @@ def upsample_slice(
 
 def compute_centroid_position(
     *,
-    array_2d: NDArray[numpy.floating],
+    array_2d: numpy_typing.NDArray[numpy.floating],
     axis_ranges: plot_data.AxisRanges,
 ) -> tuple[float, float]:
     """Mass-weighted centroid of a positive-definite field, in physical (x, y) units."""
@@ -101,9 +95,9 @@ def compute_centroid_position(
 
 def recenter_via_periodic_shift(
     *,
-    array_2d: NDArray[numpy.floating],
+    array_2d: numpy_typing.NDArray[numpy.floating],
     axis_ranges: plot_data.AxisRanges,
-) -> NDArray[numpy.floating]:
+) -> numpy_typing.NDArray[numpy.floating]:
     """
     Undo a small, uniform positional drift by applying a sub-pixel periodic shift.
 
@@ -138,7 +132,7 @@ def estimate_energy_conservation_per_orbit(
     Energy loss compounds geometrically orbit-to-orbit, so the per-orbit rate is the `NUM_ORBITS`-th
     root of the total retained fraction, not that total fraction divided by `NUM_ORBITS`.
     """
-    data_path = data_dir / DATASET_TIME_NAME
+    data_path = data_dir / f"{FIELD_NAME}-vi_evolution.json"
     with data_path.open() as file:
         dataset = json.load(file)
     dataset_values = dataset["vi_values"]
@@ -148,11 +142,11 @@ def estimate_energy_conservation_per_orbit(
 
 def plot_slice_quadrants(
     *,
-    top_left: NDArray[numpy.floating],
-    top_right: NDArray[numpy.floating],
-    bottom_left: NDArray[numpy.floating],
-    bottom_right: NDArray[numpy.floating],
-) -> NDArray[numpy.floating]:
+    top_left: numpy_typing.NDArray[numpy.floating],
+    top_right: numpy_typing.NDArray[numpy.floating],
+    bottom_left: numpy_typing.NDArray[numpy.floating],
+    bottom_right: numpy_typing.NDArray[numpy.floating],
+) -> numpy_typing.NDArray[numpy.floating]:
     num_rows, num_cols = top_left.shape
     Corner = box_positions.Positions.Corner
     composite = numpy.zeros_like(top_left)
@@ -162,7 +156,7 @@ def plot_slice_quadrants(
         (bottom_left, Corner.BottomLeft),
         (bottom_right, Corner.BottomRight),
     ):
-        mask = QuadrantMasks2D.get_mask(
+        mask = mask_2d_arrays.QuadrantMasks2D.get_mask(
             num_rows=num_rows,
             num_cols=num_cols,
             anchor=anchor,
@@ -204,7 +198,6 @@ def add_reference_circle_and_drift_arrow(
             "color": theme_params.foreground_color,
             "linestyle": "-",
             "linewidth": artist_params.line_width_pt,
-            ## the head is sized in points, so tie it to the text it sits beside
             "mutation_scale": text_size_params.annotation_size_pt,
             "shrinkA": 0.0,
             "shrinkB": 0.0,
@@ -248,6 +241,10 @@ def main() -> None:
     panel_gaps = figure_params.figure_layout.panel_gaps
     text_size_params = figure_params.text_size_params
     theme_params = figure_params.theme_params
+    palette_name = "cmr.horizon_r"
+    palette_range = (0.0, 1.0)
+    value_range = (-10, -3.5)
+    colorbar_label = r"$\log_{10}(b^2 / 2)$"
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,
@@ -287,9 +284,7 @@ def main() -> None:
         bottom_right=first_snapshot_lookup[NUM_CELLS_RIGHT],
     )
     figure, panel = manage_figure.create_figure(
-        ## the domain is square; the figure is fitted around it once its labels exist
         panel_aspect_ratio=1.0,
-        ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.5),
         ),
@@ -299,10 +294,10 @@ def main() -> None:
         array_2d=compute_array_stats.compute_safe_log10(composite),
         data_format="ij",
         axis_ranges=AXIS_BOUNDS,
-        colorbar_range=VALUE_RANGE,
+        colorbar_range=value_range,
         palette_config=add_color.SequentialConfig(
-            palette_name=PALETTE_NAME,
-            palette_range=PALETTE_RANGE,
+            palette_name=palette_name,
+            palette_range=palette_range,
         ),
         add_colorbar=False,
     )
@@ -318,7 +313,7 @@ def main() -> None:
     )
     add_reference_circle_and_drift_arrow(
         panel=panel,
-        radius=REFERENCE_RADIUS,
+        radius=2.0,
     )
     panel.set_xticks([])
     panel.set_yticks([])
@@ -334,7 +329,6 @@ def main() -> None:
             x_alignment=box_positions.Positions.Side.Left
             if x_pos < 0.5 else box_positions.Positions.Side.Right,
             y_alignment=box_positions.Positions.Side.Top,
-            ## these name what each half of the panel shows, so they sit with the axis labels
             text_size_pt=text_size_params.axis_label_size_pt,
         )
     for x_pos, num_cells in ((0.025, NUM_CELLS_LEFT), (0.975, NUM_CELLS_RIGHT)):
@@ -348,7 +342,6 @@ def main() -> None:
             ),
             y_alignment=box_positions.Positions.Side.Bottom,
         )
-    ## these sit outside the panel, so they are placed directly rather than through `add_text`
     panel.text(
         0.5,
         1.02,
@@ -371,17 +364,16 @@ def main() -> None:
     )
     palette = add_color.make_palette(
         config=add_color.SequentialConfig(
-            palette_name=PALETTE_NAME,
-            palette_range=PALETTE_RANGE,
+            palette_name=palette_name,
+            palette_range=palette_range,
         ),
-        value_range=VALUE_RANGE,
+        value_range=value_range,
     )
     add_color.add_colorbar(
         panels=panel,
         palette=palette,
-        label=COLORBAR_LABEL,
+        label=colorbar_label,
         colorbar_side="right",
-        ## nothing sits between the panel and the bar, so it needs less room than two panels do
         colorbar_gap_pt=panel_gaps.col_pt / 2.0,
     )
     manage_figure.save_figure(

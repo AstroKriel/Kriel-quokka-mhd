@@ -69,7 +69,6 @@ def load_perturbed_component_snapshots(
     file_paths = sorted(extracted_dir.glob("magnetic-axis=x_0-index=*.json"))
     for file_path in file_paths:
         dataset = json_io.read_json_file_into_dict(file_path, verbose=False)
-        ## x_2: transverse to both k and the background field
         perturbed_field_comp = dataset["field_comps"]["x_2"]
         snapshots.append(
             Snapshot(
@@ -138,9 +137,7 @@ def main() -> None:
     )
     eta_labels = discover_eta_labels(dataset_dir=DATASET_DIR)
     figure, panel = manage_figure.create_figure(
-        ## chosen by eye
         panel_aspect_ratio=7.0 / 6.0,
-        ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.475),
         ),

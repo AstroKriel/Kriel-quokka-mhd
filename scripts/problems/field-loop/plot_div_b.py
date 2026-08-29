@@ -17,7 +17,7 @@ from numpy import typing as numpy_typing
 
 ## personal
 from jormi.ww_arrays import compute_array_stats
-from jormi.ww_io import manage_io, manage_log
+from jormi.ww_io import manage_io
 from jormi.ww_plots import (
     add_color,
     annotate_panel,
@@ -26,6 +26,10 @@ from jormi.ww_plots import (
     style_figure,
 )
 from jormi.ww_types import box_positions
+from ww_quokka_sims.sim_io import find_snapshots
+
+## local
+from local_helpers import paper_style
 
 ##
 ## === DATA STRUCTURES
@@ -40,6 +44,7 @@ class Slice:
 
 @dataclass(frozen=True)
 class ProblemSetup:
+    initial_position: tuple[float, float]
     direction: tuple[float, float]
     period: float
     radius: float
@@ -60,21 +65,6 @@ AXIS_BOUNDS: plot_data.AxisRanges = ((-1.5, 1.5), (-1.0, 1.0))
 ##
 ## === HELPER FUNCTIONS
 ##
-
-
-def find_slice_near_time(
-    *,
-    file_glob: str,
-    target_time: float,
-) -> Path:
-    """Return the saved slice nearest `target_time`."""
-    slice_paths = sorted(DATASET_DIR.glob(file_glob))
-    if not slice_paths:
-        raise FileNotFoundError(f"no slice matching `{file_glob}` found in: {DATASET_DIR}")
-    return min(
-        slice_paths,
-        key=lambda path: abs(float(numpy.load(path)["step_time"]) - target_time),
-    )
 
 
 def load_slice(
@@ -119,17 +109,19 @@ def compute_loop_center_at_time(
 ) -> tuple[float, float]:
     """Return the loop's true advected centre at `step_time`, wrapped into the periodic domain."""
 
-    def wrap(
+    def wrap_periodic_BCs(
         value: float,
         bounds: tuple[float, float],
     ) -> float:
         span = bounds[1] - bounds[0]
         return (value - bounds[0]) % span + bounds[0]
 
-    loop_initial_center = (0.0, 0.0)
-    raw_x = loop_initial_center[0] + problem_setup.direction[0] * step_time
-    raw_y = loop_initial_center[1] + problem_setup.direction[1] * step_time
-    return (wrap(raw_x, AXIS_BOUNDS[0]), wrap(raw_y, AXIS_BOUNDS[1]))
+    raw_x = problem_setup.initial_position[0] + problem_setup.direction[0] * step_time
+    raw_y = problem_setup.initial_position[1] + problem_setup.direction[1] * step_time
+    return (
+        wrap_periodic_BCs(raw_x, AXIS_BOUNDS[0]),
+        wrap_periodic_BCs(raw_y, AXIS_BOUNDS[1]),
+    )
 
 
 def add_advection_arrow(
@@ -372,8 +364,7 @@ def plot_field_loop_divb(
 
 
 def main() -> None:
-    manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    style_figure.set_figure_params()
+    paper_style.setup_plotting_script()
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,
@@ -384,13 +375,15 @@ def main() -> None:
         raise FileNotFoundError(f"no slice matching `{divb_glob}` found in: {DATASET_DIR}")
     divb_series = tuple(load_slice(slice_path=divb_path) for divb_path in divb_paths)
     divb_slice = load_slice(
-        slice_path=find_slice_near_time(
-            file_glob=divb_glob,
+        slice_path=find_snapshots.find_npz_near_time(
+            extracted_dir=DATASET_DIR,
+            glob_pattern=divb_glob,
             target_time=2.4155,
         ),
     )
     advection_angle = numpy.arctan2(3.0, 2.0)
     problem_setup = ProblemSetup(
+        initial_position=(0.0, 0.0),
         direction=(numpy.sin(advection_angle), numpy.cos(advection_angle)),
         period=(AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]) / numpy.sin(advection_angle),
         radius=0.5,

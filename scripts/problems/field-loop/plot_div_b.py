@@ -37,7 +37,7 @@ class Slice:
 
 ## inputs and outputs
 ROOT_DIR = Path(__file__).parents[3]
-DATASET_DIR = ROOT_DIR / "datasets/problems/field-loop/ncells=96/q26-b25-ppm_ep" / "extracted"
+DATASET_DIR = ROOT_DIR / "datasets/problems/field-loop/num_cells=96/q26-b25-ppm_ep" / "extracted"
 DIVB_GLOB = "magnetic_divergence-slice=x_2-index=*.npz"
 FIGURE_PATH = ROOT_DIR / "figures/problems/field-loop/div-b.png"
 
@@ -345,7 +345,8 @@ def plot_field_loop_divb(
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=1,
         num_panel_cols=2,
-        panel_aspect_ratio=1.5,
+        ## chosen by eye
+        panel_aspect_ratio=3.0 / 2.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.95),

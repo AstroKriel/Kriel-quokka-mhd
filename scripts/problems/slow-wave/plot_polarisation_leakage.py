@@ -11,9 +11,12 @@ from pathlib import Path
 import numpy
 
 ## personal
-from jormi.ww_io import json_io, manage_io, manage_log
-from jormi.ww_plots import manage_figure, style_figure, annotate_panel
+from jormi.ww_io import json_io, manage_io
+from jormi.ww_plots import annotate_panel, manage_figure, style_figure
 from jormi.ww_types import box_positions
+
+## local
+from local_helpers import paper_style
 
 ##
 ## === CONFIGURATION
@@ -22,8 +25,8 @@ from jormi.ww_types import box_positions
 ## compares the oblique slow-wave leakage test (k = (1, 2, 3), 45 degrees between k and the
 ## background field) at low and high resolution, to check whether the b_2 leakage seeded by
 ## non-grid-aligned reconstruction shrinks with resolution, as expected for a convergent scheme.
-NCELLS_LOW = 128
-NCELLS_HIGH = 512
+NUM_CELLS_LOW = 128
+NUM_CELLS_HIGH = 512
 SCHEME = "q26-b25-ppm_ep"
 PROFILE_AXIS = "x_0"
 PRIMARY_COMPONENT = "x_0"
@@ -41,7 +44,7 @@ FIGURE_PATH = ROOT_DIR / "figures/problems/slow-wave/polarisation-leakage.png"
 
 def load_energy_time_series(
     *,
-    ncells: int,
+    num_cells: int,
     component: str,
 ) -> tuple[numpy.ndarray, numpy.ndarray]:
     """
@@ -53,7 +56,7 @@ def load_energy_time_series(
     edge, and using trapz here introduced a spurious ~1-2% time-dependent oscillation, since the
     profile's phase shifts snapshot to snapshot -- the plain sum is stable to ~0.2% instead.
     """
-    extracted_dir = DATASET_DIR / f"ncells={ncells}" / SCHEME / "extracted"
+    extracted_dir = DATASET_DIR / f"num_cells={num_cells}" / SCHEME / "extracted"
     file_paths = sorted(
         extracted_dir.glob(f"magnetic-axis={PROFILE_AXIS}-index=*.json"),
         key=lambda path: int(path.stem.split("index=")[-1].split("-")[0]),
@@ -73,15 +76,15 @@ def load_energy_time_series(
 
 def compute_leakage_ratio(
     *,
-    ncells: int,
+    num_cells: int,
 ) -> tuple[numpy.ndarray, numpy.ndarray]:
     """Return (normalized time, log10 leakage ratio) for one resolution, excluding t=0."""
     times, primary_energy = load_energy_time_series(
-        ncells=ncells,
+        num_cells=num_cells,
         component=PRIMARY_COMPONENT,
     )
     _, spurious_energy = load_energy_time_series(
-        ncells=ncells,
+        num_cells=num_cells,
         component=SPURIOUS_COMPONENT,
     )
     ## the run spans exactly two wave periods (t = 4*pi/omega), so the last recorded time is
@@ -212,21 +215,13 @@ def add_tail_annotation(
 
 
 def main() -> None:
-    manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    default_text_sizes = style_figure.TextSizeParams()
-    style_figure.set_figure_params(
-        figure_params=style_figure.FigureParams(
-            text_size_params=style_figure.TextSizeParams(
-                legend_level=default_text_sizes.annotation_level,
-            ),
-        ),
-    )
+    paper_style.setup_plotting_script()
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
-    times_low, ratio_low = compute_leakage_ratio(ncells=NCELLS_LOW)
-    times_high, ratio_high = compute_leakage_ratio(ncells=NCELLS_HIGH)
+    times_low, ratio_low = compute_leakage_ratio(num_cells=NUM_CELLS_LOW)
+    times_high, ratio_high = compute_leakage_ratio(num_cells=NUM_CELLS_HIGH)
     ## compute saturation stats from the full (non-subsampled) series for a robust estimate
     tail_low = ratio_low[len(ratio_low) // 2:]
     tail_high = ratio_high[len(ratio_high) // 2:]
@@ -242,16 +237,14 @@ def main() -> None:
         log10_leakage_ratio=ratio_high,
         num_samples=NUM_TIME_SAMPLES,
     )
-    figure, panel_grid = manage_figure.create_figure_grid(
-        num_panel_rows=1,
-        num_panel_cols=1,
-        panel_aspect_ratio=1.045,
+    figure, panel = manage_figure.create_figure(
+        ## chosen by eye
+        panel_aspect_ratio=21.0 / 20.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.5),
         ),
     )
-    panel = panel_grid[0, 0]
     panel.plot(
         times_low,
         ratio_low,
@@ -273,8 +266,8 @@ def main() -> None:
             "s",
         ],
         labels=[
-            f"${NCELLS_LOW}^3$",
-            f"${NCELLS_HIGH}^3$",
+            f"${NUM_CELLS_LOW}^3$",
+            f"${NUM_CELLS_HIGH}^3$",
         ],
         colors=["black", "black"],
         anchor_point_fraction=(0.15, 0.0),

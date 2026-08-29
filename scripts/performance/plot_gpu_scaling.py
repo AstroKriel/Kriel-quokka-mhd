@@ -126,7 +126,7 @@ def load_scaling_series(
                     emf_averaging_scheme=emf_averaging_scheme,
                     num_gpus=num_gpus,
                     updates_per_s_per_gpu=updates_per_s_per_gpu,
-                    reference_value=float(updates_per_s_per_gpu[0]),  # perfect scaling reference
+                    reference_value=float(updates_per_s_per_gpu[0]),
                 ),
             )
     return grouped_scaling_series

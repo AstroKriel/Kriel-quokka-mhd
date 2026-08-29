@@ -12,10 +12,10 @@ from pathlib import Path
 ## third-party
 import numpy
 
-from numpy.typing import NDArray
+from numpy import typing as numpy_typing
 
 ## personal
-from jormi.ww_arrays.mask_2d_arrays import DiagonalMasks2D
+from jormi.ww_arrays import mask_2d_arrays
 from jormi.ww_io import manage_io, manage_log
 from jormi.ww_plots import (
     manage_figure,
@@ -112,12 +112,9 @@ class Simulation:
 ROOT_DIR: Path = Path(__file__).parents[3]
 DATASET_DIR: Path = ROOT_DIR / "datasets/problems/orszag-tang/num_cells=1024"
 FIGURE_PATH: Path = ROOT_DIR / "figures/problems/orszag-tang/ncells=1024/emf-scheme-comparison.png"
-FILE_NAME_GLOB = "current_density_magnitude-slice=x_2-index=*.npz"
-TARGET_TIME = 0.85
 
 ## plotting details
 AXIS_BOUNDS: plot_data.AxisRanges = ((-0.5, 0.5), (-0.5, 0.5))
-CONTOUR_LOG10_VALUE = -1.6
 
 ##
 ## === HELPER FUNCTIONS
@@ -129,9 +126,10 @@ def find_slice_near_time(
     sim_dir: Path,
     target_time: float,
 ) -> Path:
-    slice_paths = sorted((sim_dir / "extracted").glob(FILE_NAME_GLOB))
+    file_name_glob = "current_density_magnitude-slice=x_2-index=*.npz"
+    slice_paths = sorted((sim_dir / "extracted").glob(file_name_glob))
     if not slice_paths:
-        raise FileNotFoundError(f"no slice matching `{FILE_NAME_GLOB}` found in: {sim_dir / 'extracted'}")
+        raise FileNotFoundError(f"no slice matching `{file_name_glob}` found in: {sim_dir / 'extracted'}")
     return min(
         slice_paths,
         key=lambda path: abs(float(numpy.load(path)["step_time"]) - target_time),
@@ -142,7 +140,7 @@ def load_log10_sarray_slice(
     *,
     sim: Simulation,
     target_time: float,
-) -> NDArray[numpy.floating]:
+) -> numpy_typing.NDArray[numpy.floating]:
     sim_dir = DATASET_DIR / sim.as_tag
     slice_path = find_slice_near_time(
         sim_dir=sim_dir,
@@ -155,17 +153,17 @@ def load_log10_sarray_slice(
 
 def mask_sarray_slice(
     *,
-    sarray: NDArray[numpy.floating],
-    mask: NDArray[numpy.bool],
-) -> NDArray[numpy.floating]:
+    sarray: numpy_typing.NDArray[numpy.floating],
+    mask: numpy_typing.NDArray[numpy.bool],
+) -> numpy_typing.NDArray[numpy.floating]:
     return numpy.where(mask, sarray, numpy.nan)
 
 
 def plot_comparison_contours(
     *,
     panel: manage_figure.Panel,
-    upper_sarray: NDArray[numpy.floating],
-    lower_sarray: NDArray[numpy.floating],
+    upper_sarray: numpy_typing.NDArray[numpy.floating],
+    lower_sarray: numpy_typing.NDArray[numpy.floating],
     contour_value: float,
     upper_color: str,
     lower_color: str,
@@ -175,11 +173,11 @@ def plot_comparison_contours(
     faint 'ghost' of the other scheme overlayed.
     """
     num_rows, num_cols = upper_sarray.shape
-    upper_mask = DiagonalMasks2D.get_mask_above_main_diagonal(
+    upper_mask = mask_2d_arrays.DiagonalMasks2D.get_mask_above_main_diagonal(
         num_rows=num_rows,
         num_cols=num_cols,
     )
-    lower_mask = DiagonalMasks2D.get_mask_below_main_diagonal(
+    lower_mask = mask_2d_arrays.DiagonalMasks2D.get_mask_below_main_diagonal(
         num_rows=num_rows,
         num_cols=num_cols,
     )
@@ -203,7 +201,6 @@ def plot_comparison_contours(
         numpy.linspace(AXIS_BOUNDS[0][0], AXIS_BOUNDS[0][1], num_cols),
         numpy.linspace(AXIS_BOUNDS[1][0], AXIS_BOUNDS[1][1], num_rows),
     )
-    ## contours of each scheme's solution
     panel.contour(
         grid_x,
         grid_y,
@@ -226,7 +223,6 @@ def plot_comparison_contours(
         linestyles="solid",
         zorder=1,
     )
-    ## faint "ghost" reference contours in the opposite triangle (overlayed on top)
     panel.contour(
         grid_x,
         grid_y,
@@ -249,7 +245,6 @@ def plot_comparison_contours(
         linestyles="solid",
         zorder=2,
     )
-    ## off-diagonal line separating the two triangular halves of the domain
     panel.plot(
         [AXIS_BOUNDS[0][0], AXIS_BOUNDS[0][1]],
         [AXIS_BOUNDS[1][0], AXIS_BOUNDS[1][1]],
@@ -299,16 +294,16 @@ def main() -> None:
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
+    target_time = 0.85
+    contour_log10_value = -1.6
     reconstruction_schemes = list(ReconstructionScheme)
     emf_compute_schemes = list(EMFComputeScheme)
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=len(reconstruction_schemes),
         num_panel_cols=len(emf_compute_schemes),
         panel_aspect_ratio=1.0,
-        ## the panels carry no tick labels, so only their frames sit in the gaps
         panel_row_gap_pt=4.0,
         panel_col_gap_pt=4.0,
-        ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.95),
         ),
@@ -330,17 +325,17 @@ def main() -> None:
             )
             ld04_log10_sarray_slice = load_log10_sarray_slice(
                 sim=ld04_sim,
-                target_time=TARGET_TIME,
+                target_time=target_time,
             )
             b25_log10_sarray_slice = load_log10_sarray_slice(
                 sim=b25_sim,
-                target_time=TARGET_TIME,
+                target_time=target_time,
             )
             plot_comparison_contours(
                 panel=panel,
                 upper_sarray=ld04_log10_sarray_slice,
                 lower_sarray=b25_log10_sarray_slice,
-                contour_value=CONTOUR_LOG10_VALUE,
+                contour_value=contour_log10_value,
                 upper_color=EMFAveragingScheme.LD04.value.color,
                 lower_color=EMFAveragingScheme.B25.value.color,
             )

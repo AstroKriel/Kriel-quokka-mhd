@@ -156,7 +156,7 @@ class ZoomRegion:
 
 ## inputs and outputs
 ROOT_DIR = Path(__file__).parents[3]
-EXTRACTED_DIR: Path = ROOT_DIR / "datasets/problems/orszag-tang/ncells=8192/q26-b25-ppm/extracted"
+EXTRACTED_DIR: Path = ROOT_DIR / "datasets/problems/orszag-tang/num_cells=8192/q26-b25-ppm/extracted"
 DATA_GLOB_PATTERN = "current_density_magnitude-slice=x_2-index=*-amr_level=0.npz"
 TARGET_TIME = 0.85
 FIGURE_PATH: Path = ROOT_DIR / "figures/problems/orszag-tang/ncells=8192/q26-b25-ppm/structure-zoomins.png"

@@ -15,7 +15,7 @@ from numpy import typing as numpy_typing
 
 ## personal
 from jormi.ww_arrays import compute_array_stats, mask_2d_arrays
-from jormi.ww_io import manage_io, manage_log
+from jormi.ww_io import manage_io
 from jormi.ww_plots import (
     add_color,
     annotate_panel,
@@ -24,6 +24,9 @@ from jormi.ww_plots import (
     style_figure,
 )
 from jormi.ww_types import box_positions
+
+## local
+from local_helpers import paper_style, plot_slices
 
 ##
 ## === CONSTANTS
@@ -58,20 +61,6 @@ def find_slice_paths(
     if not slice_paths:
         raise FileNotFoundError(f"no slice matching `{dataset_slice_glob}` found in: {data_dir}")
     return slice_paths
-
-
-def upsample_slice(
-    *,
-    array_2d: numpy_typing.NDArray[numpy.floating],
-    target_num_cells: int,
-) -> numpy_typing.NDArray[numpy.floating]:
-    """Block-replicate a coarser array up to `target_num_cells` (not interpolation)."""
-    num_rows, num_cols = array_2d.shape
-    if (num_rows == target_num_cells) and (num_cols == target_num_cells):
-        return array_2d
-    scale_row = target_num_cells // num_rows
-    scale_col = target_num_cells // num_cols
-    return numpy.kron(array_2d, numpy.ones((scale_row, scale_col)))
 
 
 def compute_centroid_position(
@@ -234,8 +223,7 @@ def add_reference_circle_and_drift_arrow(
 
 
 def main() -> None:
-    manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    style_figure.set_figure_params()
+    paper_style.setup_plotting_script()
     figure_params = style_figure.get_figure_params()
     frame_params = figure_params.frame_params
     panel_gaps = figure_params.figure_layout.panel_gaps
@@ -256,7 +244,7 @@ def main() -> None:
     highest_resolution = max(NUM_CELLS_LEFT, NUM_CELLS_RIGHT)
     first_snapshot_lookup = {
         num_cells:
-        upsample_slice(
+        plot_slices.upsample_slice(
             array_2d=numpy.load(find_slice_paths(data_dir=data_dir)[0])["sarray_2d"],
             target_num_cells=highest_resolution,
         )
@@ -264,7 +252,7 @@ def main() -> None:
     }
     final_snapshot_lookup = {
         num_cells:
-        upsample_slice(
+        plot_slices.upsample_slice(
             array_2d=recenter_via_periodic_shift(
                 array_2d=numpy.load(find_slice_paths(data_dir=data_dir)[-1])["sarray_2d"],
                 axis_ranges=AXIS_BOUNDS,

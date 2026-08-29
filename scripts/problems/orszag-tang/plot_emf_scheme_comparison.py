@@ -110,7 +110,7 @@ class Simulation:
 
 ## inputs and outputs
 ROOT_DIR: Path = Path(__file__).parents[3]
-DATASET_DIR: Path = ROOT_DIR / "datasets/problems/orszag-tang/ncells=1024"
+DATASET_DIR: Path = ROOT_DIR / "datasets/problems/orszag-tang/num_cells=1024"
 FIGURE_PATH: Path = ROOT_DIR / "figures/problems/orszag-tang/ncells=1024/emf-scheme-comparison.png"
 FILE_NAME_GLOB = "current_density_magnitude-slice=x_2-index=*.npz"
 TARGET_TIME = 0.85

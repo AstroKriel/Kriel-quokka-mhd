@@ -208,7 +208,6 @@ ROOT_DIR: Path = Path(__file__).parents[3]
 DATASET_DIR: Path = ROOT_DIR / "datasets/problems"
 FIGURE_PATH: Path = ROOT_DIR / "figures/problems/wave-convergence/grid-aligned-convergence.png"
 
-## per-wave details
 WAVE_CONFIGS: tuple[WaveConfig, ...] = (
     WaveConfig(
         wave_label="Alfvén (linear)",
@@ -362,7 +361,7 @@ def set_resolution_ticks(
     show_axis_label: bool,
 ) -> None:
     panel.set_xticks(numpy.log10(cell_sizes))
-    panel.set_xticklabels([str(int(n)) for n in num_cells])
+    panel.set_xticklabels([str(int(num_cells_value)) for num_cells_value in num_cells])
     panel.tick_params(labelbottom=show_tick_labels)
     panel.minorticks_off()
     if show_axis_label:
@@ -440,11 +439,8 @@ def main() -> None:
     figure, panel_grid = manage_figure.create_figure(
         num_panel_rows=len(WAVE_CONFIGS),
         num_panel_cols=1,
-        ## chosen by eye
         panel_aspect_ratio=17.0 / 10.0,
-        ## the panels share an x axis, so only their frames sit in the gap, not tick labels
         panel_row_gap_pt=5.0,
-        ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.5),
         ),
@@ -474,8 +470,6 @@ def main() -> None:
             grouped_data_series=grouped_data_series,
         )
         panel.set_ylim(wave_config.axis_y_range)
-        ## captured only after real data is plotted, so the view limits it copies
-        ## reflect the true autoscaled range rather than the pre-data default
         add_delta_x_axis(
             panel=panel,
             show_tick_labels=is_first_row,
@@ -492,8 +486,6 @@ def main() -> None:
     add_emf_compute_scheme_legend(panel=panel_grid[0, 0])
     add_emf_averaging_scheme_legend(panel=panel_grid[1, 0])
     add_reconstruction_scheme_legend(panel=panel_grid[2, 0])
-    ## a share of the figure width, so it has to sit inside it; a negative x would place the
-    ## label off the canvas whatever the left margin holds
     annotate_panel.add_shared_axis_label(
         panels=panel_grid,
         label=r"$\log_{10} (\mbox{relative error})$",

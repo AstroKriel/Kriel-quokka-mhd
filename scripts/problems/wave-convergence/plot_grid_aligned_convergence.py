@@ -63,38 +63,38 @@ class WaveConfig:
 
 @dataclass(frozen=True)
 class EMFComputeSchemeStyle:
-    color: str
     label: str
+    color: str
     zorder: int
 
 
 @dataclass(frozen=True)
 class EMFAveragingSchemeStyle:
+    label: str
     marker: str
     marker_size: float
-    label: str
 
 
 @dataclass(frozen=True)
 class ReconstructionSchemeStyle:
-    linestyle: str
     label: str
+    linestyle: str
 
 
 class EMFComputeScheme(Enum):
     Q26 = EMFComputeSchemeStyle(
-        color="gold",
         label="Q26",
+        color="gold",
         zorder=2,
     )
     B25 = EMFComputeSchemeStyle(
-        color="cornflowerblue",
         label="B25a",
+        color="cornflowerblue",
         zorder=1,
     )
     FS17 = EMFComputeSchemeStyle(
-        color="forestgreen",
         label="FS18",
+        color="forestgreen",
         zorder=1,
     )
 
@@ -107,14 +107,14 @@ class EMFComputeScheme(Enum):
 
 class EMFAveragingScheme(Enum):
     B25 = EMFAveragingSchemeStyle(
+        label="B25b",
         marker="D",
         marker_size=5.0,
-        label="B25b",
     )
     LD04 = EMFAveragingSchemeStyle(
+        label="LD04",
         marker="o",
         marker_size=2.5,
-        label="LD04",
     )
 
     @property
@@ -126,16 +126,16 @@ class EMFAveragingScheme(Enum):
 
 class ReconstructionScheme(Enum):
     PLM = ReconstructionSchemeStyle(
-        linestyle=":",
         label="PLM",
+        linestyle=":",
     )
     PPM = ReconstructionSchemeStyle(
-        linestyle="--",
         label="PPM",
+        linestyle="--",
     )
     PPM_EP = ReconstructionSchemeStyle(
-        linestyle="-",
         label="PPM-EP",
+        linestyle="-",
     )
 
     @property

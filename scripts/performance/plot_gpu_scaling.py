@@ -17,7 +17,11 @@ from numpy import typing as numpy_typing
 
 ## personal
 from jormi.ww_io import manage_io
-from jormi.ww_plots import annotate_panel, manage_figure, style_figure
+from jormi.ww_plots import (
+    annotate_panel,
+    manage_figure,
+    style_figure,
+)
 from jormi.ww_types import box_positions
 
 ## local
@@ -184,7 +188,6 @@ def annotate_strong_scaling_axis(
         left=2**1,
         right=2**9.5,
     )
-    ## show a tick at every GPU count tested, but only label the even powers of 2
     gpu_ticks = [4, 8, 16, 32, 64, 128, 256, 512]
     panel.set_xticks(gpu_ticks)
     panel.set_xticklabels(
@@ -193,8 +196,6 @@ def annotate_strong_scaling_axis(
             for gpu_count in gpu_ticks
         ],
     )
-    ## show a tick at every GPU count tested, but only label the ones where 512/N^(1/3) lands
-    ## on an exact integer cells/GPU side length
     labeled_gpu_ticks = {8, 64, 512}
     top_ax = panel.twiny()
     top_ax.set_xlim(panel.get_xlim())
@@ -288,11 +289,8 @@ def main() -> None:
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=1,
         num_panel_cols=2,
-        ## slightly wider than tall, chosen by eye for two side-by-side log-log panels
         panel_aspect_ratio=8.0 / 5.0,
-        ## the panels share a y axis, so only their frames sit in the gap
         panel_col_gap_pt=5.0,
-        ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.90),
         ),

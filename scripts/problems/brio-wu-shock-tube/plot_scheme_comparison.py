@@ -6,17 +6,15 @@
 
 ## stdlib
 from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
 from typing import Any
 
 ## third-party
 import numpy
 
-from matplotlib import lines as mpl_lines
 from numpy import typing as numpy_typing
 
-## personal (local)
+## personal
 from jormi.ww_io import manage_io, manage_log
 from jormi.ww_plots import (
     annotate_panel,
@@ -26,63 +24,12 @@ from jormi.ww_plots import (
 from jormi.ww_types import box_positions
 from ww_quokka_sims.sim_io import profile_models
 
+## local
+from local_helpers import shock_tubes
+
 ##
 ## === DATA STRUCTURES
 ##
-
-
-@dataclass(frozen=True)
-class EMFComputeSchemeStyle:
-    label: str
-    color: str
-    zorder: int
-
-
-@dataclass(frozen=True)
-class EMFAveragingSchemeStyle:
-    label: str
-    marker: str
-
-
-class EMFComputeScheme(Enum):
-    Q26 = EMFComputeSchemeStyle(
-        label="Q26",
-        color="gold",
-        zorder=3,
-    )
-    B25 = EMFComputeSchemeStyle(
-        label="B25a",
-        color="cornflowerblue",
-        zorder=1,
-    )
-    FS17 = EMFComputeSchemeStyle(
-        label="FS18",
-        color="forestgreen",
-        zorder=2,
-    )
-
-    @property
-    def as_tag(
-        self,
-    ) -> str:
-        return self.name.lower()
-
-
-class EMFAveragingScheme(Enum):
-    B25 = EMFAveragingSchemeStyle(
-        label="B25b",
-        marker="D",
-    )
-    LD04 = EMFAveragingSchemeStyle(
-        label="LD04",
-        marker="o",
-    )
-
-    @property
-    def as_tag(
-        self,
-    ) -> str:
-        return self.name.lower()
 
 
 @dataclass(frozen=True)
@@ -109,20 +56,16 @@ FIGURE_PATH: Path = ROOT_DIR / "figures/problems/brio-wu-shock-tube/ncells=256/s
 ##
 
 
-def get_sim_tag(
-    *,
-    emf_compute_scheme: EMFComputeScheme,
-    emf_averaging_scheme: EMFAveragingScheme,
-) -> str:
-    return f"{emf_compute_scheme.as_tag}-{emf_averaging_scheme.as_tag}-ppm_ep"
-
-
 def load_sim_profiles(
     *,
     sim_dir: Path,
 ) -> ShockTubeProfiles:
     extracted_dir = sim_dir / "extracted"
-    density_path = next(extracted_dir.glob("density-axis=x_0-index=*.json"))
+    density_glob = "density-axis=x_0-index=*.json"
+    density_paths = sorted(extracted_dir.glob(density_glob))
+    if not density_paths:
+        raise FileNotFoundError(f"no density profile matching `{density_glob}` found in: {extracted_dir}")
+    density_path = density_paths[0]
     index = density_path.stem.split("index=")[-1]
     density_profile = profile_models.ScalarProfile.load_from_file(
         file_path=extracted_dir / f"density-axis=x_0-index={index}.json",
@@ -156,15 +99,6 @@ def load_sim_profiles(
         velocity_x1=velocity_profile.components["x_1"],
         magnetic_x1=magnetic_profile.components["x_1"],
     )
-
-
-def load_solution_time(
-    *,
-    sim_dir: Path,
-) -> float:
-    """Load the plotted snapshot time from a simulation's density profile."""
-    density_path = next((sim_dir / "extracted").glob("density-axis=x_0-index=*.json"))
-    return profile_models.ScalarProfile.load_from_file(file_path=density_path).step_time
 
 
 def compute_moving_average(
@@ -285,69 +219,15 @@ def plot_profiles(
     )
 
 
-def build_axis_bounds(
-    *,
-    x_lo: float,
-    x_hi: float,
-    y_lo: float,
-    y_hi: float,
-) -> manage_figure.PanelBounds:
-    return manage_figure.PanelBounds(
-        x_min_fraction=x_lo,
-        y_min_fraction=y_lo,
-        x_width_fraction=x_hi - x_lo,
-        y_width_fraction=y_hi - y_lo,
-    )
-
-
-def add_zoom_inset(
-    *,
-    panel: manage_figure.Panel,
-    axis_ranges: manage_figure.PanelBounds,
-    x_range: tuple[float, float],
-    y_range: tuple[float, float],
-    color: str,
-) -> None:
-    inset_ax = panel.inset_axes(
-        (
-            axis_ranges.x_min_fraction,
-            axis_ranges.y_min_fraction,
-            axis_ranges.x_width_fraction,
-            axis_ranges.y_width_fraction,
-        ),
-    )
-    for line in panel.get_lines():
-        inset_ax.plot(
-            line.get_xdata(),
-            line.get_ydata(),
-            color=line.get_color(),
-            marker=line.get_marker(),
-            markeredgecolor=line.get_markeredgecolor(),
-            markerfacecolor=line.get_markerfacecolor(),
-            markersize=line.get_markersize(),
-            markeredgewidth=line.get_markeredgewidth(),
-            linestyle=line.get_linestyle(),
-            linewidth=line.get_linewidth(),
-            zorder=line.get_zorder(),
-        )
-    inset_ax.set_xlim(x_range)
-    inset_ax.set_ylim(y_range)
-    inset_ax.set_xticks([])
-    inset_ax.set_yticks([])
-    for spine in inset_ax.spines.values():
-        spine.set_edgecolor(color)
-    panel.indicate_inset_zoom(inset_ax, edgecolor=color)
-
-
 def add_emf_compute_scheme_legend(
     *,
     panel: manage_figure.Panel,
 ) -> None:
     annotate_panel.add_custom_legend(
         panel=panel,
-        artists=[None for _ in EMFComputeScheme],
-        labels=[scheme.value.label for scheme in EMFComputeScheme],
-        colors=[scheme.value.color for scheme in EMFComputeScheme],
+        artists=[None for _ in shock_tubes.EMFComputeScheme],
+        labels=[scheme.value.label for scheme in shock_tubes.EMFComputeScheme],
+        colors=[scheme.value.color for scheme in shock_tubes.EMFComputeScheme],
         marker_first=False,  # put the (invisible) handle after the text, so text hugs the left edge
         anchor_point_fraction=(0.025, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
@@ -360,46 +240,13 @@ def add_emf_averaging_scheme_legend(
 ) -> None:
     annotate_panel.add_custom_legend(
         panel=panel,
-        artists=[scheme.value.marker for scheme in EMFAveragingScheme],
-        labels=[scheme.value.label for scheme in EMFAveragingScheme],
-        colors=["black" for _ in EMFAveragingScheme],
+        artists=[scheme.value.marker for scheme in shock_tubes.EMFAveragingScheme],
+        labels=[scheme.value.label for scheme in shock_tubes.EMFAveragingScheme],
+        colors=["black" for _ in shock_tubes.EMFAveragingScheme],
         marker_size_pt=4,
         anchor_point_fraction=(0.0, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
     )
-
-
-@dataclass(frozen=True)
-class ReferenceSchemeStyle:
-    label: str
-    color: str
-
-
-def add_reference_scheme_legend(
-    *,
-    panel: manage_figure.Panel,
-    styles: tuple[ReferenceSchemeStyle, ...],
-) -> None:
-    handles = [
-        mpl_lines.Line2D(
-            [0],
-            [0],
-            marker="s",
-            linewidth=0,
-            markeredgecolor=style.color,
-            markerfacecolor="none",
-            markeredgewidth=0.3,
-            markersize=4,
-        ) for style in styles
-    ]
-    legend = panel.legend(
-        handles=handles,
-        labels=[style.label for style in styles],
-        loc="lower left",
-        bbox_to_anchor=(0.0, 0.0),
-        frameon=False,
-    )
-    panel.add_artist(legend)
 
 
 ##
@@ -433,11 +280,11 @@ def main() -> None:
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
-    reference_sim_dir = DATASET_DIR / "num_cells=8192/hlld" / get_sim_tag(
-        emf_compute_scheme=EMFComputeScheme.Q26,
-        emf_averaging_scheme=EMFAveragingScheme.B25,
+    reference_sim_dir = DATASET_DIR / "num_cells=8192/hlld" / shock_tubes.get_sim_tag(
+        emf_compute_tag=shock_tubes.EMFComputeScheme.Q26.as_tag,
+        emf_averaging_tag=shock_tubes.EMFAveragingScheme.B25.as_tag,
     )
-    solution_time = load_solution_time(sim_dir=reference_sim_dir)
+    solution_time = shock_tubes.load_solution_time(sim_dir=reference_sim_dir)
     reference_sim_profiles = shift_profiles(
         profiles=compute_smoothed_profiles(
             profiles=load_sim_profiles(sim_dir=reference_sim_dir),
@@ -446,9 +293,9 @@ def main() -> None:
     )
     llf_sim_profiles = shift_profiles(
         profiles=load_sim_profiles(
-            sim_dir=DATASET_DIR / "num_cells=256/llf" / get_sim_tag(
-                emf_compute_scheme=EMFComputeScheme.Q26,
-                emf_averaging_scheme=EMFAveragingScheme.B25,
+            sim_dir=DATASET_DIR / "num_cells=256/llf" / shock_tubes.get_sim_tag(
+                emf_compute_tag=shock_tubes.EMFComputeScheme.Q26.as_tag,
+                emf_averaging_tag=shock_tubes.EMFAveragingScheme.B25.as_tag,
             ),
         ),
         shift=discontinuity_position,
@@ -499,11 +346,11 @@ def main() -> None:
             "zorder": 0,
         },
     )
-    for emf_compute_scheme in EMFComputeScheme:
-        for emf_averaging_scheme in EMFAveragingScheme:
-            sim_dir = DATASET_DIR / "num_cells=256/hlld" / get_sim_tag(
-                emf_compute_scheme=emf_compute_scheme,
-                emf_averaging_scheme=emf_averaging_scheme,
+    for emf_compute_scheme in shock_tubes.EMFComputeScheme:
+        for emf_averaging_scheme in shock_tubes.EMFAveragingScheme:
+            sim_dir = DATASET_DIR / "num_cells=256/hlld" / shock_tubes.get_sim_tag(
+                emf_compute_tag=emf_compute_scheme.as_tag,
+                emf_averaging_tag=emf_averaging_scheme.as_tag,
             )
             sim_profiles = shift_profiles(
                 profiles=load_sim_profiles(sim_dir=sim_dir),
@@ -519,28 +366,28 @@ def main() -> None:
                     "zorder": emf_compute_scheme.value.zorder,
                 },
             )
-    add_zoom_inset(
+    shock_tubes.add_zoom_inset(
         panel=panel_grid[1, 0],
-        axis_ranges=build_axis_bounds(
+        bounds=shock_tubes.build_axis_bounds(
             x_lo=0.7,
             x_hi=0.965,
             y_lo=0.5,
             y_hi=0.95,
         ),
-        x_range=(0.125, 0.35),
-        y_range=(-0.31, -0.19),
+        x_bounds=(0.125, 0.35),
+        y_bounds=(-0.31, -0.19),
         color="lightgrey",
     )
-    add_zoom_inset(
+    shock_tubes.add_zoom_inset(
         panel=panel_grid[1, 1],
-        axis_ranges=build_axis_bounds(
+        bounds=shock_tubes.build_axis_bounds(
             x_lo=0.035,
             x_hi=0.4,
             y_lo=0.35,
             y_hi=0.9,
         ),
-        x_range=(0.05, 0.15),
-        y_range=(1.4, 1.55),
+        x_bounds=(0.05, 0.15),
+        y_bounds=(1.4, 1.55),
         color="lightgrey",
     )
     add_emf_compute_scheme_legend(panel=panel_grid[0, 0])
@@ -553,14 +400,14 @@ def main() -> None:
         x_alignment=box_positions.Positions.Side.Right,
         y_alignment=box_positions.Positions.Side.Top,
     )
-    add_reference_scheme_legend(
+    shock_tubes.add_reference_scheme_legend(
         panel=panel_grid[1, 0],
         styles=(
-            ReferenceSchemeStyle(
+            shock_tubes.ReferenceSchemeStyle(
                 label="PPM-EP + LLF",
                 color="deeppink",
             ),
-            ReferenceSchemeStyle(
+            shock_tubes.ReferenceSchemeStyle(
                 label="PPM + HLLD",
                 color="purple",
             ),

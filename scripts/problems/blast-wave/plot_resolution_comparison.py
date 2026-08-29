@@ -18,7 +18,7 @@ from scipy import ndimage as scipy_ndimage
 
 ## personal
 from jormi.ww_arrays import mask_2d_arrays
-from jormi.ww_io import manage_io, manage_log
+from jormi.ww_io import manage_io
 from jormi.ww_plots import (
     add_color,
     annotate_panel,
@@ -27,6 +27,10 @@ from jormi.ww_plots import (
     style_figure,
 )
 from jormi.ww_types import box_positions
+from ww_quokka_sims.sim_io import find_snapshots
+
+## local
+from local_helpers import paper_style, plot_slices
 
 ##
 ## === DATA STRUCTURES
@@ -63,28 +67,15 @@ CONTOUR_COLORS = ("blue", "red")
 ##
 
 
-def find_slice_near_time(
-    *,
-    num_cells: int,
-    target_time: float,
-) -> Path:
-    extracted_dir = DATASET_DIR / f"num_cells={num_cells}" / "q26-b25-ppm_ep" / "extracted"
-    slice_paths = sorted(extracted_dir.glob("density-slice=x_2-index=*.npz"))
-    if not slice_paths:
-        raise FileNotFoundError(f"no density slice found in: {extracted_dir}")
-    return min(
-        slice_paths,
-        key=lambda path: abs(float(numpy.load(path)["step_time"]) - target_time),
-    )
-
-
 def load_density_slice(
     *,
     num_cells: int,
 ) -> DensitySlice:
     """Load the density slice nearest `target_time` for one resolution."""
-    slice_path = find_slice_near_time(
-        num_cells=num_cells,
+    extracted_dir = DATASET_DIR / f"num_cells={num_cells}" / "q26-b25-ppm_ep" / "extracted"
+    slice_path = find_snapshots.find_npz_near_time(
+        extracted_dir=extracted_dir,
+        glob_pattern="density-slice=x_2-index=*.npz",
         target_time=0.05,
     )
     with numpy.load(slice_path) as data:
@@ -94,26 +85,12 @@ def load_density_slice(
         )
 
 
-def upsample_slice(
-    *,
-    array_2d: numpy_typing.NDArray[numpy.floating],
-    target_num_cells: int,
-) -> numpy_typing.NDArray[numpy.floating]:
-    """Block-replicate a coarser array up to `target_num_cells` (not interpolation)."""
-    num_rows, num_cols = array_2d.shape
-    if (num_rows == target_num_cells) and (num_cols == target_num_cells):
-        return array_2d
-    scale_row = target_num_cells // num_rows
-    scale_col = target_num_cells // num_cols
-    return numpy.kron(array_2d, numpy.ones((scale_row, scale_col)))
-
-
 def combine_arrays_split_diagonally(
     *,
     upper_array: numpy_typing.NDArray[numpy.floating],
     lower_array: numpy_typing.NDArray[numpy.floating],
 ) -> numpy_typing.NDArray[numpy.floating]:
-    upper_array = upsample_slice(
+    upper_array = plot_slices.upsample_slice(
         array_2d=upper_array,
         target_num_cells=lower_array.shape[0],
     )
@@ -195,19 +172,6 @@ def compute_zero_centred_palette_range(
     return ((0.5 - zero_fraction) / (1.0 - zero_fraction), 1.0)
 
 
-def format_domain_tick(
-    tick_value: float,
-    _tick_position: int,
-) -> str:
-    """
-    Label only `LABELED_TICK_VALUES`; every other major tick is drawn unlabeled.
-
-    Labels are math mode, so their minus signs match the ones Matplotlib formats itself.
-    """
-    is_labeled = any(numpy.isclose(tick_value, labeled_value) for labeled_value in LABELED_TICK_VALUES)
-    return f"${tick_value:.2f}$" if is_labeled else ""
-
-
 def configure_domain_ticks(
     *,
     panel: manage_figure.Panel,
@@ -217,7 +181,9 @@ def configure_domain_ticks(
     for axis in (panel.xaxis, panel.yaxis):
         axis.set_major_locator(mpl_ticker.MultipleLocator(MAJOR_TICK_STEP))
         axis.set_minor_locator(mpl_ticker.MultipleLocator(MINOR_TICK_STEP))
-        axis.set_major_formatter(mpl_ticker.FuncFormatter(format_domain_tick))
+        axis.set_major_formatter(
+            plot_slices.make_domain_tick_formatter(labeled_tick_values=LABELED_TICK_VALUES),
+        )
     panel.tick_params(
         which="both",
         color=theme_params.foreground_color,
@@ -234,8 +200,7 @@ def configure_domain_ticks(
 
 
 def main() -> None:
-    manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    style_figure.set_figure_params()
+    paper_style.setup_plotting_script()
     figure_params = style_figure.get_figure_params()
     frame_params = figure_params.frame_params
     panel_gaps = figure_params.figure_layout.panel_gaps

@@ -55,10 +55,13 @@ def load_snapshots(
     combo: str,
 ) -> list[PressureSnapshot]:
     dataset_dir = DATASET_ROOT / combo / "extracted"
+    pressure_glob = "pressure-slice=x_2-index=*.npz"
     pressure_paths = sorted(
-        dataset_dir.glob("pressure-slice=x_2-index=*.npz"),
+        dataset_dir.glob(pressure_glob),
         key=lambda path: int(path.stem.split("index=")[-1].split("-")[0]),
     )
+    if not pressure_paths:
+        raise FileNotFoundError(f"no slice matching `{pressure_glob}` found in: {dataset_dir}")
     snapshots = []
     for pressure_path in pressure_paths:
         with numpy.load(pressure_path) as pressure_data:

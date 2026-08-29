@@ -12,13 +12,15 @@ from pathlib import Path
 import numpy
 
 from matplotlib import ticker as mpl_ticker
-from numpy.typing import NDArray
+from numpy import typing as numpy_typing
 
 ## personal
-from jormi.ww_data import fit_series
-from jormi.ww_data.series_types import GaussianSeries
-from jormi.ww_io import json_io, manage_io, manage_log
+from jormi.ww_data import fit_series, series_types
+from jormi.ww_io import json_io, manage_io
 from jormi.ww_plots import manage_figure, style_figure
+
+## local
+from local_helpers import paper_style
 
 ##
 ## === DATA STRUCTURES
@@ -28,8 +30,8 @@ from jormi.ww_plots import manage_figure, style_figure
 @dataclass(frozen=True)
 class Snapshot:
     time: float
-    position: NDArray[numpy.floating]
-    field_value: NDArray[numpy.floating]
+    position: numpy_typing.NDArray[numpy.floating]
+    field_value: numpy_typing.NDArray[numpy.floating]
 
 
 ##
@@ -50,7 +52,7 @@ def discover_eta_labels(
     *,
     dataset_dir: Path,
 ) -> tuple[str, ...]:
-    """Return every `eta=<label>` directory under `dataset_dir`, sorted by resistivity value."""
+    """Return every `eta=<resistivity>` directory under `dataset_dir`, sorted by resistivity value."""
     eta_dirs = sorted(
         dataset_dir.glob("eta=*"),
         key=lambda path: float(path.name.removeprefix("eta=")),
@@ -62,7 +64,7 @@ def load_perturbed_component_snapshots(
     *,
     eta_label: str,
 ) -> list[Snapshot]:
-    extracted_dir = DATASET_DIR / f"eta={eta_label}" / "ncells=256" / "q26-b25-ppm_ep" / "extracted"
+    extracted_dir = DATASET_DIR / f"eta={eta_label}" / "num_cells=256" / "q26-b25-ppm_ep" / "extracted"
     snapshots = []
     file_paths = sorted(extracted_dir.glob("magnetic-axis=x_0-index=*.json"))
     for file_path in file_paths:
@@ -89,7 +91,7 @@ def measure_decay_rate(
     times = numpy.asarray([snapshot.time for snapshot in snapshots])
     amplitudes = numpy.asarray([numpy.max(numpy.abs(snapshot.field_value)) for snapshot in snapshots])
     fit_summary = fit_series.fit_linear_model(
-        gaussian_series=GaussianSeries(
+        gaussian_series=series_types.GaussianSeries(
             x_values=times,
             y_values=numpy.log(amplitudes),
         ),
@@ -129,37 +131,28 @@ def plot_decay_rate_panel(
 
 
 def main() -> None:
-    manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    default_text_sizes = style_figure.TextSizeParams()
-    style_figure.set_figure_params(
-        figure_params=style_figure.FigureParams(
-            text_size_params=style_figure.TextSizeParams(
-                legend_level=default_text_sizes.annotation_level,
-            ),
-        ),
-    )
+    paper_style.setup_plotting_script()
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
     eta_labels = discover_eta_labels(dataset_dir=DATASET_DIR)
-    figure, panel_grid = manage_figure.create_figure_grid(
-        num_panel_rows=1,
-        num_panel_cols=1,
-        panel_aspect_ratio=1.160,
+    figure, panel = manage_figure.create_figure(
+        ## chosen by eye
+        panel_aspect_ratio=7.0 / 6.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.475),
         ),
     )
     plot_decay_rate_panel(
-        panel=panel_grid[0, 0],
+        panel=panel,
         eta_labels=eta_labels,
     )
-    panel_grid[0, 0].set_xlabel(r"$\log_{10}\ (\mathrm{input}\ \eta)$")
-    panel_grid[0, 0].set_ylabel(r"$\log_{10}\ (\mathrm{measured}\ \lambda)$")
-    panel_grid[0, 0].xaxis.set_major_locator(mpl_ticker.MultipleLocator(1))
-    panel_grid[0, 0].legend(
+    panel.set_xlabel(r"$\log_{10}\ (\mathrm{input}\ \eta)$")
+    panel.set_ylabel(r"$\log_{10}\ (\mathrm{measured}\ \lambda)$")
+    panel.xaxis.set_major_locator(mpl_ticker.MultipleLocator(1))
+    panel.legend(
         loc="upper left",
         frameon=False,
     )

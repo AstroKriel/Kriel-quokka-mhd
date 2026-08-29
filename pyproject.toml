@@ -34,18 +34,29 @@ dev = [
 ]
 
 ##
-## === TEST RUNNER (pytest)
+## === BUILD SYSTEM
 ##
 
-[tool.pytest.ini_options]
-testpaths = ["utests"]  # vtests are run manually
+## hatchling packages the source into a distributable wheel
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+## point hatchling to the importable source code
+[tool.hatch.build]
+sources = ["src"]
+
+## explicit package path required: the source directory (local_helpers) does not share
+## its name with the project (kriel-quokka-mhd), so hatchling cannot auto-detect it
+[tool.hatch.build.targets.wheel]
+packages = ["src/local_helpers"]
 
 ##
 ## === TYPE CHECKER (basedpyright)
 ##
 
 [tool.basedpyright]
-include = ["scripts", "tools", "utests", "vtests"]
+include = ["scripts", "src", "tools"]
 exclude = ["scripts/datasets.gitignored"]
 reportMissingTypeStubs = false  # suppress missing stub warnings for third-party packages (e.g. scipy)
 reportExplicitAny = "none"

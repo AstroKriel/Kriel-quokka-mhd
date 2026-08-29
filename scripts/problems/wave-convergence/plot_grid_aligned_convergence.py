@@ -12,7 +12,7 @@ from pathlib import Path
 ## third-party
 import numpy
 
-from numpy.typing import NDArray
+from numpy import typing as numpy_typing
 
 ## personal
 from jormi.ww_data import fit_series
@@ -28,6 +28,9 @@ from jormi.ww_plots import (
 )
 from jormi.ww_types import box_positions
 from jormi.ww_validation import validate_arrays, validate_types
+
+## local
+from local_helpers import paper_style
 
 ##
 ## === DATA STRUCTURES
@@ -162,20 +165,20 @@ class Simulation:
 @dataclass(frozen=True)
 class ConvergenceSeries:
     sim: Simulation
-    ncells: NDArray[numpy.float64]
-    cell_size: NDArray[numpy.float64]
-    error: NDArray[numpy.float64]
+    num_cells: numpy_typing.NDArray[numpy.float64]
+    cell_size: numpy_typing.NDArray[numpy.float64]
+    error: numpy_typing.NDArray[numpy.float64]
 
     def __post_init__(
         self,
     ) -> None:
-        self._ensure_data_array(self.ncells, param_name="ncells")
+        self._ensure_data_array(self.num_cells, param_name="num_cells")
         self._ensure_data_array(self.cell_size, param_name="cell_size")
         self._ensure_data_array(self.error, param_name="error")
         validate_arrays.ensure_same_shape(
-            array_a=self.ncells,
+            array_a=self.num_cells,
             array_b=self.cell_size,
-            param_name_a="ncells",
+            param_name_a="num_cells",
             param_name_b="cell_size",
         )
         validate_arrays.ensure_same_shape(
@@ -187,7 +190,7 @@ class ConvergenceSeries:
 
     @staticmethod
     def _ensure_data_array(
-        array: NDArray[numpy.float64],
+        array: numpy_typing.NDArray[numpy.float64],
         *,
         param_name: str,
     ) -> None:
@@ -267,7 +270,7 @@ def load_grouped_data_series(
                 grouped_data_series.append(
                     ConvergenceSeries(
                         sim=sim,
-                        ncells=numpy.asarray(data_table["nx"]),
+                        num_cells=numpy.asarray(data_table["nx"]),
                         cell_size=numpy.asarray(data_table["dx"]),
                         error=numpy.asarray(data_table["error"]),
                     ),
@@ -306,7 +309,7 @@ def overlay_reference_slope(
 ) -> None:
     """Overlay a reference slope anchored halfway between the PPM and PPM-EP data series."""
     reference_slope: float = 2.0
-    reference_anchor_ncells: int = 128
+    reference_anchor_num_cells: int = 128
     reference_sim_ppm = Simulation(
         emf_compute_scheme=EMFComputeScheme.Q26,
         emf_averaging_scheme=EMFAveragingScheme.B25,
@@ -323,7 +326,7 @@ def overlay_reference_slope(
     data_series_ppm_ep = next(
         data_series for data_series in grouped_data_series if data_series.sim == reference_sim_ppm_ep
     )
-    anchor_index = int(numpy.argmin(numpy.abs(data_series_ppm.ncells - reference_anchor_ncells)))
+    anchor_index = int(numpy.argmin(numpy.abs(data_series_ppm.num_cells - reference_anchor_num_cells)))
     x_anchor = numpy.log10(data_series_ppm.cell_size[anchor_index])
     y_ppm = numpy.log10(data_series_ppm.error[anchor_index])
     y_ppm_ep = numpy.log10(data_series_ppm_ep.error[anchor_index])
@@ -333,9 +336,9 @@ def overlay_reference_slope(
         x_ref=x_anchor,
         y_ref=y_anchor,
     )
-    min_ncells, max_ncells = wave_config.fit_x_range
-    start_index = int(numpy.argmin(numpy.abs(data_series_ppm.ncells - min_ncells)))
-    end_index = int(numpy.argmin(numpy.abs(data_series_ppm.ncells - max_ncells)))
+    min_num_cells, max_num_cells = wave_config.fit_x_range
+    start_index = int(numpy.argmin(numpy.abs(data_series_ppm.num_cells - min_num_cells)))
+    end_index = int(numpy.argmin(numpy.abs(data_series_ppm.num_cells - max_num_cells)))
     x_values = numpy.log10(data_series_ppm.cell_size[[start_index, end_index]])
     y_values = reference_slope * x_values + intercept
     annotate_panel.overlay_curve(
@@ -353,13 +356,13 @@ def overlay_reference_slope(
 def set_resolution_ticks(
     *,
     panel: manage_figure.Panel,
-    ncells: NDArray[numpy.float64],
-    cell_sizes: NDArray[numpy.float64],
+    num_cells: numpy_typing.NDArray[numpy.float64],
+    cell_sizes: numpy_typing.NDArray[numpy.float64],
     show_tick_labels: bool,
     show_axis_label: bool,
 ) -> None:
     panel.set_xticks(numpy.log10(cell_sizes))
-    panel.set_xticklabels([str(int(n)) for n in ncells])
+    panel.set_xticklabels([str(int(n)) for n in num_cells])
     panel.tick_params(labelbottom=show_tick_labels)
     panel.minorticks_off()
     if show_axis_label:
@@ -429,17 +432,7 @@ def add_reconstruction_scheme_legend(
 
 
 def main() -> None:
-    ## the legends name the curves the same way the wave annotations do, so they are read as
-    ## the same kind of text and sit at the same level
-    default_text_sizes = style_figure.TextSizeParams()
-    style_figure.set_figure_params(
-        figure_params=style_figure.FigureParams(
-            text_size_params=style_figure.TextSizeParams(
-                legend_level=default_text_sizes.annotation_level,
-            ),
-        ),
-    )
-    manage_log.set_block_width_mode(manage_log.BlockWidthMode.PRACTICAL)
+    paper_style.setup_plotting_script()
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,
@@ -447,7 +440,8 @@ def main() -> None:
     figure, panel_grid = manage_figure.create_figure(
         num_panel_rows=len(WAVE_CONFIGS),
         num_panel_cols=1,
-        panel_aspect_ratio=1.7,
+        ## chosen by eye
+        panel_aspect_ratio=17.0 / 10.0,
         ## the panels share an x axis, so only their frames sit in the gap, not tick labels
         panel_row_gap_pt=5.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for
@@ -465,7 +459,7 @@ def main() -> None:
         is_last_row: bool = row_index == len(WAVE_CONFIGS) - 1
         set_resolution_ticks(
             panel=panel,
-            ncells=grouped_data_series[0].ncells,
+            num_cells=grouped_data_series[0].num_cells,
             cell_sizes=grouped_data_series[0].cell_size,
             show_tick_labels=is_last_row,
             show_axis_label=is_last_row,

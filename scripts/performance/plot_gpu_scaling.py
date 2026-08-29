@@ -12,13 +12,16 @@ from pathlib import Path
 ## third-party
 import numpy
 import pandas
-from matplotlib.ticker import FixedLocator, NullFormatter
-from numpy.typing import NDArray
+
+from numpy import typing as numpy_typing
 
 ## personal
-from jormi.ww_io import manage_io, manage_log
+from jormi.ww_io import manage_io
 from jormi.ww_plots import annotate_panel, manage_figure, style_figure
 from jormi.ww_types import box_positions
+
+## local
+from local_helpers import paper_style
 
 ##
 ## === DATA STRUCTURES
@@ -77,8 +80,8 @@ class EMFAveragingScheme(Enum):
 class ScalingSeries:
     emf_compute_scheme: EMFComputeScheme
     emf_averaging_scheme: EMFAveragingScheme
-    num_gpus: NDArray[numpy.floating]
-    updates_per_s_per_gpu: NDArray[numpy.floating]
+    num_gpus: numpy_typing.NDArray[numpy.floating]
+    updates_per_s_per_gpu: numpy_typing.NDArray[numpy.floating]
     reference_value: float
 
 
@@ -215,8 +218,8 @@ def annotate_weak_scaling_axis(
     panel: manage_figure.Panel,
 ) -> None:
     panel.set_xlim(
-        left=2**-1,
-        right=2**9.5,
+        left=2**(-1),
+        right=2**(9.5),
     )
     gpu_ticks = [1, 8, 64, 512]
     panel.set_xticks(gpu_ticks)
@@ -278,22 +281,15 @@ def add_emf_averaging_scheme_legend(
 
 
 def main() -> None:
-    manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    default_text_sizes = style_figure.TextSizeParams()
-    style_figure.set_figure_params(
-        figure_params=style_figure.FigureParams(
-            text_size_params=style_figure.TextSizeParams(
-                legend_level=default_text_sizes.annotation_level,
-            ),
-        ),
-    )
+    paper_style.setup_plotting_script()
     datasets_dir = Path(__file__).parents[2] / "datasets" / "performance"
     figures_dir = Path(__file__).parents[2] / "figures" / "performance"
     manage_io.create_directory(figures_dir)
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=1,
         num_panel_cols=2,
-        panel_aspect_ratio=1.597,
+        ## slightly wider than tall, chosen by eye for two side-by-side log-log panels
+        panel_aspect_ratio=8.0 / 5.0,
         ## the panels share a y axis, so only their frames sit in the gap
         panel_col_gap_pt=5.0,
         ## drawn at the width the paper prints it at, so its text is the size it asks for

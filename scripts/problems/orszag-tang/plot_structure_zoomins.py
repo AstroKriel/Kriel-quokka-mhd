@@ -33,6 +33,9 @@ from jormi.ww_types import box_positions
 from jormi.ww_validation import validate_types
 from ww_quokka_sims.sim_io import find_snapshots
 
+## local
+from local_helpers import plot_slices
+
 ##
 ## === DATA STRUCTURES
 ##
@@ -299,28 +302,6 @@ def plot_sarray_2d(
         )
 
 
-def format_main_ticks_x(
-    tick_value: float,
-    _tick_position: int,
-) -> str:
-    """
-    Label only `MAIN_LABELED_TICK_VALUES`; every other major tick is drawn unlabeled.
-
-    Labels are math mode, so their minus signs match the ones Matplotlib formats itself.
-    """
-    is_labeled = any(numpy.isclose(tick_value, labeled_value) for labeled_value in MAIN_LABELED_TICK_VALUES_X)
-    return f"${tick_value:.2f}$" if is_labeled else ""
-
-
-def format_main_ticks_y(
-    tick_value: float,
-    _tick_position: int,
-) -> str:
-    """Label only `MAIN_LABELED_TICK_VALUES`; every other major tick is drawn unlabeled."""
-    is_labeled = any(numpy.isclose(tick_value, labeled_value) for labeled_value in MAIN_LABELED_TICK_VALUES_Y)
-    return f"${tick_value:.2f}$" if is_labeled else ""
-
-
 def configure_main_ticks(
     *,
     panel: manage_figure.Panel,
@@ -328,8 +309,12 @@ def configure_main_ticks(
     for axis in (panel.xaxis, panel.yaxis):
         axis.set_major_locator(mpl_ticker.MultipleLocator(MAIN_MAJOR_TICK_STEP))
         axis.set_minor_locator(mpl_ticker.MultipleLocator(MAIN_MINOR_TICK_STEP))
-    panel.xaxis.set_major_formatter(mpl_ticker.FuncFormatter(format_main_ticks_x))
-    panel.yaxis.set_major_formatter(mpl_ticker.FuncFormatter(format_main_ticks_y))
+    panel.xaxis.set_major_formatter(
+        plot_slices.make_domain_tick_formatter(labeled_tick_values=MAIN_LABELED_TICK_VALUES_X),
+    )
+    panel.yaxis.set_major_formatter(
+        plot_slices.make_domain_tick_formatter(labeled_tick_values=MAIN_LABELED_TICK_VALUES_Y),
+    )
     panel.tick_params(
         which="both",
         color="white",

@@ -56,10 +56,13 @@ def load_energy_time_series(
     profile's phase shifts snapshot to snapshot -- the plain sum is stable to ~0.2% instead.
     """
     extracted_dir = DATASET_DIR / f"num_cells={num_cells}" / "q26-b25-ppm_ep" / "extracted"
+    file_glob = f"magnetic-axis={PROFILE_AXIS}-index=*.json"
     file_paths = sorted(
-        extracted_dir.glob(f"magnetic-axis={PROFILE_AXIS}-index=*.json"),
+        extracted_dir.glob(file_glob),
         key=lambda path: int(path.stem.split("index=")[-1].split("-")[0]),
     )
+    if not file_paths:
+        raise FileNotFoundError(f"no profile matching `{file_glob}` found in: {extracted_dir}")
     times = []
     energies = []
     for file_path in file_paths[1:]:

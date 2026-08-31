@@ -19,25 +19,12 @@ resolution-markers = [
 [[package]]
 name = "aegir"
 version = "0.1.0"
-source = { editable = "../../sindri/submodules/aegir" }
+source = { git = "https://github.com/AstroKriel/MHDRiemannSolver.git?rev=975cc7ed18dfba9dc9e7967ff721d2ccdf6dea1d#975cc7ed18dfba9dc9e7967ff721d2ccdf6dea1d" }
 dependencies = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "numpy", specifier = ">=2.3.2" },
-    { name = "scipy", specifier = ">=1.15.2" },
-]
-
-[package.metadata.requires-dev]
-demo = [{ name = "matplotlib", specifier = ">=3.10.1" }]
-dev = [
-    { name = "basedpyright", specifier = ">=1.0" },
-    { name = "pytest", specifier = ">=9.0.2" },
 ]
 
 [[package]]
@@ -339,7 +326,7 @@ wheels = [
 [[package]]
 name = "jormi"
 version = "0.1.0"
-source = { editable = "../../sindri/submodules/jormi" }
+source = { git = "https://github.com/AstroKriel/PythonHelpers.git?rev=5f34734daa617085fecf96b451d7d01392d81766#5f34734daa617085fecf96b451d7d01392d81766" }
 dependencies = [
     { name = "cmasher" },
     { name = "h5py" },
@@ -353,26 +340,6 @@ dependencies = [
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "tqdm" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "cmasher", specifier = ">=1.9.2" },
-    { name = "h5py", specifier = ">=3.13.0" },
-    { name = "matplotlib", specifier = ">=3.10.1" },
-    { name = "memory-profiler", specifier = ">=0.61.0" },
-    { name = "numpy", specifier = ">=2.2.4" },
-    { name = "pebble", specifier = ">=5.1.1" },
-    { name = "psutil", specifier = ">=7.0.0" },
-    { name = "rich", specifier = ">=14.1.0" },
-    { name = "scipy", specifier = ">=1.15.2" },
-    { name = "tqdm", specifier = ">=4.67.1" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "basedpyright", specifier = ">=1.0" },
-    { name = "pytest", specifier = ">=9.0.2" },
 ]
 
 [[package]]
@@ -505,12 +472,12 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aegir", editable = "../../sindri/submodules/aegir" },
-    { name = "jormi", editable = "../../sindri/submodules/jormi" },
+    { name = "aegir", git = "https://github.com/AstroKriel/MHDRiemannSolver.git?rev=975cc7ed18dfba9dc9e7967ff721d2ccdf6dea1d" },
+    { name = "jormi", git = "https://github.com/AstroKriel/PythonHelpers.git?rev=5f34734daa617085fecf96b451d7d01392d81766" },
     { name = "numpy", specifier = ">=2.3.2" },
     { name = "pandas", specifier = ">=3.0.0" },
     { name = "scipy", specifier = ">=1.15.2" },
-    { name = "ww-quokka-sims", editable = "../../sindri/submodules/ww-quokka-sims" },
+    { name = "ww-quokka-sims", git = "https://github.com/AstroKriel/WWQuokkaSims.git?rev=914916ca88f777315ccd3115782280aded8c273b" },
     { name = "yt", specifier = ">=4.4.1" },
 ]
 
@@ -1310,27 +1277,13 @@ wheels = [
 [[package]]
 name = "ww-quokka-sims"
 version = "0.1.0"
-source = { editable = "../../sindri/submodules/ww-quokka-sims" }
+source = { git = "https://github.com/AstroKriel/WWQuokkaSims.git?rev=914916ca88f777315ccd3115782280aded8c273b#914916ca88f777315ccd3115782280aded8c273b" }
 dependencies = [
     { name = "imageio" },
     { name = "jormi" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "yt" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "imageio", specifier = ">=2.37.0" },
-    { name = "jormi", editable = "../../sindri/submodules/jormi" },
-    { name = "numpy", specifier = ">=2.3.2" },
-    { name = "yt", specifier = ">=4.4.1" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "basedpyright", specifier = ">=1.39.3" },
-    { name = "pytest", specifier = ">=9.0.2" },
 ]
 
 [[package]]

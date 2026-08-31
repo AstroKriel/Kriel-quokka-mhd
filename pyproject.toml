@@ -19,9 +19,9 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-aegir = { path = "../../sindri/submodules/aegir", editable = true }
-jormi = { path = "../../sindri/submodules/jormi", editable = true }
-ww-quokka-sims = { path = "../../sindri/submodules/ww-quokka-sims", editable = true }
+aegir = { git = "https://github.com/AstroKriel/MHDRiemannSolver.git", rev = "975cc7ed18dfba9dc9e7967ff721d2ccdf6dea1d" }
+jormi = { git = "https://github.com/AstroKriel/PythonHelpers.git", rev = "5f34734daa617085fecf96b451d7d01392d81766" }
+ww-quokka-sims = { git = "https://github.com/AstroKriel/WWQuokkaSims.git", rev = "914916ca88f777315ccd3115782280aded8c273b" }
 
 ##
 ## === DEVELOPMENT DEPENDENCIES

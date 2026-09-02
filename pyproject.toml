@@ -20,8 +20,8 @@ dependencies = [
 
 [tool.uv.sources]
 aegir = { git = "https://github.com/AstroKriel/MHDRiemannSolver.git", rev = "975cc7ed18dfba9dc9e7967ff721d2ccdf6dea1d" }
-jormi = { git = "https://github.com/AstroKriel/PythonHelpers.git", rev = "5f34734daa617085fecf96b451d7d01392d81766" }
-ww-quokka-sims = { git = "https://github.com/AstroKriel/WWQuokkaSims.git", rev = "914916ca88f777315ccd3115782280aded8c273b" }
+jormi = { git = "https://github.com/AstroKriel/PythonHelpers.git", rev = "712c9cad182360adb229a63a09222a0cddf35b61" }
+ww-quokka-sims = { git = "https://github.com/AstroKriel/WWQuokkaSims.git", rev = "56149e4a5527d86ba0f23d157fbd469e54201e13" }
 
 ##
 ## === DEVELOPMENT DEPENDENCIES

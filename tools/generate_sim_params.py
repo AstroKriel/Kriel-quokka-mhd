@@ -84,7 +84,7 @@ def alfven_wave_linear_correctness_configs() -> list[SimParamsConfig]:
     etas = ("0.00001", "0.0000316", "0.0001", "0.000316", "0.001", "0.00316", "0.01", "0.0316")
     return [
         SimParamsConfig(
-            target_dir=dataset_dir / f"eta={eta}/ncells=256/q26-b25-{reconstruction_order_key}",
+            target_dir=dataset_dir / f"eta={eta}/num_cells=256/q26-b25-{reconstruction_order_key}",
             problem_key=problem_setups.ProblemSetup.ALFVEN_WAVE_LINEAR_CORRECTNESS,
             kwargs={
                 "compute_scheme_key": "q26",
@@ -159,11 +159,11 @@ def slow_wave_correctness_configs() -> list[SimParamsConfig]:
         },
     }
     configs: list[SimParamsConfig] = []
-    for ncells, resolution_kwargs in resolutions.items():
+    for num_cells, resolution_kwargs in resolutions.items():
         for reconstruction_order_key in ("ppm", "ppm_ep"):
             configs.append(
                 SimParamsConfig(
-                    target_dir=dataset_dir / f"ncells={ncells}" / f"q26-b25-{reconstruction_order_key}",
+                    target_dir=dataset_dir / f"num_cells={num_cells}" / f"q26-b25-{reconstruction_order_key}",
                     problem_key=problem_setups.ProblemSetup.SLOW_WAVE_CORRECTNESS,
                     kwargs={
                         "compute_scheme_key": "q26",
@@ -205,8 +205,8 @@ def balsara_vortex_configs() -> list[SimParamsConfig]:
         },
     }
     configs: list[SimParamsConfig] = []
-    for ncells, base_kwargs in resolutions.items():
-        dataset_dir = DATASETS_DIR / f"balsara-vortex/ncells={ncells}"
+    for num_cells, base_kwargs in resolutions.items():
+        dataset_dir = DATASETS_DIR / f"balsara-vortex/num_cells={num_cells}"
         for reconstruction_order_key in ("ppm", "ppm_ep"):
             configs.append(
                 SimParamsConfig(
@@ -216,7 +216,7 @@ def balsara_vortex_configs() -> list[SimParamsConfig]:
                         "compute_scheme_key": "q26",
                         "averaging_scheme_key": "b25",
                         "reconstruction_order_key": reconstruction_order_key,
-                        **_compute_domain(ncells),
+                        **_compute_domain(num_cells),
                         **base_kwargs,
                     },
                 ),
@@ -225,8 +225,8 @@ def balsara_vortex_configs() -> list[SimParamsConfig]:
 
 
 def blast_wave_configs() -> list[SimParamsConfig]:
-    dataset_dir_1024 = DATASETS_DIR / "blast-wave/ncells=1024"
-    dataset_dir_128 = DATASETS_DIR / "blast-wave/ncells=128"
+    dataset_dir_1024 = DATASETS_DIR / "blast-wave/num_cells=1024"
+    dataset_dir_128 = DATASETS_DIR / "blast-wave/num_cells=128"
     common_1024 = {
         "num_cells": (1024, 1024, 1024),
         "blocking_factor": (32, 32, 32),
@@ -288,8 +288,8 @@ def blast_wave_configs() -> list[SimParamsConfig]:
 
 
 def brio_wu_shock_tube_configs() -> list[SimParamsConfig]:
-    dataset_dir_256 = DATASETS_DIR / "brio-wu-shock-tube/ncells=256"
-    dataset_dir_8192 = DATASETS_DIR / "brio-wu-shock-tube/ncells=8192"
+    dataset_dir_256 = DATASETS_DIR / "brio-wu-shock-tube/num_cells=256"
+    dataset_dir_8192 = DATASETS_DIR / "brio-wu-shock-tube/num_cells=8192"
     common_256 = {
         "num_cells": (256, 8, 8),
         "blocking_factor": (16, 8, 8),
@@ -354,7 +354,7 @@ def brio_wu_shock_tube_configs() -> list[SimParamsConfig]:
 
 
 def ryu_jones_2a_shock_tube_configs() -> list[SimParamsConfig]:
-    dataset_dir = DATASETS_DIR / "ryu-jones-2a-shock-tube/ncells=512"
+    dataset_dir = DATASETS_DIR / "ryu-jones-2a-shock-tube/num_cells=512"
     hlld_combinations = (
         ("b25", "b25", "ppm_ep"),
         ("b25", "ld04", "ppm_ep"),
@@ -391,7 +391,7 @@ def ryu_jones_2a_shock_tube_configs() -> list[SimParamsConfig]:
 
 
 def current_sheet_configs() -> list[SimParamsConfig]:
-    dataset_dir = DATASETS_DIR / "current-sheet/ncells=1024"
+    dataset_dir = DATASETS_DIR / "current-sheet/num_cells=1024"
     configs = [
         SimParamsConfig(
             target_dir=dataset_dir / f"{compute_scheme_key}-{averaging_scheme_key}-ppm",
@@ -418,7 +418,7 @@ def current_sheet_configs() -> list[SimParamsConfig]:
 
 
 def field_loop_configs() -> list[SimParamsConfig]:
-    dataset_dir = DATASETS_DIR / "field-loop/ncells=96"
+    dataset_dir = DATASETS_DIR / "field-loop/num_cells=96"
     return [
         SimParamsConfig(
             target_dir=dataset_dir / "q26-b25-ppm_ep",
@@ -433,7 +433,7 @@ def field_loop_configs() -> list[SimParamsConfig]:
 
 
 def mhd_quirk_configs() -> list[SimParamsConfig]:
-    dataset_dir = DATASETS_DIR / "quirk/ncells=128"
+    dataset_dir = DATASETS_DIR / "quirk/num_cells=128"
     kwargs: dict[str, object] = {
         "compute_scheme_key": "q26",
         "averaging_scheme_key": "b25",
@@ -454,9 +454,9 @@ def mhd_quirk_configs() -> list[SimParamsConfig]:
 
 
 def orszag_tang_configs() -> list[SimParamsConfig]:
-    dataset_dir_1024 = DATASETS_DIR / "orszag-tang/ncells=1024"
-    dataset_dir_4096 = DATASETS_DIR / "orszag-tang/ncells=4096"
-    dataset_dir_8192 = DATASETS_DIR / "orszag-tang/ncells=8192"
+    dataset_dir_1024 = DATASETS_DIR / "orszag-tang/num_cells=1024"
+    dataset_dir_4096 = DATASETS_DIR / "orszag-tang/num_cells=4096"
+    dataset_dir_8192 = DATASETS_DIR / "orszag-tang/num_cells=8192"
     configs: list[SimParamsConfig] = [
         SimParamsConfig(
             target_dir=dataset_dir_1024 /

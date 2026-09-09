@@ -22,7 +22,7 @@ from jormi.ww_plots import (
     style_figure,
 )
 from jormi.ww_types import box_positions
-from ww_quokka_sims.sim_io import find_snapshots
+from ww_quokka_sims.sim_io.snapshots import find_snapshots
 
 ## local
 from local_helpers import mask_contours, paper_style
@@ -49,9 +49,9 @@ class ReconstructionSchemeStyle:
 
 
 class EMFComputeScheme(Enum):
-    FS17 = EMFComputeSchemeStyle(label="FS18")
-    B25 = EMFComputeSchemeStyle(label="B25a")
     Q26 = EMFComputeSchemeStyle(label="Q26")
+    B25 = EMFComputeSchemeStyle(label="B25a")
+    FS17 = EMFComputeSchemeStyle(label="FS18")
 
     @property
     def as_tag(
@@ -61,13 +61,13 @@ class EMFComputeScheme(Enum):
 
 
 class EMFAveragingScheme(Enum):
-    LD04 = EMFAveragingSchemeStyle(
-        label="LD04",
-        color="#DC5664",
-    )
     B25 = EMFAveragingSchemeStyle(
         label="B25b",
         color="#56DCCE",
+    )
+    LD04 = EMFAveragingSchemeStyle(
+        label="LD04",
+        color="#DC5664",
     )
 
     @property

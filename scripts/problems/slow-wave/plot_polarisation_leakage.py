@@ -127,7 +127,7 @@ def add_saturation_annotation(
     annotate_panel.add_text(
         panel=panel,
         x_pos_fraction=0.27,
-        y_pos_fraction=0.935,
+        y_pos_fraction=0.94,
         label="phase pollution",
         x_alignment=box_positions.Positions.Center.Center,
         y_alignment=box_positions.Positions.Side.Top,
@@ -220,7 +220,7 @@ def main() -> None:
         num_samples=num_time_samples,
     )
     figure, panel = manage_figure.create_figure(
-        panel_aspect_ratio=21.0 / 20.0,
+        panel_aspect_ratio=15.0 / 14.0,
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.5),
         ),
@@ -257,18 +257,18 @@ def main() -> None:
         panel=panel,
         tail_ave=tail_ave_low,
         tail_std=tail_std_low,
-        y_pos_fraction=0.925,
+        y_pos_fraction=0.94,
         y_alignment=box_positions.Positions.Side.Top,
     )
     add_tail_annotation(
         panel=panel,
         tail_ave=tail_ave_high,
         tail_std=tail_std_high,
-        y_pos_fraction=0.615,
+        y_pos_fraction=0.63,
         y_alignment=box_positions.Positions.Side.Top,
     )
     add_saturation_annotation(panel=panel)
-    panel.set_ylim((-13, -5))
+    panel.set_ylim((-13, -5.25))
     panel.set_xlabel(r"$t / T$")
     panel.set_ylabel(
         r"$\log_{10}\!\left("

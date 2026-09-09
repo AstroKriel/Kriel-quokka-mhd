@@ -14,7 +14,7 @@ from matplotlib import lines as mpl_lines
 
 ## personal
 from jormi.ww_plots import manage_figure
-from ww_quokka_sims.sim_io import profile_models
+from ww_quokka_sims.sim_io.field_diagnostics import profiles as profile_models
 
 ##
 ## === DATA STRUCTURES

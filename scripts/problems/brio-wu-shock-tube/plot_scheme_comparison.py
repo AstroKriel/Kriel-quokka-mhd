@@ -22,7 +22,7 @@ from jormi.ww_plots import (
     style_figure,
 )
 from jormi.ww_types import box_positions
-from ww_quokka_sims.sim_io import profile_models
+from ww_quokka_sims.sim_io.field_diagnostics import profiles as profile_models
 
 ## local
 from local_helpers import shock_tubes

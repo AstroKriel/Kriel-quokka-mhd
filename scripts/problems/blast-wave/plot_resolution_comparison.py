@@ -27,7 +27,7 @@ from jormi.ww_plots import (
     style_figure,
 )
 from jormi.ww_types import box_positions
-from ww_quokka_sims.sim_io import find_snapshots
+from ww_quokka_sims.sim_io.snapshots import find_snapshots
 
 ## local
 from local_helpers import paper_style, plot_slices

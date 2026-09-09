@@ -31,7 +31,7 @@ from jormi.ww_plots import (
 )
 from jormi.ww_types import box_positions
 from jormi.ww_validation import validate_types
-from ww_quokka_sims.sim_io import find_snapshots
+from ww_quokka_sims.sim_io.snapshots import find_snapshots
 
 ## local
 from local_helpers import plot_slices

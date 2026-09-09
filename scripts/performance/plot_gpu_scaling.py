@@ -66,16 +66,16 @@ class EMFAveragingSchemeStyle:
 
 
 class EMFAveragingScheme(Enum):
-    LD04 = EMFAveragingSchemeStyle(
-        label="LD04",
-        linestyle="-",
-        marker="o",
-        marker_size=5.0,
-    )
     B25 = EMFAveragingSchemeStyle(
         label="B25b",
         linestyle="--",
         marker="D",
+        marker_size=5.0,
+    )
+    LD04 = EMFAveragingSchemeStyle(
+        label="LD04",
+        linestyle="-",
+        marker="o",
         marker_size=5.0,
     )
 
@@ -289,7 +289,7 @@ def main() -> None:
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=1,
         num_panel_cols=2,
-        panel_aspect_ratio=8.0 / 5.0,
+        panel_aspect_ratio=8.0 / 5.5,
         panel_col_gap_pt=5.0,
         figure_layout=style_figure.FigureLayout(
             figure_width=style_figure.FigureWidth(width_fraction=0.90),

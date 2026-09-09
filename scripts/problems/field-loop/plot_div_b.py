@@ -16,7 +16,6 @@ from matplotlib import patches as mpl_patches
 from numpy import typing as numpy_typing
 
 ## personal
-from jormi.ww_arrays import compute_array_stats
 from jormi.ww_io import manage_io
 from jormi.ww_plots import (
     add_color,
@@ -26,7 +25,8 @@ from jormi.ww_plots import (
     style_figure,
 )
 from jormi.ww_types import box_positions
-from ww_quokka_sims.sim_io import find_snapshots
+from ww_quokka_sims.sim_io.field_diagnostics import pdfs, slices
+from ww_quokka_sims.sim_io.snapshots import find_snapshots
 
 ## local
 from local_helpers import paper_style
@@ -34,12 +34,6 @@ from local_helpers import paper_style
 ##
 ## === DATA STRUCTURES
 ##
-
-
-@dataclass(frozen=True)
-class Slice:
-    step_time: float
-    sarray_2d: numpy_typing.NDArray[numpy.floating]
 
 
 @dataclass(frozen=True)
@@ -67,18 +61,6 @@ AXIS_BOUNDS: plot_data.AxisRanges = ((-1.5, 1.5), (-1.0, 1.0))
 ##
 
 
-def load_slice(
-    *,
-    slice_path: Path,
-) -> Slice:
-    """Load the time and two-dimensional field from one saved slice."""
-    with numpy.load(slice_path) as data:
-        return Slice(
-            step_time=float(data["step_time"]),
-            sarray_2d=data["sarray_2d"],
-        )
-
-
 def compute_symmetric_bounds(
     *,
     field: numpy_typing.NDArray[numpy.floating],
@@ -91,15 +73,6 @@ def compute_symmetric_bounds(
         ),
     )
     return (-bound, bound)
-
-
-def compute_log10_absolute_divb(
-    *,
-    sarray_2d: numpy_typing.NDArray[numpy.floating],
-) -> numpy_typing.NDArray[numpy.floating]:
-    """Drop zero/non-finite cells (outside the loop), then take log10 of the magnitude."""
-    nonzero_finite = numpy.isfinite(sarray_2d) & (sarray_2d != 0.0)
-    return numpy.log10(numpy.abs(sarray_2d[nonzero_finite]))
 
 
 def compute_loop_center_at_time(
@@ -156,11 +129,11 @@ def add_advection_arrow(
         },
     )
     panel.text(
-        arrow_start[0] + 0.025,
-        arrow_start[1] + 0.075,
+        arrow_start[0] + 0.2,
+        arrow_start[1] + 0.05,
         "advection",
         ha="left",
-        va="bottom",
+        va="top",
         color="red",
         rotation=180 / numpy.pi * numpy.atan(2 / 3),
         rotation_mode="anchor",
@@ -177,53 +150,36 @@ def plot_pdf_panel(
     *,
     panel: manage_figure.Panel,
     problem_setup: ProblemSetup,
-    divb_series: tuple[Slice, ...],
+    divb_pdf_series: tuple[pdfs.PDFData, ...],
 ) -> None:
-    num_pdf_bins = 50
     num_pdf_times = 10
     figure_params = style_figure.get_figure_params()
-    finite_slices = [
-        divb_slice for divb_slice in divb_series
-        if numpy.any(numpy.isfinite(divb_slice.sarray_2d) & (divb_slice.sarray_2d != 0.0))
-    ]
-    sampled_indices = numpy.linspace(0, len(finite_slices) - 1, num_pdf_times, dtype=int)
-    sampled_slices = [finite_slices[index] for index in sampled_indices]
-    pdf_bin_edges = numpy.linspace(-70, -10, num_pdf_bins + 1)
-    pdf_bin_centers = 0.5 * (pdf_bin_edges[:-1] + pdf_bin_edges[1:])
+    sampled_indices = numpy.linspace(0, len(divb_pdf_series) - 1, num_pdf_times, dtype=int)
+    sampled_pdfs = [divb_pdf_series[index] for index in sampled_indices]
     time_palette = add_color.make_palette(
         config=add_color.SequentialConfig(
             palette_name="cmr.bubblegum_r",
             palette_range=(0.05, 0.85),
         ),
         value_range=(
-            divb_series[1].step_time / problem_setup.period,
-            divb_series[-1].step_time / problem_setup.period,
+            divb_pdf_series[1].step_time / problem_setup.period,
+            divb_pdf_series[-1].step_time / problem_setup.period,
         ),
     )
-    for sample_slice in sampled_slices[1:]:
-        log10_absolute_divb = compute_log10_absolute_divb(sarray_2d=sample_slice.sarray_2d)
-        estimated_pdf = compute_array_stats.estimate_pdf(
-            values=log10_absolute_divb,
-            bin_centers=pdf_bin_centers,
-        )
-        log10_pdf = numpy.ma.log10(
-            numpy.ma.masked_less_equal(
-                estimated_pdf.densities,
-                0.0,
-            ),
-        )
+    for pdf_data in sampled_pdfs[1:]:
+        bin_centers, log10_pdf = pdf_data.get_pdf(0)
         finite_pdf = numpy.isfinite(log10_pdf)
-        curve_color = time_palette.mpl_cmap(time_palette.mpl_norm(sample_slice.step_time / problem_setup.period))
+        curve_color = time_palette.mpl_cmap(time_palette.mpl_norm(pdf_data.step_time / problem_setup.period))
         panel.step(
-            estimated_pdf.bin_centers[finite_pdf],
+            bin_centers[finite_pdf],
             log10_pdf[finite_pdf],
             where="mid",
             color=curve_color,
         )
-    panel.set_xlabel(r"$x \equiv \log_{10}|\nabla \cdot \vec{b}|$")
-    panel.set_ylabel(r"$\log_{10}\!\left(\mathrm{PDF}(x)\right)$")
-    panel.set_xlim(-54, -13)
-    panel.set_ylim(-2.3, 0.0)
+    panel.set_xlabel(r"$y \equiv \log_{10}\!\left(\Delta x\,|\nabla \cdot \vec{b}|\right)$")
+    panel.set_ylabel(r"$\log_{10}\!\left(\mathrm{PDF}(y)\right)$")
+    panel.set_xlim(-63, -16)
+    panel.set_ylim(-3, 0)
     panel.yaxis.set_label_position("right")
     panel.yaxis.tick_right()
     axis_width = AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]
@@ -245,7 +201,7 @@ def plot_slice_panel(
     *,
     panel: manage_figure.Panel,
     problem_setup: ProblemSetup,
-    divb_slice: Slice,
+    divb_slice: slices.SlicedField,
 ) -> None:
     """Plot the div-b slice nearest the chosen target time, with a colorbar and a time label."""
     figure_params = style_figure.get_figure_params()
@@ -291,7 +247,9 @@ def plot_slice_panel(
             linewidth=artist_params.line_width_pt,
         ),
     )
-    amr_region_bounds: plot_data.AxisRanges = ((-1.25, -0.75), (-0.75, 0.75))
+    ## inset from the realized footprint ((-1.5, -0.5), (-1.0, 1.0)), purely so the box
+    ## reads clearly against the panel frame rather than flush with its border
+    amr_region_bounds: plot_data.AxisRanges = ((-1.45, -0.4), (-0.95, 0.95))
     (amr_x_lo, amr_x_hi), (amr_y_lo, amr_y_hi) = amr_region_bounds
     panel.add_patch(
         mpl_patches.Rectangle(
@@ -311,8 +269,8 @@ def plot_slice_panel(
     )
     annotate_panel.add_text(
         panel=panel,
-        x_pos_fraction=0.15,
-        y_pos_fraction=0.65,
+        x_pos_fraction=0.25,
+        y_pos_fraction=0.7,
         label=r"\shortstack{refinement\\region}",
         rotate_deg=90.0,
         x_alignment=box_positions.Positions.Side.Left,
@@ -323,7 +281,7 @@ def plot_slice_panel(
     panel.set_ylabel(r"$x_1$")
     annotate_panel.add_text(
         panel=panel,
-        x_pos_fraction=0.5,
+        x_pos_fraction=0.55,
         y_pos_fraction=0.05,
         label=rf"$t / T = {divb_slice.step_time / problem_setup.period:.2f}$",
         x_alignment=box_positions.Positions.Center.Center,
@@ -334,8 +292,8 @@ def plot_slice_panel(
 def plot_field_loop_divb(
     *,
     problem_setup: ProblemSetup,
-    divb_series: tuple[Slice, ...],
-    divb_slice: Slice,
+    divb_pdf_series: tuple[pdfs.PDFData, ...],
+    divb_slice: slices.SlicedField,
 ) -> mpl_figure.Figure:
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=1,
@@ -353,7 +311,7 @@ def plot_field_loop_divb(
     plot_pdf_panel(
         panel=panel_grid[0, 1],
         problem_setup=problem_setup,
-        divb_series=divb_series,
+        divb_pdf_series=divb_pdf_series,
     )
     return figure
 
@@ -369,15 +327,16 @@ def main() -> None:
         directory=FIGURE_PATH.parent,
         verbose=False,
     )
-    divb_glob = "magnetic_divergence-slice=x_2-index=*.npz"
-    divb_paths = sorted(DATASET_DIR.glob(divb_glob))
-    if not divb_paths:
-        raise FileNotFoundError(f"no slice matching `{divb_glob}` found in: {DATASET_DIR}")
-    divb_series = tuple(load_slice(slice_path=divb_path) for divb_path in divb_paths)
-    divb_slice = load_slice(
-        slice_path=find_snapshots.find_npz_near_time(
+    divb_slice_glob = "divb-slice=x_2-index=*.npz"
+    divb_pdf_glob = "divb_dimensionless-pdf-index=*.json"
+    divb_pdf_paths = sorted(DATASET_DIR.glob(divb_pdf_glob))
+    if not divb_pdf_paths:
+        raise FileNotFoundError(f"no PDF matching `{divb_pdf_glob}` found in: {DATASET_DIR}")
+    divb_pdf_series = tuple(pdfs.PDFData.load_from_file(divb_pdf_path) for divb_pdf_path in divb_pdf_paths)
+    divb_slice = slices.SlicedField.load_from_file(
+        find_snapshots.find_npz_near_time(
             extracted_dir=DATASET_DIR,
-            glob_pattern=divb_glob,
+            glob_pattern=divb_slice_glob,
             target_time=2.4155,
         ),
     )
@@ -390,7 +349,7 @@ def main() -> None:
     )
     figure = plot_field_loop_divb(
         problem_setup=problem_setup,
-        divb_series=divb_series,
+        divb_pdf_series=divb_pdf_series,
         divb_slice=divb_slice,
     )
     manage_figure.save_figure(

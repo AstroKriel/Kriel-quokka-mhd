@@ -50,7 +50,7 @@ class ProblemSetup:
 
 ## inputs and outputs
 ROOT_DIR = Path(__file__).parents[3]
-DATASET_DIR = ROOT_DIR / "datasets/problems/field-loop/num_cells=96/q26-b25-ppm_ep" / "extracted"
+DATASET_DIR = ROOT_DIR / "datasets/problems/field-loop/static-refinement/num_base_cells=96-max_level=1/q26-b25-ppm_ep" / "extracted"
 FIGURE_PATH = ROOT_DIR / "figures/problems/field-loop/div-b.png"
 
 ## plotting details

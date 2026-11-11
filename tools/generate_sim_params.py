@@ -418,7 +418,7 @@ def current_sheet_configs() -> list[SimParamsConfig]:
 
 
 def field_loop_configs() -> list[SimParamsConfig]:
-    dataset_dir = DATASETS_DIR / "field-loop/num_cells=96"
+    dataset_dir = DATASETS_DIR / "field-loop/static-refinement/num_base_cells=96-max_level=1"
     return [
         SimParamsConfig(
             target_dir=dataset_dir / "q26-b25-ppm_ep",

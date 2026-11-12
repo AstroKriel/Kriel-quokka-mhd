@@ -157,7 +157,7 @@ def plot_pdf_panel(
     sampled_indices = numpy.linspace(0, len(divb_pdf_series) - 1, num_pdf_times, dtype=int)
     sampled_pdfs = [divb_pdf_series[index] for index in sampled_indices]
     time_palette = add_color.make_palette(
-        config=add_color.SequentialConfig(
+        config=add_color.SequentialPaletteConfig(
             palette_name="cmr.bubblegum_r",
             palette_range=(0.05, 0.85),
         ),
@@ -208,7 +208,7 @@ def plot_slice_panel(
     artist_params = figure_params.artist_params
     frame_params = figure_params.frame_params
     panel_gaps = figure_params.figure_layout.panel_gaps
-    palette_config = add_color.DivergingConfig(
+    palette_config = add_color.DivergingPaletteConfig(
         mid_value=0.0,
         palette_name="cmr.prinsenvlag",
         palette_range=(0.15, 0.85),

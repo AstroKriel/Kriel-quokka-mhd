@@ -269,7 +269,7 @@ def plot_sarray_2d(
     bounded_slice: BoundedSlice,
     add_colorbar: bool,
 ) -> None:
-    palette_config = add_color.SequentialConfig(
+    palette_config = add_color.SequentialPaletteConfig(
         palette_name="cmr.wildfire_r",
         palette_range=(0.2, 1.0),
     )

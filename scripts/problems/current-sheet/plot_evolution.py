@@ -136,7 +136,7 @@ def main() -> None:
             ),
         ) for data_slice in data_slices
     ]
-    palette_config = add_color.DivergingConfig(
+    palette_config = add_color.DivergingPaletteConfig(
         mid_value=0.0,
         palette_name="pink-white-green",
     )

@@ -281,9 +281,9 @@ def main() -> None:
         panel=panel,
         array_2d=compute_array_stats.compute_safe_log10(composite),
         data_format="ij",
-        axis_ranges=AXIS_BOUNDS,
+i        axis_ranges=AXIS_BOUNDS,
         colorbar_range=value_range,
-        palette_config=add_color.SequentialConfig(
+        palette_config=add_color.SequentialPaletteConfig(
             palette_name=palette_name,
             palette_range=palette_range,
         ),
@@ -351,7 +351,7 @@ def main() -> None:
         color=theme_params.foreground_color,
     )
     palette = add_color.make_palette(
-        config=add_color.SequentialConfig(
+        config=add_color.SequentialPaletteConfig(
             palette_name=palette_name,
             palette_range=palette_range,
         ),

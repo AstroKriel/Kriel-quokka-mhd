@@ -213,7 +213,7 @@ def main() -> None:
     lower_slice = load_density_slice(num_cells=NUM_CELLS_LOWER)
     palette_name = "blue-white-red"
     cbar_bounds = (-0.8, 0.55)
-    palette_config = add_color.SequentialConfig(
+    palette_config = add_color.SequentialPaletteConfig(
         palette_name=palette_name,
         palette_range=compute_zero_centred_palette_range(value_range=cbar_bounds),
     )

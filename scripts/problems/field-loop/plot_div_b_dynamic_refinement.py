@@ -231,6 +231,38 @@ def compute_loop_center_at_time(
     )
 
 
+def select_plotted_pdfs(
+    pdf_data_series: list[PDFData],
+) -> list[PDFData]:
+    """Return evenly spaced PDFs through the run, skipping the initial one."""
+    num_pdf_times = 10
+    sampled_indices = numpy.linspace(
+        start=0,
+        stop=len(pdf_data_series) - 1,
+        num=num_pdf_times,
+        dtype=int,
+    )
+    sampled_pdfs = [pdf_data_series[_index] for _index in sampled_indices]
+    return sampled_pdfs[1:]
+
+
+def make_time_palette(
+    *,
+    problem_setup: ProblemSetup,
+    plotted_pdfs: list[PDFData],
+) -> color_palettes.ColorPalette:
+    return add_color.make_palette(
+        config=add_color.SequentialPaletteConfig(
+            palette_name="cmr.bubblegum_r",
+            palette_range=(0.05, 0.85),
+        ),
+        value_range=(
+            plotted_pdfs[0].sim_time / problem_setup.period,
+            plotted_pdfs[-1].sim_time / problem_setup.period,
+        ),
+    )
+
+
 def merge_index_intervals(
     intervals: list[tuple[int, int]],
 ) -> list[tuple[int, int]]:
@@ -381,6 +413,7 @@ def plot_slice_panel(
     palette_config: add_color.DivergingPaletteConfig,
     colorbar_bounds: tuple[float, float],
     level_palette: color_palettes.ColorPalette,
+    time_palette: color_palettes.ColorPalette,
 ) -> None:
     figure_params = style_figure.get_figure_params()
     artist_params = figure_params.artist_params
@@ -412,14 +445,16 @@ def plot_slice_panel(
         linewidth=artist_params.line_width_pt,
     )
     panel.add_patch(loop_outline)
+    time_fraction = data_slice.sim_time / problem_setup.period
     annotate_panel.add_text(
         panel=panel,
         x_pos_fraction=time_label_x_pos_fraction,
         y_pos_fraction=0.05,
-        label=rf"$t / T = {data_slice.sim_time / problem_setup.period:.2f}$",
+        label=rf"$t / T = {time_fraction:.2f}$",
         x_alignment=box_positions.Positions.Center.Center,
         y_alignment=box_positions.Positions.Side.Bottom,
         text_size_pt=text_size_params.annotation_size_pt - 1.0,
+        text_color=time_palette.get_color(time_fraction),
     )
     panel.set_ylabel(r"$x_1$")
     panel.tick_params(labelbottom=False)
@@ -429,27 +464,9 @@ def plot_pdf_panel(
     *,
     panel: manage_figure.Panel,
     problem_setup: ProblemSetup,
-    pdf_data_series: list[PDFData],
+    plotted_pdfs: list[PDFData],
+    time_palette: color_palettes.ColorPalette,
 ) -> None:
-    num_pdf_times = 10
-    sampled_indices = numpy.linspace(
-        start=0,
-        stop=len(pdf_data_series) - 1,
-        num=num_pdf_times,
-        dtype=int,
-    )
-    sampled_pdfs = [pdf_data_series[_index] for _index in sampled_indices]
-    plotted_pdfs = sampled_pdfs[1:]
-    time_palette = add_color.make_palette(
-        config=add_color.SequentialPaletteConfig(
-            palette_name="cmr.bubblegum_r",
-            palette_range=(0.05, 0.85),
-        ),
-        value_range=(
-            plotted_pdfs[0].sim_time / problem_setup.period,
-            plotted_pdfs[-1].sim_time / problem_setup.period,
-        ),
-    )
     for pdf_data in plotted_pdfs:
         pdf_is_finite = numpy.isfinite(pdf_data.log10_densities)
         time_fraction = pdf_data.sim_time / problem_setup.period
@@ -464,13 +481,20 @@ def plot_pdf_panel(
     panel.set_ylabel(r"$\log_{10}\!\left(\mathrm{PDF}(y)\right)$")
     panel.set_xlim(-63, -16)
     panel.set_ylim(-3, 0.1)
-    add_color.add_inset_colorbar(
+    time_colorbar = add_color.add_inset_colorbar(
         panel=panel,
         palette=time_palette,
         label=r"$t / T$",
         colorbar_corner=box_positions.Positions.Corner.TopLeft,
         colorbar_length_fraction=0.55,
         colorbar_aspect_ratio=10.0,
+        corner_gaps_pt=(21.0, 10.0),
+    )
+    tick_values = [plotted_pdfs[0].sim_time / problem_setup.period, 0.5, 1.0]
+    tick_labels = [f"{_tick_value:.1f}" for _tick_value in tick_values]
+    time_colorbar.set_ticks(
+        ticks=tick_values,
+        labels=tick_labels,
     )
 
 
@@ -510,6 +534,7 @@ def plot_slices_figure(
     problem_setup: ProblemSetup,
     data_slices: list[DataSlice],
     box_layouts: list[SlicedBoxLayout],
+    time_palette: color_palettes.ColorPalette,
 ) -> mpl_figure.Figure:
     figure_params = style_figure.get_figure_params()
     figure, panel_grid = manage_figure.create_figure_grid(
@@ -552,6 +577,7 @@ def plot_slices_figure(
             palette_config=palette_config,
             colorbar_bounds=colorbar_bounds,
             level_palette=level_palette,
+            time_palette=time_palette,
         )
     divb_palette = add_color.make_palette(
         config=palette_config,
@@ -578,7 +604,8 @@ def plot_slices_figure(
 def plot_pdf_figure(
     *,
     problem_setup: ProblemSetup,
-    pdf_data_series: list[PDFData],
+    plotted_pdfs: list[PDFData],
+    time_palette: color_palettes.ColorPalette,
 ) -> mpl_figure.Figure:
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=1,
@@ -591,7 +618,8 @@ def plot_pdf_figure(
     plot_pdf_panel(
         panel=panel_grid[0, 0],
         problem_setup=problem_setup,
-        pdf_data_series=pdf_data_series,
+        plotted_pdfs=plotted_pdfs,
+        time_palette=time_palette,
     )
     return figure
 
@@ -619,6 +647,11 @@ def main() -> None:
     if not pdf_paths:
         raise FileNotFoundError(f"no PDF matching `{pdf_glob}` found in: {DATASET_DIR}")
     pdf_data_series = [load_pdf_data(_path) for _path in pdf_paths]
+    plotted_pdfs = select_plotted_pdfs(pdf_data_series)
+    time_palette = make_time_palette(
+        problem_setup=problem_setup,
+        plotted_pdfs=plotted_pdfs,
+    )
     slice_glob = "magnetic_divergence-slice=x_2-index=*-native_slice.npz"
     slice_paths = sorted(DATASET_DIR.glob(slice_glob))
     if not slice_paths:
@@ -638,6 +671,7 @@ def main() -> None:
         problem_setup=problem_setup,
         data_slices=data_slices,
         box_layouts=box_layouts,
+        time_palette=time_palette,
     )
     manage_figure.save_figure(
         figure=slices_figure,
@@ -645,7 +679,8 @@ def main() -> None:
     )
     pdf_figure = plot_pdf_figure(
         problem_setup=problem_setup,
-        pdf_data_series=pdf_data_series,
+        plotted_pdfs=plotted_pdfs,
+        time_palette=time_palette,
     )
     manage_figure.save_figure(
         figure=pdf_figure,

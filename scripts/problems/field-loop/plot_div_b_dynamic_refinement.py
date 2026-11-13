@@ -15,6 +15,7 @@ from matplotlib import collections as mpl_collections
 from matplotlib import figure as mpl_figure
 from matplotlib import lines as mpl_lines
 from matplotlib import patches as mpl_patches
+from matplotlib import ticker as mpl_ticker
 from numpy import typing as numpy_typing
 
 ## personal
@@ -100,6 +101,9 @@ TARGET_TIME_FRACTIONS = (1.0 / 3.0, 2.0 / 3.0)
 TIME_LABEL_X_POS_FRACTIONS = (0.46, 0.54)
 BOX_EDGE_LINESTYLE = "--"
 BOX_EDGE_LINEWIDTH_PT = 0.5
+## rough y ranges of cells inside the loop and outside it; illustrative only
+LOOP_Y_RANGE = (-20.0, -17.0)
+TAIL_Y_RANGE = (-46.0, -22.0)
 
 ##
 ## === LOAD DATA
@@ -229,6 +233,21 @@ def compute_loop_center_at_time(
             bounds=AXIS_BOUNDS[1],
         ),
     )
+
+
+def compute_periodic_image_centers(
+    *,
+    center: tuple[float, float],
+) -> list[tuple[float, float]]:
+    """Return `center` and its eight copies shifted by one domain length along x_0, x_1, or both."""
+    x0_span = AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]
+    x1_span = AXIS_BOUNDS[1][1] - AXIS_BOUNDS[1][0]
+    image_centers = []
+    for x0_shift in (-x0_span, 0.0, x0_span):
+        for x1_shift in (-x1_span, 0.0, x1_span):
+            image_center = (center[0] + x0_shift, center[1] + x1_shift)
+            image_centers.append(image_center)
+    return image_centers
 
 
 def select_plotted_pdfs(
@@ -436,15 +455,16 @@ def plot_slice_panel(
         problem_setup=problem_setup,
         sim_time=data_slice.sim_time,
     )
-    loop_outline = mpl_patches.Circle(
-        xy=loop_center,
-        radius=problem_setup.radius,
-        fill=False,
-        edgecolor="red",
-        linestyle="--",
-        linewidth=artist_params.line_width_pt,
-    )
-    panel.add_patch(loop_outline)
+    for loop_image_center in compute_periodic_image_centers(center=loop_center):
+        loop_outline = mpl_patches.Circle(
+            xy=loop_image_center,
+            radius=problem_setup.radius,
+            fill=False,
+            edgecolor="red",
+            linestyle="--",
+            linewidth=artist_params.line_width_pt,
+        )
+        panel.add_patch(loop_outline)
     time_fraction = data_slice.sim_time / problem_setup.period
     annotate_panel.add_text(
         panel=panel,
@@ -457,6 +477,7 @@ def plot_slice_panel(
         text_color=time_palette.get_color(time_fraction),
     )
     panel.set_ylabel(r"$x_1$")
+    panel.yaxis.set_major_locator(mpl_ticker.MultipleLocator(0.5))
     panel.tick_params(labelbottom=False)
 
 
@@ -480,7 +501,23 @@ def plot_pdf_panel(
     panel.set_xlabel(r"$y \equiv \log_{10}\!\left(\Delta x\,|\nabla \cdot \vec{b}|\right)$")
     panel.set_ylabel(r"$\log_{10}\!\left(\mathrm{PDF}(y)\right)$")
     panel.set_xlim(-63, -16)
-    panel.set_ylim(-3, 0.1)
+    panel.set_ylim(-3, 0.5)
+    add_range_bar(
+        panel=panel,
+        x_range=TAIL_Y_RANGE,
+        bar_height=-1.25,
+        color="darkgrey",
+        label="surrounding cells",
+        label_is_left=False,
+    )
+    add_range_bar(
+        panel=panel,
+        x_range=LOOP_Y_RANGE,
+        bar_height=0.0,
+        color="red",
+        label="loop",
+        label_is_left=True,
+    )
     time_colorbar = add_color.add_inset_colorbar(
         panel=panel,
         palette=time_palette,
@@ -495,6 +532,51 @@ def plot_pdf_panel(
     time_colorbar.set_ticks(
         ticks=tick_values,
         labels=tick_labels,
+    )
+
+
+def add_range_bar(
+    *,
+    panel: manage_figure.Panel,
+    x_range: tuple[float, float],
+    bar_height: float,
+    color: str,
+    label: str,
+    label_is_left: bool,
+) -> None:
+    figure_params = style_figure.get_figure_params()
+    if label_is_left:
+        label_anchor = (x_range[0], bar_height)
+        label_offset_pt = (-3.0, 0.0)
+        label_x_alignment = "right"
+        label_y_alignment = "center"
+    else:
+        label_anchor = (0.5 * (x_range[0] + x_range[1]), bar_height)
+        label_offset_pt = (0.0, 2.0)
+        label_x_alignment = "center"
+        label_y_alignment = "bottom"
+    panel.annotate(
+        text="",
+        xy=(x_range[1], bar_height),
+        xytext=(x_range[0], bar_height),
+        arrowprops={
+            "arrowstyle": "|-|",
+            "color": color,
+            "linewidth": figure_params.artist_params.line_width_pt,
+            "shrinkA": 0.0,
+            "shrinkB": 0.0,
+            "mutation_scale": 3.0,
+        },
+    )
+    panel.annotate(
+        text=label,
+        xy=label_anchor,
+        xytext=label_offset_pt,
+        textcoords="offset points",
+        horizontalalignment=label_x_alignment,
+        verticalalignment=label_y_alignment,
+        color=color,
+        fontsize=figure_params.text_size_params.legend_size_pt - 1.0,
     )
 
 

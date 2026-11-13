@@ -55,6 +55,10 @@ FIGURE_PATH = ROOT_DIR / "figures/problems/field-loop/div-b-static-refinement.pn
 
 ## plotting details
 AXIS_BOUNDS: plot_data.AxisRanges = ((-1.5, 1.5), (-1.0, 1.0))
+TARGET_TIME_FRACTION = 0.52
+## rough y ranges of cells inside the loop and outside it; illustrative only
+LOOP_Y_RANGE = (-20.0, -17.0)
+TAIL_Y_RANGE = (-60.0, -22.0)
 
 ##
 ## === HELPER FUNCTIONS
@@ -95,6 +99,21 @@ def compute_loop_center_at_time(
         wrap_periodic_BCs(raw_x, AXIS_BOUNDS[0]),
         wrap_periodic_BCs(raw_y, AXIS_BOUNDS[1]),
     )
+
+
+def compute_periodic_image_centers(
+    *,
+    center: tuple[float, float],
+) -> list[tuple[float, float]]:
+    """Return `center` and its eight copies shifted by one domain length along x_0, x_1, or both."""
+    x0_span = AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]
+    x1_span = AXIS_BOUNDS[1][1] - AXIS_BOUNDS[1][0]
+    image_centers = []
+    for x0_shift in (-x0_span, 0.0, x0_span):
+        for x1_shift in (-x1_span, 0.0, x1_span):
+            image_center = (center[0] + x0_shift, center[1] + x1_shift)
+            image_centers.append(image_center)
+    return image_centers
 
 
 def add_advection_arrow(
@@ -146,6 +165,51 @@ def add_advection_arrow(
 ##
 
 
+def add_range_bar(
+    *,
+    panel: manage_figure.Panel,
+    x_range: tuple[float, float],
+    bar_height: float,
+    color: str,
+    label: str,
+    label_is_left: bool,
+) -> None:
+    figure_params = style_figure.get_figure_params()
+    if label_is_left:
+        label_anchor = (x_range[0], bar_height)
+        label_offset_pt = (-3.0, 0.0)
+        label_x_alignment = "right"
+        label_y_alignment = "center"
+    else:
+        label_anchor = (0.5 * (x_range[0] + x_range[1]), bar_height)
+        label_offset_pt = (0.0, 2.0)
+        label_x_alignment = "center"
+        label_y_alignment = "bottom"
+    panel.annotate(
+        text="",
+        xy=(x_range[1], bar_height),
+        xytext=(x_range[0], bar_height),
+        arrowprops={
+            "arrowstyle": "|-|",
+            "color": color,
+            "linewidth": figure_params.artist_params.line_width_pt,
+            "shrinkA": 0.0,
+            "shrinkB": 0.0,
+            "mutation_scale": 3.0,
+        },
+    )
+    panel.annotate(
+        text=label,
+        xy=label_anchor,
+        xytext=label_offset_pt,
+        textcoords="offset points",
+        horizontalalignment=label_x_alignment,
+        verticalalignment=label_y_alignment,
+        color=color,
+        fontsize=figure_params.text_size_params.legend_size_pt - 1.0,
+    )
+
+
 def plot_pdf_panel(
     *,
     panel: manage_figure.Panel,
@@ -179,7 +243,23 @@ def plot_pdf_panel(
     panel.set_xlabel(r"$y \equiv \log_{10}\!\left(\Delta x\,|\nabla \cdot \vec{b}|\right)$")
     panel.set_ylabel(r"$\log_{10}\!\left(\mathrm{PDF}(y)\right)$")
     panel.set_xlim(-63, -16)
-    panel.set_ylim(-3, 0)
+    panel.set_ylim(-3, 0.5)
+    add_range_bar(
+        panel=panel,
+        x_range=TAIL_Y_RANGE,
+        bar_height=-0.75,
+        color="darkgrey",
+        label="surrounding cells",
+        label_is_left=False,
+    )
+    add_range_bar(
+        panel=panel,
+        x_range=LOOP_Y_RANGE,
+        bar_height=0.0,
+        color="red",
+        label="loop",
+        label_is_left=True,
+    )
     panel.yaxis.set_label_position("right")
     panel.yaxis.tick_right()
     axis_width = AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]
@@ -236,17 +316,20 @@ def plot_slice_panel(
         colorbar_gap_pt=panel_gaps.row_pt / 2.0,
         label_gap_pt=frame_params.axis_label_gap_pt * 2.0,
     )
-    loop_center = compute_loop_center_at_time(problem_setup=problem_setup, step_time=divb_slice.step_time)
-    panel.add_patch(
-        mpl_patches.Circle(
-            loop_center,
-            problem_setup.radius,
+    loop_center = compute_loop_center_at_time(
+        problem_setup=problem_setup,
+        step_time=divb_slice.step_time,
+    )
+    for loop_image_center in compute_periodic_image_centers(center=loop_center):
+        loop_outline = mpl_patches.Circle(
+            xy=loop_image_center,
+            radius=problem_setup.radius,
             fill=False,
             edgecolor="red",
             linestyle="--",
             linewidth=artist_params.line_width_pt,
-        ),
-    )
+        )
+        panel.add_patch(loop_outline)
     ## inset from the realized footprint ((-1.5, -0.5), (-1.0, 1.0)), purely so the box
     ## reads clearly against the panel frame rather than flush with its border
     amr_region_bounds: plot_data.AxisRanges = ((-1.45, -0.4), (-0.95, 0.95))
@@ -333,19 +416,19 @@ def main() -> None:
     if not divb_pdf_paths:
         raise FileNotFoundError(f"no PDF matching `{divb_pdf_glob}` found in: {DATASET_DIR}")
     divb_pdf_series = tuple(pdfs.PDFData.load_from_file(divb_pdf_path) for divb_pdf_path in divb_pdf_paths)
-    divb_slice = slices.SlicedField.load_from_file(
-        find_snapshots.find_npz_near_time(
-            extracted_dir=DATASET_DIR,
-            glob_pattern=divb_slice_glob,
-            target_time=2.4155,
-        ),
-    )
     advection_angle = numpy.arctan2(3.0, 2.0)
     problem_setup = ProblemSetup(
         initial_position=(0.0, 0.0),
         direction=(numpy.sin(advection_angle), numpy.cos(advection_angle)),
         period=(AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]) / numpy.sin(advection_angle),
         radius=0.5,
+    )
+    divb_slice = slices.SlicedField.load_from_file(
+        find_snapshots.find_npz_near_time(
+            extracted_dir=DATASET_DIR,
+            glob_pattern=divb_slice_glob,
+            target_time=TARGET_TIME_FRACTION * problem_setup.period,
+        ),
     )
     figure = plot_field_loop_divb(
         problem_setup=problem_setup,

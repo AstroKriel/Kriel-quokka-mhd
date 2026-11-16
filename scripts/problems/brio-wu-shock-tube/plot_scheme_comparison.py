@@ -387,7 +387,7 @@ def main() -> None:
             y_hi=0.9,
         ),
         x_bounds=(0.05, 0.15),
-        y_bounds=(1.4, 1.55),
+        y_bounds=(2.1, 2.325),
         color="lightgrey",
     )
     add_emf_compute_scheme_legend(panel=panel_grid[0, 0])

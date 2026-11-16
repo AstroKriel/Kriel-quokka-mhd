@@ -14,6 +14,7 @@ from matplotlib import lines as mpl_lines
 
 ## personal
 from jormi.ww_plots import manage_figure
+from jormi.ww_types import box_positions
 from ww_quokka_sims.sim_io.field_diagnostics import profiles as profile_models
 
 ##
@@ -165,6 +166,8 @@ def add_reference_scheme_legend(
     *,
     panel: manage_figure.Panel,
     styles: tuple[ReferenceSchemeStyle, ...],
+    anchor_point_fraction: tuple[float, float] = (0.0, 0.0),
+    anchor_at_corner: box_positions.Positions.Corner = box_positions.Positions.Corner.BottomLeft,
 ) -> None:
     handles = [
         mpl_lines.Line2D(
@@ -181,8 +184,8 @@ def add_reference_scheme_legend(
     legend = panel.legend(
         handles=handles,
         labels=[style.label for style in styles],
-        loc="lower left",
-        bbox_to_anchor=(0.0, 0.0),
+        loc=anchor_at_corner.value,
+        bbox_to_anchor=anchor_point_fraction,
         frameon=False,
     )
     panel.add_artist(legend)

@@ -1,0 +1,39 @@
+## quokka f8ebf9df6 + PR #2451 (a80418d49), with the shock-anisotropy correction disabled (theta = 1 in HLLD.hpp)
+
+## geometry
+geometry.prob_lo = [0.0, 0.0, 0.0]
+geometry.prob_hi = [1.0, 1.0, 1.0]
+quokka.bc = ["ext_dir", "periodic", "periodic"]
+
+## resolution
+amr.n_cell = [128, 128, 8]
+amr.max_level = 0
+amr.blocking_factor_x = 16
+amr.blocking_factor_y = 16
+amr.blocking_factor_z = 8
+amr.max_grid_size_x = 32
+amr.max_grid_size_y = 32
+amr.max_grid_size_z = 32
+
+## verbosity
+amr.v = 1
+
+## output
+checkpoint_interval = -1
+plotfile_interval = -1
+plottime_interval = 0.005
+plotfile_prefix = "snapshots/plt"
+
+## time integration
+cfl = 0.4
+stop_time = 0.66
+max_timesteps = 5000
+
+## hydro
+hydro.rk_integrator_order = 2
+hydro.reconstruction_order = 5
+
+## mhd
+mhd.emf_compute_scheme = "Quokka2026"
+mhd.emf_averaging_scheme = "Balsara2025"
+mhd.emf_reconstruction_order = 5

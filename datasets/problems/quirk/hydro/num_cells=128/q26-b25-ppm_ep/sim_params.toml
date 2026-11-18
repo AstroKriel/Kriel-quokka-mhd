@@ -1,3 +1,5 @@
+## quokka f8ebf9df6 + PR #2451 (a80418d49)
+
 ## geometry
 geometry.prob_lo = [0.0, 0.0, 0.0]
 geometry.prob_hi = [1.0, 1.0, 1.0]
@@ -18,13 +20,14 @@ amr.v = 1
 
 ## output
 checkpoint_interval = -1
-plotfile_interval = 25
+plotfile_interval = -1
+plottime_interval = 0.005
 plotfile_prefix = "snapshots/plt"
 
 ## time integration
 cfl = 0.4
-stop_time = 0.4
-max_timesteps = 2000
+stop_time = 0.66
+max_timesteps = 5000
 
 ## hydro
 hydro.rk_integrator_order = 2

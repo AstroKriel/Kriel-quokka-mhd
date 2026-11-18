@@ -21,6 +21,7 @@ from jormi.ww_plots import (
     style_figure,
 )
 from jormi.ww_types import box_positions
+from ww_quokka_sims.sim_io.snapshots import find_snapshots
 
 ## local
 from local_helpers import paper_style
@@ -36,42 +37,56 @@ class PressureSnapshot:
     pressure: numpy_typing.NDArray[numpy.floating]
 
 
+@dataclass(frozen=True)
+class VariantConfig:
+    dataset_dir: Path
+    figure_path: Path
+    axis_y_range: tuple[float, float]
+
+
 ##
 ## === CONSTANTS
 ##
 
 ## inputs and outputs
-ROOT_DIR = Path(__file__).parents[3]
-DATASET_ROOT = ROOT_DIR / "datasets/problems/quirk/num_cells=128"
-FIGURE_PATH = ROOT_DIR / "figures/problems/quirk/ncells=128/odd_even_split.png"
+ROOT_DIR: Path = Path(__file__).parents[3]
+DATASET_DIR: Path = ROOT_DIR / "datasets/problems/quirk"
+FIGURE_DIR: Path = ROOT_DIR / "figures/problems/quirk"
+
+## the y-ranges place each corrected post-shock plateau at the same height in its panel
+VARIANT_CONFIGS: tuple[VariantConfig, ...] = (
+    VariantConfig(
+        dataset_dir=DATASET_DIR / "hydro/num_cells=128",
+        figure_path=FIGURE_DIR / "odd-even-split-hydro.png",
+        axis_y_range=(24.4, 28.5),
+    ),
+    VariantConfig(
+        dataset_dir=DATASET_DIR / "magnetised/num_cells=128",
+        figure_path=FIGURE_DIR / "odd-even-split-magnetised.png",
+        axis_y_range=(18.0, 21.0),
+    ),
+)
 
 ##
 ## === HELPER FUNCTIONS
 ##
 
 
-def load_snapshots(
+def load_pressure_snapshot(
     *,
-    combo: str,
-) -> list[PressureSnapshot]:
-    dataset_dir = DATASET_ROOT / combo / "extracted"
-    pressure_glob = "pressure-slice=x_2-index=*.npz"
-    pressure_paths = sorted(
-        dataset_dir.glob(pressure_glob),
-        key=lambda path: int(path.stem.split("index=")[-1].split("-")[0]),
+    extracted_dir: Path,
+) -> PressureSnapshot:
+    """Load the pressure slice nearest t = 0.55, before the shock reaches the x_0 = 1 boundary."""
+    slice_path = find_snapshots.find_npz_near_time(
+        extracted_dir=extracted_dir,
+        glob_pattern="pressure-slice=x_2-index=*.npz",
+        target_time=0.55,
     )
-    if not pressure_paths:
-        raise FileNotFoundError(f"no slice matching `{pressure_glob}` found in: {dataset_dir}")
-    snapshots = []
-    for pressure_path in pressure_paths:
-        with numpy.load(pressure_path) as pressure_data:
-            snapshots.append(
-                PressureSnapshot(
-                    step_time=float(pressure_data["step_time"]),
-                    pressure=pressure_data["sarray_2d"],
-                ),
-            )
-    return snapshots
+    with numpy.load(slice_path) as data:
+        return PressureSnapshot(
+            step_time=float(data["step_time"]),
+            pressure=data["sarray_2d"],
+        )
 
 
 def plot_even_odd_profiles(
@@ -101,23 +116,16 @@ def plot_even_odd_profiles(
     )
 
 
-##
-## === PROGRAM MAIN
-##
-
-
-def main() -> None:
-    paper_style.setup_plotting_script()
-    manage_io.create_directory(
-        directory=FIGURE_PATH.parent,
-        verbose=False,
+def plot_odd_even_split(
+    *,
+    variant_config: VariantConfig,
+) -> None:
+    snapshot_off = load_pressure_snapshot(
+        extracted_dir=variant_config.dataset_dir / "q26-b25-ppm_ep-no-carbuncle-fix" / "extracted",
     )
-    combo_off = "q26-b25-ppm_ep-no-carbuncle-fix"
-    combo_on = "q26-b25-ppm_ep"
-    snapshots_off = load_snapshots(combo=combo_off)
-    snapshots_on = load_snapshots(combo=combo_on)
-    representative_off = snapshots_off[-1]
-    representative_on = snapshots_on[-1]
+    snapshot_on = load_pressure_snapshot(
+        extracted_dir=variant_config.dataset_dir / "q26-b25-ppm_ep" / "extracted",
+    )
     figure, panel = manage_figure.create_figure(
         panel_aspect_ratio=6.0 / 5.0,
         figure_layout=style_figure.FigureLayout(
@@ -126,24 +134,24 @@ def main() -> None:
     )
     plot_even_odd_profiles(
         panel=panel,
-        snapshot=representative_off,
+        snapshot=snapshot_off,
         color="red",
         zorder=2,
     )
     plot_even_odd_profiles(
         panel=panel,
-        snapshot=representative_on,
+        snapshot=snapshot_on,
         color="blue",
         zorder=3,
     )
     panel.set_ylabel(r"$p$", labelpad=10.0)
     panel.set_xlabel(r"$x_0$")
-    panel.set_ylim((24.4, 30.2))
+    panel.set_ylim(variant_config.axis_y_range)
     annotate_panel.add_text(
         panel=panel,
         x_pos_fraction=0.085,
-        y_pos_fraction=0.65,
-        label=rf"$t = {representative_off.step_time:.2f}$",
+        y_pos_fraction=0.35,
+        label=rf"$t = {snapshot_off.step_time:.2f}$",
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Side.Top,
         text_size_pt=paper_style.FIGURE_PARAMS.text_size_params.axis_label_size_pt,
@@ -153,21 +161,36 @@ def main() -> None:
         artists=["-", "--"],
         labels=["even row", "odd row"],
         colors=["black", "black"],
-        anchor_point_fraction=(0.025, 0.975),
-        anchor_at_corner=box_positions.Positions.Corner.TopLeft,
+        anchor_point_fraction=(0.0, 0.0),
+        anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
     )
     annotate_panel.add_custom_legend(
         panel=panel,
         artists=["o", "o"],
         labels=["carbuncle phenomenon", "corrected shock-anisotropy"],
         colors=["red", "blue"],
-        anchor_point_fraction=(0.0, 0.0),
-        anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
+        anchor_point_fraction=(0.025, 0.975),
+        anchor_at_corner=box_positions.Positions.Corner.TopLeft,
     )
     manage_figure.save_figure(
         figure=figure,
-        figure_path=FIGURE_PATH,
+        figure_path=variant_config.figure_path,
     )
+
+
+##
+## === PROGRAM MAIN
+##
+
+
+def main() -> None:
+    paper_style.setup_plotting_script()
+    manage_io.create_directory(
+        directory=FIGURE_DIR,
+        verbose=False,
+    )
+    for variant_config in VARIANT_CONFIGS:
+        plot_odd_even_split(variant_config=variant_config)
 
 
 ##

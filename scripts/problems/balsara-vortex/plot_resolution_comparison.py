@@ -281,7 +281,7 @@ def main() -> None:
         panel=panel,
         array_2d=compute_array_stats.compute_safe_log10(composite),
         data_format="ij",
-i        axis_ranges=AXIS_BOUNDS,
+        axis_ranges=AXIS_BOUNDS,
         colorbar_range=value_range,
         palette_config=add_color.SequentialPaletteConfig(
             palette_name=palette_name,

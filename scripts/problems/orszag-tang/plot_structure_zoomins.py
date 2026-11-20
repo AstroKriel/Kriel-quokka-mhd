@@ -21,7 +21,7 @@ from numpy import typing as numpy_typing
 
 ## personal
 from jormi.ww_arrays import compute_array_stats
-from jormi.ww_io import manage_io, manage_log
+from jormi.ww_io import manage_io
 from jormi.ww_plots import (
     add_color,
     annotate_panel,
@@ -34,7 +34,7 @@ from jormi.ww_validation import validate_types
 from ww_quokka_sims.sim_io.snapshots import find_snapshots
 
 ## local
-from local_helpers import plot_slices
+from local_helpers import paper_style, plot_slices
 
 ##
 ## === DATA STRUCTURES
@@ -394,7 +394,7 @@ def plot_structures(
     num_main_cols = num_main_rows
     num_rows = num_main_rows
     num_cols = num_main_cols + num_zoomin_cols
-    figure_width_inches = style_figure.FULL_PAGE_FIGURE_LAYOUT.figure_width.width_cm / style_figure.CM_PER_INCH
+    figure_width_inches = paper_style.page_width(fraction=1.0).width_cm / style_figure.CM_PER_INCH
     panel_gaps = style_figure.PanelGaps(
         row_pt=PANEL_GAP,
         col_pt=PANEL_GAP,
@@ -459,10 +459,7 @@ def plot_structures(
 
 
 def main() -> None:
-    manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    style_figure.set_figure_params(
-        figure_params=style_figure.FigureParams(theme=style_figure.Theme.LIGHT),
-    )
+    paper_style.setup_plotting_script()
     manage_io.create_directory(
         directory=FIGURE_PATH.parent,
         verbose=False,

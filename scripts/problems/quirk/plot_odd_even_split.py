@@ -129,7 +129,7 @@ def plot_odd_even_split(
     figure, panel = manage_figure.create_figure(
         panel_aspect_ratio=6.0 / 5.0,
         figure_layout=style_figure.FigureLayout(
-            figure_width=style_figure.FigureWidth(width_fraction=0.5),
+            figure_width=paper_style.column_width(fraction=1.0),
         ),
     )
     plot_even_odd_profiles(

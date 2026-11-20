@@ -112,7 +112,7 @@ def main() -> None:
     figure, panel = manage_figure.create_figure(
         panel_aspect_ratio=1.0,
         figure_layout=style_figure.FigureLayout(
-            figure_width=style_figure.FigureWidth(width_fraction=0.475),
+            figure_width=paper_style.column_width(fraction=0.95),
         ),
     )
     mask_contours.plot_comparison_contours(

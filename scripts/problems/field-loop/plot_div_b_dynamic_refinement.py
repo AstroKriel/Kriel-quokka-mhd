@@ -624,7 +624,7 @@ def plot_slices_figure(
         num_panel_cols=1,
         panel_aspect_ratio=3.0 / 2.0,
         figure_layout=style_figure.FigureLayout(
-            figure_width=style_figure.FigureWidth(width_fraction=0.5),
+            figure_width=paper_style.column_width(fraction=1.0),
         ),
     )
     palette_config = add_color.DivergingPaletteConfig(
@@ -694,7 +694,7 @@ def plot_pdf_figure(
         num_panel_cols=1,
         panel_aspect_ratio=3.0 / 2.0,
         figure_layout=style_figure.FigureLayout(
-            figure_width=style_figure.FigureWidth(width_fraction=0.5),
+            figure_width=paper_style.column_width(fraction=1.0),
         ),
     )
     plot_pdf_panel(

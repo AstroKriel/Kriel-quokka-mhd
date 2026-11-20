@@ -161,7 +161,7 @@ def main() -> None:
         panel_row_gap_pt=4.0,
         panel_col_gap_pt=4.0,
         figure_layout=style_figure.FigureLayout(
-            figure_width=style_figure.FigureWidth(width_fraction=0.95),
+            figure_width=paper_style.page_width(fraction=0.95),
         ),
         share_x_axis=True,
         share_y_axis=True,

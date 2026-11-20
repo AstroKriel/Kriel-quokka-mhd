@@ -292,7 +292,7 @@ def main() -> None:
         panel_aspect_ratio=8.0 / 5.5,
         panel_col_gap_pt=5.0,
         figure_layout=style_figure.FigureLayout(
-            figure_width=style_figure.FigureWidth(width_fraction=0.90),
+            figure_width=paper_style.page_width(fraction=0.95),
         ),
         share_y_axis=True,
     )

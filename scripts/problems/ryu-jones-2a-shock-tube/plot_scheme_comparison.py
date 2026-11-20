@@ -5,6 +5,7 @@
 ##
 
 ## stdlib
+import dataclasses
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -16,7 +17,7 @@ from numpy import typing as numpy_typing
 
 ## personal
 from aegir import exact_solution, mhd_state
-from jormi.ww_io import manage_io, manage_log
+from jormi.ww_io import manage_io
 from jormi.ww_plots import (
     annotate_panel,
     manage_figure,
@@ -27,7 +28,7 @@ from jormi.ww_validation import validate_types
 from ww_quokka_sims.sim_io.field_diagnostics import profiles as profile_models
 
 ## local
-from local_helpers import shock_tubes
+from local_helpers import paper_style, shock_tubes
 
 ##
 ## === DATA STRUCTURES
@@ -348,18 +349,19 @@ def add_emf_averaging_scheme_legend(
 
 
 def main() -> None:
-    manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
     marker_plot_kwargs: dict[str, Any] = {
         "markerfacecolor": "none",
         "markersize": 2.5,
         "markeredgewidth": 0.3,
         "linestyle": "",
     }
-    default_text_sizes = style_figure.TextSizeParams()
+    default_text_sizes = paper_style.TEXT_SIZE_PARAMS
     legend_size = default_text_sizes.annotation_size_pt - 0.25
-    style_figure.set_figure_params(
-        figure_params=style_figure.FigureParams(
-            text_size_params=style_figure.TextSizeParams(
+    paper_style.setup_plotting_script(
+        figure_params=dataclasses.replace(
+            paper_style.FIGURE_PARAMS,
+            text_size_params=dataclasses.replace(
+                paper_style.TEXT_SIZE_PARAMS,
                 legend_level=default_text_sizes.compute_level_at_size(text_size_pt=legend_size),
             ),
             legend_params=style_figure.LegendParams(
@@ -397,7 +399,7 @@ def main() -> None:
         panel_aspect_ratio=3.0 / 2.0,
         panel_row_gap_pt=5.0,
         figure_layout=style_figure.FigureLayout(
-            figure_width=style_figure.FigureWidth(width_fraction=0.85),
+            figure_width=paper_style.page_width(fraction=0.85),
         ),
         share_x_axis=True,
     )

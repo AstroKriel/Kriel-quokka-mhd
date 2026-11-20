@@ -5,6 +5,7 @@
 ##
 
 ## stdlib
+import dataclasses
 import math
 
 from dataclasses import dataclass
@@ -16,9 +17,12 @@ import numpy
 
 ## personal
 from jormi.ww_data import fit_series, series_types
-from jormi.ww_io import json_io, manage_io, manage_log
+from jormi.ww_io import json_io, manage_io
 from jormi.ww_plots import annotate_panel, manage_figure, style_figure
 from jormi.ww_types import box_positions
+
+## local
+from local_helpers import paper_style
 
 ##
 ## === DATA STRUCTURES
@@ -193,11 +197,12 @@ def add_emf_averaging_scheme_legend(
 
 
 def main() -> None:
-    manage_log.set_block_width_mode(mode=manage_log.BlockWidthMode.PRACTICAL)
-    default_text_sizes = style_figure.TextSizeParams()
-    style_figure.set_figure_params(
-        figure_params=style_figure.FigureParams(
-            text_size_params=style_figure.TextSizeParams(
+    default_text_sizes = paper_style.TEXT_SIZE_PARAMS
+    paper_style.setup_plotting_script(
+        figure_params=dataclasses.replace(
+            paper_style.FIGURE_PARAMS,
+            text_size_params=dataclasses.replace(
+                paper_style.TEXT_SIZE_PARAMS,
                 legend_level=default_text_sizes.compute_level_at_size(
                     text_size_pt=default_text_sizes.annotation_size_pt,
                 ),
@@ -233,7 +238,7 @@ def main() -> None:
     manage_io.create_directory(directory=FIGURE_PATH.parent, verbose=False)
     fig, axs = manage_figure.create_figure_grid(
         figure_layout=style_figure.FigureLayout(
-            figure_width=style_figure.FigureWidth(width_fraction=0.5),
+            figure_width=paper_style.column_width(fraction=1.0),
         ),
         panel_aspect_ratio=6.0 / 4.5,
     )

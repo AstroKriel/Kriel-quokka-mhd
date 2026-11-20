@@ -147,7 +147,7 @@ def main() -> None:
         num_panel_cols=num_cols,
         panel_aspect_ratio=1.0,
         figure_layout=style_figure.FigureLayout(
-            figure_width=style_figure.FigureWidth(width_fraction=0.5),
+            figure_width=paper_style.column_width(fraction=1.0),
             panel_gaps=panel_gaps,
         ),
     )

@@ -147,17 +147,6 @@ def add_advection_arrow(
             "shrinkB": 0.0,
         },
     )
-    panel.text(
-        arrow_start[0] + 0.2,
-        arrow_start[1] + 0.05,
-        "advection",
-        ha="left",
-        va="top",
-        color="red",
-        rotation=180 / numpy.pi * numpy.atan(2 / 3),
-        rotation_mode="anchor",
-        fontsize=text_size_params.annotation_size_pt,
-    )
 
 
 ##
@@ -383,7 +372,7 @@ def plot_field_loop_divb(
         num_panel_cols=2,
         panel_aspect_ratio=3.0 / 2.0,
         figure_layout=style_figure.FigureLayout(
-            figure_width=style_figure.FigureWidth(width_fraction=0.95),
+            figure_width=paper_style.page_width(fraction=0.95),
         ),
     )
     plot_slice_panel(

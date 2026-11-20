@@ -5,7 +5,8 @@
 ##
 
 ## stdlib
-import json
+import tomllib
+
 from pathlib import Path
 
 ## third-party
@@ -39,6 +40,11 @@ FIGURE_PATH = ROOT_DIR / "figures/problems/balsara-vortex/resolution-comparison.
 NUM_CELLS_LEFT = 64
 NUM_CELLS_RIGHT = 128
 FIELD_NAME = "magnetic_energy"
+
+## problem setup (fixed in quokka's MHDBalsaraVortex; the vortex Mach number is read per run)
+ADIABATIC_INDEX = 5.0 / 3.0
+BACKGROUND_PRESSURE = 1.0
+BACKGROUND_DENSITY = 1.0
 
 ## plotting details
 AXIS_BOUNDS: plot_data.AxisRanges = ((-5.0, 5.0), (-5.0, 5.0))
@@ -111,22 +117,51 @@ def recenter_via_periodic_shift(
     return numpy.fft.ifft2(numpy.fft.fft2(array_2d) * phase_ramp).real
 
 
-def estimate_energy_conservation_per_orbit(
+def load_sibling_slice(
+    *,
+    slice_path: Path,
+    field_name: str,
+) -> numpy_typing.NDArray[numpy.floating]:
+    sibling_path = slice_path.with_name(slice_path.name.replace(FIELD_NAME, field_name, 1))
+    return numpy.load(sibling_path)["sarray_2d"]
+
+
+def compute_drift_speed(
     *,
     data_dir: Path,
 ) -> float:
+    sim_params_path = data_dir.parent / "sim_params.toml"
+    with sim_params_path.open("rb") as file:
+        sim_params = tomllib.load(file)
+    sound_speed = numpy.sqrt(ADIABATIC_INDEX * BACKGROUND_PRESSURE / BACKGROUND_DENSITY)
+    vortex_speed = sim_params["setup"]["vortex_Mach"] * sound_speed
+    return vortex_speed / numpy.sqrt(2.0)
+
+
+def compute_rotational_kinetic_energy(
+    *,
+    slice_path: Path,
+    drift_speed: float,
+) -> float:
+    density = load_sibling_slice(slice_path=slice_path, field_name="density")
+    velocity_x0 = load_sibling_slice(slice_path=slice_path, field_name="velocity-comp=x_0")
+    velocity_x1 = load_sibling_slice(slice_path=slice_path, field_name="velocity-comp=x_1")
+    rotational_speed_sq = (velocity_x0 - drift_speed)**2 + (velocity_x1 - drift_speed)**2
+    return float(numpy.sum(0.5 * density * rotational_speed_sq))
+
+
+def estimate_energy_conservation_per_orbit(
+    *,
+    initial_energy: float,
+    final_energy: float,
+) -> float:
     """
-    Per-orbit fraction of the initial (volume-integrated) magnetic energy retained.
+    Per-orbit fraction of the initial (volume-integrated) energy retained.
 
     Energy loss compounds geometrically orbit-to-orbit, so the per-orbit rate is the `NUM_ORBITS`-th
     root of the total retained fraction, not that total fraction divided by `NUM_ORBITS`.
     """
-    data_path = data_dir / f"{FIELD_NAME}-vi_evolution.json"
-    with data_path.open() as file:
-        dataset = json.load(file)
-    dataset_values = dataset["vi_values"]
-    energy_conservation_fraction = dataset_values[-1] / dataset_values[0]
-    return energy_conservation_fraction**(1.0 / NUM_ORBITS)
+    return (final_energy / initial_energy)**(1.0 / NUM_ORBITS)
 
 
 def plot_slice_quadrants(
@@ -261,10 +296,29 @@ def main() -> None:
         )
         for num_cells, data_dir in data_dirs_lookup.items()
     }
-    energy_conservation_lookup = {
-        num_cells: estimate_energy_conservation_per_orbit(data_dir=data_dir)
-        for num_cells, data_dir in data_dirs_lookup.items()
-    }
+    energy_conservation_lookup = {}
+    for num_cells, data_dir in data_dirs_lookup.items():
+        slice_paths = find_slice_paths(data_dir=data_dir)
+        drift_speed = compute_drift_speed(data_dir=data_dir)
+        magnetic_conservation = estimate_energy_conservation_per_orbit(
+            initial_energy=float(numpy.sum(numpy.load(slice_paths[0])["sarray_2d"])),
+            final_energy=float(numpy.sum(numpy.load(slice_paths[-1])["sarray_2d"])),
+        )
+        kinetic_conservation = estimate_energy_conservation_per_orbit(
+            initial_energy=compute_rotational_kinetic_energy(
+                slice_path=slice_paths[0],
+                drift_speed=drift_speed,
+            ),
+            final_energy=compute_rotational_kinetic_energy(
+                slice_path=slice_paths[-1],
+                drift_speed=drift_speed,
+            ),
+        )
+        energy_conservation_lookup[num_cells] = magnetic_conservation
+        print(
+            f"N = {num_cells}: retains {100.0 * kinetic_conservation:.2f}% of its rotational kinetic"
+            f" and {100.0 * magnetic_conservation:.2f}% of its magnetic energy per orbit",
+        )
     composite = plot_slice_quadrants(
         top_left=final_snapshot_lookup[NUM_CELLS_LEFT],
         top_right=final_snapshot_lookup[NUM_CELLS_RIGHT],

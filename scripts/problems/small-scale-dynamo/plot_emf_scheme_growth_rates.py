@@ -18,7 +18,11 @@ import numpy
 ## personal
 from jormi.ww_data import fit_series, series_types
 from jormi.ww_io import json_io, manage_io
-from jormi.ww_plots import annotate_panel, manage_figure, style_figure
+from jormi.ww_plots import (
+    annotate_panel,
+    manage_figure,
+    style_figure,
+)
 from jormi.ww_types import box_positions
 
 ## local
@@ -197,14 +201,14 @@ def add_emf_averaging_scheme_legend(
 
 
 def main() -> None:
-    default_text_sizes = paper_style.TEXT_SIZE_PARAMS
+    text_size_params = paper_style.TEXT_SIZE_PARAMS
     paper_style.setup_plotting_script(
         figure_params=dataclasses.replace(
             paper_style.FIGURE_PARAMS,
             text_size_params=dataclasses.replace(
                 paper_style.TEXT_SIZE_PARAMS,
-                legend_level=default_text_sizes.compute_level_at_size(
-                    text_size_pt=default_text_sizes.annotation_size_pt,
+                legend_level=text_size_params.compute_level_at_size(
+                    text_size_pt=text_size_params.annotation_size_pt,
                 ),
             ),
             legend_params=style_figure.LegendParams(entry_text_gap_em=0.3),

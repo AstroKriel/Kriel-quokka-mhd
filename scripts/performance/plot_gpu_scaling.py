@@ -248,7 +248,7 @@ def add_emf_compute_scheme_legend(
         artists=[None for _ in EMFComputeScheme],
         labels=[scheme.value.label for scheme in EMFComputeScheme],
         colors=[scheme.value.color for scheme in EMFComputeScheme],
-        marker_first=False,  # put the (invisible) handle after the text, so text hugs the left edge
+        marker_first=False,
         anchor_point_fraction=(0.0125, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
     )

@@ -72,7 +72,7 @@ class SlicedBoxLayout:
 
 @dataclass(frozen=True)
 class MergedBoxEdge:
-    """Straight piece of one level's box outlines along `along_axis`, sitting at grid line `fixed_index` of the other axis."""
+    """Straight piece of the box outlines of one level along `along_axis`, sitting at grid line `fixed_index` of the other axis."""
     along_axis: int
     fixed_index: int
     index_bounds: tuple[int, int]
@@ -166,8 +166,8 @@ def load_sliced_box_layout(
         end_index = box_dict["end_index"]
         x2_cell_width = (x2_max - x2_min) / (base_resolution[2] * refinement_ratio**amr_level)
         x2_bounds = (x2_min + start_index[2] * x2_cell_width, x2_min + end_index[2] * x2_cell_width)
-        box_crosses_midplane = (x2_bounds[0] <= 0.0) and (0.0 < x2_bounds[1])
-        if box_crosses_midplane:
+        midplane_is_inside_box = (x2_bounds[0] <= 0.0) and (0.0 < x2_bounds[1])
+        if midplane_is_inside_box:
             scale_to_finest = refinement_ratio**(finest_level - amr_level)
             refined_box = RefinedBox(
                 amr_level=amr_level,
@@ -211,7 +211,7 @@ def compute_loop_center_at_time(
     problem_setup: ProblemSetup,
     sim_time: float,
 ) -> tuple[float, float]:
-    """Return the loop's true advected centre at `sim_time`, wrapped into the periodic domain."""
+    """Return the true advected centre of the loop at `sim_time`, wrapped into the periodic domain."""
 
     def wrap_into_periodic_domain(
         *,
@@ -288,8 +288,8 @@ def merge_index_intervals(
     """Return the sorted union of the intervals; touching intervals join into one."""
     merged_intervals: list[tuple[int, int]] = []
     for interval_start, interval_end in sorted(intervals):
-        interval_joins_previous = (len(merged_intervals) > 0) and (interval_start <= merged_intervals[-1][1])
-        if interval_joins_previous:
+        interval_is_mergeable = (len(merged_intervals) > 0) and (interval_start <= merged_intervals[-1][1])
+        if interval_is_mergeable:
             previous_start, previous_end = merged_intervals[-1]
             merged_intervals[-1] = (previous_start, max(previous_end, interval_end))
         else:
@@ -418,7 +418,10 @@ def draw_merged_box_edges(
             linestyles=BOX_EDGE_LINESTYLE,
             linewidths=BOX_EDGE_LINEWIDTH_PT,
         )
-        panel.add_collection(line_collection, autolim=False)
+        panel.add_collection(
+            collection=line_collection,
+            autolim=False,
+        )
 
 
 def plot_slice_panel(
@@ -727,7 +730,7 @@ def main() -> None:
     pdf_glob = "divb_dimensionless-pdf-index=*.json"
     pdf_paths = sorted(DATASET_DIR.glob(pdf_glob))
     if not pdf_paths:
-        raise FileNotFoundError(f"no PDF matching `{pdf_glob}` found in: {DATASET_DIR}")
+        raise FileNotFoundError(f"no PDF matching `{pdf_glob}` found in: {DATASET_DIR}.")
     pdf_data_series = [load_pdf_data(_path) for _path in pdf_paths]
     plotted_pdfs = select_plotted_pdfs(pdf_data_series)
     time_palette = make_time_palette(
@@ -737,7 +740,7 @@ def main() -> None:
     slice_glob = "magnetic_divergence-slice=x_2-index=*-native_slice.npz"
     slice_paths = sorted(DATASET_DIR.glob(slice_glob))
     if not slice_paths:
-        raise FileNotFoundError(f"no slice matching `{slice_glob}` found in: {DATASET_DIR}")
+        raise FileNotFoundError(f"no slice matching `{slice_glob}` found in: {DATASET_DIR}.")
     data_slice_series = [load_data_slice(_path) for _path in slice_paths]
     data_slices = [
         min(

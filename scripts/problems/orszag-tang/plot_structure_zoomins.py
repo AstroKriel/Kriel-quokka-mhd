@@ -5,7 +5,8 @@
 ##
 
 ## stdlib
-from dataclasses import dataclass, field
+import dataclasses
+from dataclasses import dataclass
 from pathlib import Path
 
 ## third-party
@@ -54,9 +55,9 @@ class FigureGrid:
     figure_size: tuple[float, float]
     figure_margins: manage_figure.FigureMargins
     panel_gaps: style_figure.PanelGaps
-    figure: mpl_figure.Figure = field(init=False)
-    grid_spec: mpl_gridspec.GridSpec = field(init=False)
-    claimed: numpy_typing.NDArray[numpy.bool_] = field(init=False)
+    figure: mpl_figure.Figure = dataclasses.field(init=False)
+    grid_spec: mpl_gridspec.GridSpec = dataclasses.field(init=False)
+    claimed: numpy_typing.NDArray[numpy.bool_] = dataclasses.field(init=False)
 
     def __post_init__(
         self,
@@ -274,14 +275,14 @@ def plot_sarray_2d(
         palette_range=(0.2, 1.0),
     )
     field_label = r"$\log_{10} \left( \Delta x \, |\nabla \times \vec{b}| \right)$"
-    cbar_bounds = (-3.0, -1.25)
-    clipped_sarray_2d = numpy.clip(bounded_slice.sarray_2d, cbar_bounds[0], cbar_bounds[1])
+    colorbar_bounds = (-3.0, -1.25)
+    clipped_sarray_2d = numpy.clip(bounded_slice.sarray_2d, colorbar_bounds[0], colorbar_bounds[1])
     plot_data.plot_2d_array(
         panel=panel,
         array_2d=clipped_sarray_2d,
         data_format="xy",
         axis_ranges=bounded_slice.axis_ranges,
-        colorbar_range=cbar_bounds,
+        colorbar_range=colorbar_bounds,
         palette_config=palette_config,
         add_colorbar=False,
     )
@@ -290,7 +291,7 @@ def plot_sarray_2d(
         frame_params = figure_params.frame_params
         palette = add_color.make_palette(
             config=palette_config,
-            value_range=cbar_bounds,
+            value_range=colorbar_bounds,
         )
         add_color.add_colorbar(
             panels=panel,
@@ -349,7 +350,7 @@ def configure_zoomin_ticks(
     label_top: bool,
     y_label_step: float | None,
 ) -> None:
-    """Add automatic domain ticks (each zoom region's extent is too small for a fixed step)."""
+    """Add automatic domain ticks (the extent of each zoom region is too small for a fixed step)."""
     for axis in (panel.xaxis, panel.yaxis):
         axis.set_minor_locator(mpl_ticker.AutoMinorLocator())
     if y_label_step is not None:

@@ -16,7 +16,7 @@ from numpy import typing as numpy_typing
 
 ## personal
 from jormi.ww_arrays import compute_array_stats, mask_2d_arrays
-from jormi.ww_io import manage_io
+from jormi.ww_io import manage_io, manage_log
 from jormi.ww_plots import (
     add_color,
     annotate_panel,
@@ -41,7 +41,7 @@ NUM_CELLS_LEFT = 64
 NUM_CELLS_RIGHT = 128
 FIELD_NAME = "magnetic_energy"
 
-## problem setup (fixed in quokka's MHDBalsaraVortex; the vortex Mach number is read per run)
+## problem setup; the vortex Mach number is read from each run
 ADIABATIC_INDEX = 5.0 / 3.0
 BACKGROUND_PRESSURE = 1.0
 BACKGROUND_DENSITY = 1.0
@@ -67,7 +67,7 @@ def find_slice_paths(
         for _path in data_dir.glob(dataset_slice_glob)
     }
     if not slice_paths:
-        raise FileNotFoundError(f"no slice matching `{dataset_slice_glob}` found in: {data_dir}")
+        raise FileNotFoundError(f"no slice matching `{dataset_slice_glob}` found in: {data_dir}.")
     return dict(sorted(slice_paths.items()))
 
 
@@ -167,8 +167,8 @@ def compute_rotational_kinetic_energy(
         field_name="velocity-comp=x_1",
         snapshot_index=snapshot_index,
     )
-    rotational_speed_sq = (velocity_x0 - drift_speed)**2 + (velocity_x1 - drift_speed)**2
-    return float(numpy.sum(0.5 * density * rotational_speed_sq))
+    rotational_speed_squared = (velocity_x0 - drift_speed)**2 + (velocity_x1 - drift_speed)**2
+    return float(numpy.sum(0.5 * density * rotational_speed_squared))
 
 
 def estimate_energy_conservation_per_orbit(
@@ -235,7 +235,7 @@ def add_reference_circle_and_drift_arrow(
     label_offset = 0.35
     drift_label_offset = label_offset + 0.25
     panel.annotate(
-        "",
+        text="",
         xy=(arrow_end_radius * direction_component, arrow_end_radius * direction_component),
         xytext=(arrow_start_radius * direction_component, arrow_start_radius * direction_component),
         arrowprops={
@@ -364,9 +364,11 @@ def main() -> None:
             ),
         )
         energy_conservation_lookup[num_cells] = magnetic_conservation
-        print(
-            f"N = {num_cells}: retains {100.0 * kinetic_conservation:.2f}% of its rotational kinetic"
-            f" and {100.0 * magnetic_conservation:.2f}% of its magnetic energy per orbit",
+        manage_log.log_note(
+            text=(
+                f"N = {num_cells}: retains {100.0 * kinetic_conservation:.2f}% of its rotational kinetic"
+                f" and {100.0 * magnetic_conservation:.2f}% of its magnetic energy per orbit"
+            ),
         )
     composite = plot_slice_quadrants(
         top_left=final_snapshot_lookup[NUM_CELLS_LEFT],

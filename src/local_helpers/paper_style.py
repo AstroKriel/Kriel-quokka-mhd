@@ -68,7 +68,7 @@ def setup_plotting_script(
     figure_params: style_figure.FigureParams = FIGURE_PARAMS,
 ) -> None:
     """
-    Apply the paper's log formatting and figure style; call once at the start of a script's `main`.
+    Apply the paper log formatting and figure style; call once at the start of `main` in each script.
 
     A script that fine-tunes the style passes `dataclasses.replace(FIGURE_PARAMS, ...)`.
     """

@@ -55,7 +55,6 @@ FIGURE_DIR: Path = ROOT_DIR / "figures/problems/quirk"
 PAPER_FIGURE_PATH: Path = FIGURE_DIR / "odd-even-split-hydro.png"
 RESPONSE_FIGURE_PATH: Path = FIGURE_DIR / "odd-even-split-comparison.png"
 
-## the y-ranges place each corrected post-shock plateau at the same height in its panel
 HYDRO_CONFIG: VariantConfig = VariantConfig(
     dataset_dir=DATASET_DIR / "hydro/num_cells=128",
     label="Hydro",
@@ -128,9 +127,10 @@ def add_shock_direction_arrow(
     figure_params = style_figure.get_figure_params()
     arrow_y_fraction = 0.68
     arrow_start_x_fraction = 0.58
+    arrow_end_x_fraction = 0.85
     panel.annotate(
         text="",
-        xy=(0.85, arrow_y_fraction),
+        xy=(arrow_end_x_fraction, arrow_y_fraction),
         xytext=(arrow_start_x_fraction, arrow_y_fraction),
         xycoords="axes fraction",
         textcoords="axes fraction",
@@ -183,21 +183,21 @@ def plot_odd_even_split(
     panel: manage_figure.Panel,
     variant_config: VariantConfig,
 ) -> None:
-    snapshot_off = load_pressure_snapshot(
+    uncorrected_snapshot = load_pressure_snapshot(
         extracted_dir=variant_config.dataset_dir / "q26-b25-ppm_ep-no-carbuncle-fix" / "extracted",
     )
-    snapshot_on = load_pressure_snapshot(
+    corrected_snapshot = load_pressure_snapshot(
         extracted_dir=variant_config.dataset_dir / "q26-b25-ppm_ep" / "extracted",
     )
     plot_even_odd_profiles(
         panel=panel,
-        snapshot=snapshot_off,
+        snapshot=uncorrected_snapshot,
         color="red",
         zorder=2,
     )
     plot_even_odd_profiles(
         panel=panel,
-        snapshot=snapshot_on,
+        snapshot=corrected_snapshot,
         color="blue",
         zorder=3,
     )
@@ -209,10 +209,10 @@ def plot_odd_even_split(
         panel=panel,
         x_pos_fraction=0.085,
         y_pos_fraction=0.35,
-        label=rf"$t = {snapshot_off.step_time:.2f}$",
+        label=rf"$t = {uncorrected_snapshot.step_time:.2f}$",
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Side.Top,
-        text_size_pt=paper_style.FIGURE_PARAMS.text_size_params.axis_label_size_pt,
+        text_size_pt=style_figure.get_figure_params().text_size_params.axis_label_size_pt,
     )
 
 
@@ -261,7 +261,7 @@ def plot_response_figure() -> None:
             label=_variant_config.label,
             x_alignment=box_positions.Positions.Side.Left,
             y_alignment=box_positions.Positions.Side.Top,
-            text_size_pt=paper_style.FIGURE_PARAMS.text_size_params.axis_label_size_pt,
+            text_size_pt=style_figure.get_figure_params().text_size_params.axis_label_size_pt,
         )
     add_legends(panel=panel_grid[0, 0])
     panel_grid[0, 1].tick_params(

@@ -72,8 +72,8 @@ def compute_symmetric_bounds(
     """Return symmetric bounds set by a percentile of the field magnitude."""
     bound = float(
         numpy.nanpercentile(
-            numpy.abs(field),
-            99.9,
+            a=numpy.abs(field),
+            q=99.9,
         ),
     )
     return (-bound, bound)
@@ -84,20 +84,27 @@ def compute_loop_center_at_time(
     problem_setup: ProblemSetup,
     step_time: float,
 ) -> tuple[float, float]:
-    """Return the loop's true advected centre at `step_time`, wrapped into the periodic domain."""
+    """Return the true advected centre of the loop at `step_time`, wrapped into the periodic domain."""
 
-    def wrap_periodic_BCs(
+    def wrap_into_periodic_domain(
+        *,
         value: float,
         bounds: tuple[float, float],
     ) -> float:
         span = bounds[1] - bounds[0]
         return (value - bounds[0]) % span + bounds[0]
 
-    raw_x = problem_setup.initial_position[0] + problem_setup.direction[0] * step_time
-    raw_y = problem_setup.initial_position[1] + problem_setup.direction[1] * step_time
+    unwrapped_x0 = problem_setup.initial_position[0] + problem_setup.direction[0] * step_time
+    unwrapped_x1 = problem_setup.initial_position[1] + problem_setup.direction[1] * step_time
     return (
-        wrap_periodic_BCs(raw_x, AXIS_BOUNDS[0]),
-        wrap_periodic_BCs(raw_y, AXIS_BOUNDS[1]),
+        wrap_into_periodic_domain(
+            value=unwrapped_x0,
+            bounds=AXIS_BOUNDS[0],
+        ),
+        wrap_into_periodic_domain(
+            value=unwrapped_x1,
+            bounds=AXIS_BOUNDS[1],
+        ),
     )
 
 
@@ -135,7 +142,7 @@ def add_advection_arrow(
         arrow_start[1] + arrow_length * problem_setup.direction[1],
     )
     panel.annotate(
-        "",
+        text="",
         xy=arrow_end,
         xytext=arrow_start,
         arrowprops={
@@ -207,8 +214,13 @@ def plot_pdf_panel(
 ) -> None:
     num_pdf_times = 10
     figure_params = style_figure.get_figure_params()
-    sampled_indices = numpy.linspace(0, len(divb_pdf_series) - 1, num_pdf_times, dtype=int)
-    sampled_pdfs = [divb_pdf_series[index] for index in sampled_indices]
+    sampled_indices = numpy.linspace(
+        start=0,
+        stop=len(divb_pdf_series) - 1,
+        num=num_pdf_times,
+        dtype=int,
+    )
+    sampled_pdfs = [divb_pdf_series[_sample_index] for _sample_index in sampled_indices]
     time_palette = add_color.make_palette(
         config=add_color.SequentialPaletteConfig(
             palette_name="cmr.bubblegum_r",
@@ -283,19 +295,19 @@ def plot_slice_panel(
         palette_range=(0.15, 0.85),
     )
     scaled_field = divb_slice.sarray_2d / 1.0e-16
-    cbar_bounds = compute_symmetric_bounds(field=scaled_field)
+    colorbar_bounds = compute_symmetric_bounds(field=scaled_field)
     plot_data.plot_2d_array(
         panel=panel,
         array_2d=scaled_field,
         data_format="xy",
         axis_ranges=AXIS_BOUNDS,
-        colorbar_range=cbar_bounds,
+        colorbar_range=colorbar_bounds,
         palette_config=palette_config,
         add_colorbar=False,
     )
     palette = add_color.make_palette(
         config=palette_config,
-        value_range=cbar_bounds,
+        value_range=colorbar_bounds,
     )
     add_color.add_colorbar(
         panels=panel,
@@ -319,21 +331,18 @@ def plot_slice_panel(
             linewidth=artist_params.line_width_pt,
         )
         panel.add_patch(loop_outline)
-    ## inset from the realized footprint ((-1.5, -0.5), (-1.0, 1.0)), purely so the box
-    ## reads clearly against the panel frame rather than flush with its border
     amr_region_bounds: plot_data.AxisRanges = ((-1.45, -0.4), (-0.95, 0.95))
-    (amr_x_lo, amr_x_hi), (amr_y_lo, amr_y_hi) = amr_region_bounds
-    panel.add_patch(
-        mpl_patches.Rectangle(
-            (amr_x_lo, amr_y_lo),
-            amr_x_hi - amr_x_lo,
-            amr_y_hi - amr_y_lo,
-            fill=False,
-            edgecolor="blue",
-            linestyle="--",
-            linewidth=artist_params.line_width_pt,
-        ),
+    (amr_x0_min, amr_x0_max), (amr_x1_min, amr_x1_max) = amr_region_bounds
+    amr_region_outline = mpl_patches.Rectangle(
+        xy=(amr_x0_min, amr_x1_min),
+        width=amr_x0_max - amr_x0_min,
+        height=amr_x1_max - amr_x1_min,
+        fill=False,
+        edgecolor="blue",
+        linestyle="--",
+        linewidth=artist_params.line_width_pt,
     )
+    panel.add_patch(amr_region_outline)
     add_advection_arrow(
         panel=panel,
         problem_setup=problem_setup,
@@ -403,8 +412,8 @@ def main() -> None:
     divb_pdf_glob = "divb_dimensionless-pdf-index=*.json"
     divb_pdf_paths = sorted(DATASET_DIR.glob(divb_pdf_glob))
     if not divb_pdf_paths:
-        raise FileNotFoundError(f"no PDF matching `{divb_pdf_glob}` found in: {DATASET_DIR}")
-    divb_pdf_series = tuple(pdfs.PDFData.load_from_file(divb_pdf_path) for divb_pdf_path in divb_pdf_paths)
+        raise FileNotFoundError(f"no PDF matching `{divb_pdf_glob}` found in: {DATASET_DIR}.")
+    divb_pdf_series = tuple(pdfs.PDFData.load_from_file(_divb_pdf_path) for _divb_pdf_path in divb_pdf_paths)
     advection_angle = numpy.arctan2(3.0, 2.0)
     problem_setup = ProblemSetup(
         initial_position=(0.0, 0.0),

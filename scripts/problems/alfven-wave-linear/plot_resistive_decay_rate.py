@@ -68,7 +68,7 @@ def load_perturbed_component_snapshots(
     file_glob = "magnetic-axis=x_0-index=*.json"
     file_paths = sorted(extracted_dir.glob(file_glob))
     if not file_paths:
-        raise FileNotFoundError(f"no snapshot matching `{file_glob}` found in: {extracted_dir}")
+        raise FileNotFoundError(f"no snapshot matching `{file_glob}` found in: {extracted_dir}.")
     snapshots = []
     for file_path in file_paths:
         dataset = json_io.read_json_file_into_dict(file_path, verbose=False)

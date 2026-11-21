@@ -68,7 +68,7 @@ def load_sim_profiles(
     density_glob = "density-axis=x_0-index=*.json"
     density_paths = sorted(extracted_dir.glob(density_glob))
     if not density_paths:
-        raise FileNotFoundError(f"no density profile matching `{density_glob}` found in: {extracted_dir}")
+        raise FileNotFoundError(f"no density profile matching `{density_glob}` found in: {extracted_dir}.")
     density_path = density_paths[0]
     index = density_path.stem.split("index=")[-1]
     density_profile = profile_models.ScalarProfile.load_from_file(
@@ -112,8 +112,17 @@ def compute_moving_average(
 ) -> numpy_typing.NDArray[numpy.floating]:
     averaging_kernel = numpy.ones(window_width) / window_width
     pad_width = window_width // 2
-    padded_values = numpy.pad(values, pad_width, mode="edge")
-    return numpy.convolve(padded_values, averaging_kernel, mode="same")[pad_width:pad_width + len(values)]
+    padded_values = numpy.pad(
+        array=values,
+        pad_width=pad_width,
+        mode="edge",
+    )
+    smoothed_values = numpy.convolve(
+        a=padded_values,
+        v=averaging_kernel,
+        mode="same",
+    )
+    return smoothed_values[pad_width:pad_width + len(values)]
 
 
 def compute_smoothed_profiles(
@@ -261,14 +270,14 @@ def main() -> None:
         "markeredgewidth": 0.3,
         "linestyle": "",
     }
-    default_text_sizes = paper_style.TEXT_SIZE_PARAMS
-    legend_size = default_text_sizes.annotation_size_pt - 0.25
+    text_size_params = paper_style.TEXT_SIZE_PARAMS
+    legend_size = text_size_params.annotation_size_pt - 0.25
     paper_style.setup_plotting_script(
         figure_params=dataclasses.replace(
             paper_style.FIGURE_PARAMS,
             text_size_params=dataclasses.replace(
                 paper_style.TEXT_SIZE_PARAMS,
-                legend_level=default_text_sizes.compute_level_at_size(text_size_pt=legend_size),
+                legend_level=text_size_params.compute_level_at_size(text_size_pt=legend_size),
             ),
             legend_params=style_figure.LegendParams(
                 frame_margin_em=0.0,

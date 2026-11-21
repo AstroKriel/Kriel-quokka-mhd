@@ -49,7 +49,7 @@ class ShockTubeProfiles:
 
 @dataclass(frozen=True)
 class ProblemSetup:
-    """Physical setup parameters mirrored from the quokka simulation's TOML config."""
+    """Physical setup parameters mirrored from the TOML config of the quokka simulation."""
 
     discontinuity_position: float
     magnetic_field_normal: float
@@ -106,7 +106,7 @@ def load_sim_profiles(
     density_glob = "density-axis=x_0-index=*.json"
     density_paths = sorted(extracted_dir.glob(density_glob))
     if not density_paths:
-        raise FileNotFoundError(f"no density profile matching `{density_glob}` found in: {extracted_dir}")
+        raise FileNotFoundError(f"no density profile matching `{density_glob}` found in: {extracted_dir}.")
     density_path = density_paths[0]
     index = density_path.stem.split("index=")[-1]
     density_profile = profile_models.ScalarProfile.load_from_file(
@@ -353,14 +353,14 @@ def main() -> None:
         "markeredgewidth": 0.3,
         "linestyle": "",
     }
-    default_text_sizes = paper_style.TEXT_SIZE_PARAMS
-    legend_size = default_text_sizes.annotation_size_pt - 0.25
+    text_size_params = paper_style.TEXT_SIZE_PARAMS
+    legend_size = text_size_params.annotation_size_pt - 0.25
     paper_style.setup_plotting_script(
         figure_params=dataclasses.replace(
             paper_style.FIGURE_PARAMS,
             text_size_params=dataclasses.replace(
                 paper_style.TEXT_SIZE_PARAMS,
-                legend_level=default_text_sizes.compute_level_at_size(text_size_pt=legend_size),
+                legend_level=text_size_params.compute_level_at_size(text_size_pt=legend_size),
             ),
             legend_params=style_figure.LegendParams(
                 frame_margin_em=0.0,

@@ -122,12 +122,12 @@ def load_solution_time(
     *,
     sim_dir: Path,
 ) -> float:
-    """Load the plotted snapshot time from a simulation's density profile."""
+    """Load the plotted snapshot time from the density profile of a simulation."""
     extracted_dir = sim_dir / "extracted"
     density_glob = "density-axis=x_0-index=*.json"
     density_paths = sorted(extracted_dir.glob(density_glob))
     if not density_paths:
-        raise FileNotFoundError(f"no density profile matching `{density_glob}` found in: {extracted_dir}")
+        raise FileNotFoundError(f"no density profile matching `{density_glob}` found in: {extracted_dir}.")
     return profile_models.ScalarProfile.load_from_file(file_path=density_paths[0]).step_time
 
 
@@ -139,7 +139,7 @@ def add_zoom_inset(
     y_bounds: tuple[float, float],
 ) -> None:
     outline_color = tuple(mpl_colors.hsv_to_rgb(INSET_OUTLINE_HSV))
-    inset_ax = panel.inset_axes(
+    inset_panel = panel.inset_axes(
         (
             bounds.x_min_fraction,
             bounds.y_min_fraction,
@@ -148,7 +148,7 @@ def add_zoom_inset(
         ),
     )
     for line in panel.get_lines():
-        inset_ax.plot(
+        inset_panel.plot(
             line.get_xdata(),
             line.get_ydata(),
             color=line.get_color(),
@@ -161,13 +161,16 @@ def add_zoom_inset(
             linewidth=line.get_linewidth(),
             zorder=line.get_zorder(),
         )
-    inset_ax.set_xlim(x_bounds)
-    inset_ax.set_ylim(y_bounds)
-    inset_ax.set_xticks([])
-    inset_ax.set_yticks([])
-    inset_indicator = panel.indicate_inset_zoom(inset_ax, edgecolor=outline_color)
+    inset_panel.set_xlim(x_bounds)
+    inset_panel.set_ylim(y_bounds)
+    inset_panel.set_xticks([])
+    inset_panel.set_yticks([])
+    inset_indicator = panel.indicate_inset_zoom(
+        inset_ax=inset_panel,
+        edgecolor=outline_color,
+    )
     indicator_line_width = inset_indicator.rectangle.get_linewidth()
-    for spine in inset_ax.spines.values():
+    for spine in inset_panel.spines.values():
         spine.set_edgecolor(outline_color)
         spine.set_linewidth(indicator_line_width)
 
@@ -181,19 +184,19 @@ def add_reference_scheme_legend(
 ) -> None:
     handles = [
         mpl_lines.Line2D(
-            [0],
-            [0],
+            xdata=[0],
+            ydata=[0],
             marker="s",
             linewidth=0,
-            markeredgecolor=style.color,
+            markeredgecolor=_style.color,
             markerfacecolor="none",
             markeredgewidth=0.3,
             markersize=4,
-        ) for style in styles
+        ) for _style in styles
     ]
     legend = panel.legend(
         handles=handles,
-        labels=[style.label for style in styles],
+        labels=[_style.label for _style in styles],
         loc=anchor_at_corner.value,
         bbox_to_anchor=anchor_point_fraction,
         frameon=False,

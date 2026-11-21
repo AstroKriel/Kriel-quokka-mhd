@@ -53,7 +53,7 @@ def load_energy_time_series(
         key=lambda path: int(path.stem.split("index=")[-1].split("-")[0]),
     )
     if not file_paths:
-        raise FileNotFoundError(f"no profile matching `{file_glob}` found in: {extracted_dir}")
+        raise FileNotFoundError(f"no profile matching `{file_glob}` found in: {extracted_dir}.")
     times = []
     energies = []
     for file_path in file_paths[1:]:

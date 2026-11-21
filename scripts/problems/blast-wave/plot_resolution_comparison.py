@@ -158,7 +158,7 @@ def compute_zero_centred_palette_range(
     value_range: tuple[float, float],
 ) -> tuple[float, float]:
     """
-    Return a `palette_range` that puts `value=0` at the colormap's own centre (0.5) via a single
+    Return a `palette_range` that puts `value=0` at the centre of the colormap (0.5) via a single
     linear map (no piecewise/stretched norm): the palette end on the smaller-magnitude side of
     zero is pulled in from its natural extreme (0.0 or 1.0); the larger-magnitude side keeps its
     full extreme.
@@ -212,10 +212,10 @@ def main() -> None:
     upper_slice = load_density_slice(num_cells=NUM_CELLS_UPPER)
     lower_slice = load_density_slice(num_cells=NUM_CELLS_LOWER)
     palette_name = "blue-white-red"
-    cbar_bounds = (-0.8, 0.55)
+    colorbar_bounds = (-0.8, 0.55)
     palette_config = add_color.SequentialPaletteConfig(
         palette_name=palette_name,
-        palette_range=compute_zero_centred_palette_range(value_range=cbar_bounds),
+        palette_range=compute_zero_centred_palette_range(value_range=colorbar_bounds),
     )
     figure, panel = manage_figure.create_figure(
         panel_aspect_ratio=1.0,
@@ -232,7 +232,7 @@ def main() -> None:
         array_2d=composite,
         data_format="xy",
         axis_ranges=AXIS_BOUNDS,
-        colorbar_range=cbar_bounds,
+        colorbar_range=colorbar_bounds,
         palette_config=palette_config,
         add_colorbar=False,
     )
@@ -273,7 +273,7 @@ def main() -> None:
     panel.set_ylabel(r"$x_1$")
     palette = add_color.make_palette(
         config=palette_config,
-        value_range=cbar_bounds,
+        value_range=colorbar_bounds,
     )
     cbar = add_color.add_colorbar(
         panels=panel,

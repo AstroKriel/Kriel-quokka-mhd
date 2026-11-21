@@ -227,8 +227,8 @@ def plot_pdf_panel(
             palette_range=(0.05, 0.85),
         ),
         value_range=(
-            divb_pdf_series[1].step_time / problem_setup.period,
-            divb_pdf_series[-1].step_time / problem_setup.period,
+            sampled_pdfs[1].step_time / problem_setup.period,
+            sampled_pdfs[-1].step_time / problem_setup.period,
         ),
     )
     for pdf_data in sampled_pdfs[1:]:

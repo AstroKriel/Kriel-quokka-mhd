@@ -140,7 +140,7 @@ def add_advection_arrow(
         xytext=arrow_start,
         arrowprops={
             "arrowstyle": "-|>",
-            "color": "red",
+            "color": "black",
             "linewidth": artist_params.line_width_pt,
             "mutation_scale": text_size_params.annotation_size_pt,
             "shrinkA": 0.0,
@@ -245,7 +245,7 @@ def plot_pdf_panel(
         panel=panel,
         x_range=LOOP_Y_RANGE,
         bar_height=0.0,
-        color="red",
+        color="black",
         label="loop",
         label_is_left=True,
     )
@@ -314,7 +314,7 @@ def plot_slice_panel(
             xy=loop_image_center,
             radius=problem_setup.radius,
             fill=False,
-            edgecolor="red",
+            edgecolor="black",
             linestyle="--",
             linewidth=artist_params.line_width_pt,
         )

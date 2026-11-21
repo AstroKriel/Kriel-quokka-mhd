@@ -58,15 +58,32 @@ NUM_ORBITS = 3
 def find_slice_paths(
     *,
     data_dir: Path,
-) -> list[Path]:
-    dataset_slice_glob = f"{FIELD_NAME}-slice=x_2-index=*.npz"
-    slice_paths = sorted(
-        data_dir.glob(dataset_slice_glob),
-        key=lambda path: int(path.stem.split("index=")[-1].split("-")[0]),
-    )
+    field_name: str,
+) -> dict[int, Path]:
+    """Slice paths for one field, keyed by snapshot index in ascending order."""
+    dataset_slice_glob = f"{field_name}-slice=x_2-index=*.npz"
+    slice_paths = {
+        int(_path.stem.split("index=")[-1].split("-")[0]): _path
+        for _path in data_dir.glob(dataset_slice_glob)
+    }
     if not slice_paths:
         raise FileNotFoundError(f"no slice matching `{dataset_slice_glob}` found in: {data_dir}")
-    return slice_paths
+    return dict(sorted(slice_paths.items()))
+
+
+def load_slice(
+    *,
+    data_dir: Path,
+    field_name: str,
+    snapshot_index: int,
+) -> numpy_typing.NDArray[numpy.floating]:
+    slice_paths = find_slice_paths(
+        data_dir=data_dir,
+        field_name=field_name,
+    )
+    if snapshot_index not in slice_paths:
+        raise FileNotFoundError(f"no `{field_name}` slice at snapshot index {snapshot_index} in: {data_dir}.")
+    return numpy.load(slice_paths[snapshot_index])["sarray_2d"]
 
 
 def compute_centroid_position(
@@ -117,15 +134,6 @@ def recenter_via_periodic_shift(
     return numpy.fft.ifft2(numpy.fft.fft2(array_2d) * phase_ramp).real
 
 
-def load_sibling_slice(
-    *,
-    slice_path: Path,
-    field_name: str,
-) -> numpy_typing.NDArray[numpy.floating]:
-    sibling_path = slice_path.with_name(slice_path.name.replace(FIELD_NAME, field_name, 1))
-    return numpy.load(sibling_path)["sarray_2d"]
-
-
 def compute_drift_speed(
     *,
     data_dir: Path,
@@ -140,12 +148,25 @@ def compute_drift_speed(
 
 def compute_rotational_kinetic_energy(
     *,
-    slice_path: Path,
+    data_dir: Path,
+    snapshot_index: int,
     drift_speed: float,
 ) -> float:
-    density = load_sibling_slice(slice_path=slice_path, field_name="density")
-    velocity_x0 = load_sibling_slice(slice_path=slice_path, field_name="velocity-comp=x_0")
-    velocity_x1 = load_sibling_slice(slice_path=slice_path, field_name="velocity-comp=x_1")
+    density = load_slice(
+        data_dir=data_dir,
+        field_name="density",
+        snapshot_index=snapshot_index,
+    )
+    velocity_x0 = load_slice(
+        data_dir=data_dir,
+        field_name="velocity-comp=x_0",
+        snapshot_index=snapshot_index,
+    )
+    velocity_x1 = load_slice(
+        data_dir=data_dir,
+        field_name="velocity-comp=x_1",
+        snapshot_index=snapshot_index,
+    )
     rotational_speed_sq = (velocity_x0 - drift_speed)**2 + (velocity_x1 - drift_speed)**2
     return float(numpy.sum(0.5 * density * rotational_speed_sq))
 
@@ -276,11 +297,22 @@ def main() -> None:
         num_cells: DATASET_DIR / f"num_cells={num_cells}/q26-b25-ppm_ep/extracted"
         for num_cells in (NUM_CELLS_LEFT, NUM_CELLS_RIGHT)
     }
+    snapshot_indices_lookup = {
+        num_cells: list(find_slice_paths(
+            data_dir=data_dir,
+            field_name=FIELD_NAME,
+        ))
+        for num_cells, data_dir in data_dirs_lookup.items()
+    }
     highest_resolution = max(NUM_CELLS_LEFT, NUM_CELLS_RIGHT)
     first_snapshot_lookup = {
         num_cells:
         plot_slices.upsample_slice(
-            array_2d=numpy.load(find_slice_paths(data_dir=data_dir)[0])["sarray_2d"],
+            array_2d=load_slice(
+                data_dir=data_dir,
+                field_name=FIELD_NAME,
+                snapshot_index=snapshot_indices_lookup[num_cells][0],
+            ),
             target_num_cells=highest_resolution,
         )
         for num_cells, data_dir in data_dirs_lookup.items()
@@ -289,7 +321,11 @@ def main() -> None:
         num_cells:
         plot_slices.upsample_slice(
             array_2d=recenter_via_periodic_shift(
-                array_2d=numpy.load(find_slice_paths(data_dir=data_dir)[-1])["sarray_2d"],
+                array_2d=load_slice(
+                    data_dir=data_dir,
+                    field_name=FIELD_NAME,
+                    snapshot_index=snapshot_indices_lookup[num_cells][-1],
+                ),
                 axis_ranges=AXIS_BOUNDS,
             ),
             target_num_cells=highest_resolution,
@@ -298,19 +334,32 @@ def main() -> None:
     }
     energy_conservation_lookup = {}
     for num_cells, data_dir in data_dirs_lookup.items():
-        slice_paths = find_slice_paths(data_dir=data_dir)
+        first_snapshot_index = snapshot_indices_lookup[num_cells][0]
+        final_snapshot_index = snapshot_indices_lookup[num_cells][-1]
         drift_speed = compute_drift_speed(data_dir=data_dir)
+        initial_magnetic_energy = load_slice(
+            data_dir=data_dir,
+            field_name=FIELD_NAME,
+            snapshot_index=first_snapshot_index,
+        )
+        final_magnetic_energy = load_slice(
+            data_dir=data_dir,
+            field_name=FIELD_NAME,
+            snapshot_index=final_snapshot_index,
+        )
         magnetic_conservation = estimate_energy_conservation_per_orbit(
-            initial_energy=float(numpy.sum(numpy.load(slice_paths[0])["sarray_2d"])),
-            final_energy=float(numpy.sum(numpy.load(slice_paths[-1])["sarray_2d"])),
+            initial_energy=float(numpy.sum(initial_magnetic_energy)),
+            final_energy=float(numpy.sum(final_magnetic_energy)),
         )
         kinetic_conservation = estimate_energy_conservation_per_orbit(
             initial_energy=compute_rotational_kinetic_energy(
-                slice_path=slice_paths[0],
+                data_dir=data_dir,
+                snapshot_index=first_snapshot_index,
                 drift_speed=drift_speed,
             ),
             final_energy=compute_rotational_kinetic_energy(
-                slice_path=slice_paths[-1],
+                data_dir=data_dir,
+                snapshot_index=final_snapshot_index,
                 drift_speed=drift_speed,
             ),
         )

@@ -52,6 +52,9 @@ ROOT_DIR: Path = Path(__file__).parents[3]
 DATASET_DIR: Path = ROOT_DIR / "datasets/problems/brio-wu-shock-tube"
 FIGURE_PATH: Path = ROOT_DIR / "figures/problems/brio-wu-shock-tube/ncells=256/scheme-comparison.png"
 
+## the blank row between the emf compute and emf averaging legend entries is drawn at this fraction of the legend text size
+EMF_LEGEND_GAP_TEXT_SCALE: float = 0.65
+
 ##
 ## === HELPER FUNCTIONS
 ##
@@ -220,34 +223,29 @@ def plot_profiles(
     )
 
 
-def add_emf_compute_scheme_legend(
+def add_emf_scheme_legend(
     *,
     panel: manage_figure.Panel,
 ) -> None:
+    """Key the emf compute schemes (label colour) above the emf averaging schemes (marker), split by a blank row."""
+    compute_artists: list[str | None] = [None for _ in shock_tubes.EMFComputeScheme]
+    compute_labels = [_scheme.value.label for _scheme in shock_tubes.EMFComputeScheme]
+    compute_colors = [_scheme.value.color for _scheme in shock_tubes.EMFComputeScheme]
+    averaging_artists: list[str | None] = [_scheme.value.marker for _scheme in shock_tubes.EMFAveragingScheme]
+    averaging_labels = [_scheme.value.label for _scheme in shock_tubes.EMFAveragingScheme]
+    averaging_colors = ["black" for _ in shock_tubes.EMFAveragingScheme]
     annotate_panel.add_custom_legend(
         panel=panel,
-        artists=[None for _ in shock_tubes.EMFComputeScheme],
-        labels=[scheme.value.label for scheme in shock_tubes.EMFComputeScheme],
-        colors=[scheme.value.color for scheme in shock_tubes.EMFComputeScheme],
-        marker_first=False,  # put the (invisible) handle after the text, so text hugs the left edge
-        anchor_point_fraction=(0.025, 0.0),
-        anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
-    )
-
-
-def add_emf_averaging_scheme_legend(
-    *,
-    panel: manage_figure.Panel,
-) -> None:
-    annotate_panel.add_custom_legend(
-        panel=panel,
-        artists=[scheme.value.marker for scheme in shock_tubes.EMFAveragingScheme],
-        labels=[scheme.value.label for scheme in shock_tubes.EMFAveragingScheme],
-        colors=["black" for _ in shock_tubes.EMFAveragingScheme],
+        artists=compute_artists + [None] + averaging_artists,
+        labels=compute_labels + [""] + averaging_labels,
+        colors=compute_colors + ["black"] + averaging_colors,
         marker_size_pt=4,
         anchor_point_fraction=(0.0, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
     )
+    legend = panel.artists[-1]
+    gap_text = legend.get_texts()[len(compute_labels)]
+    gap_text.set_fontsize(EMF_LEGEND_GAP_TEXT_SCALE * gap_text.get_fontsize())
 
 
 ##
@@ -378,7 +376,6 @@ def main() -> None:
         ),
         x_bounds=(0.125, 0.35),
         y_bounds=(-0.31, -0.19),
-        color="lightgrey",
     )
     shock_tubes.add_zoom_inset(
         panel=panel_grid[1, 1],
@@ -390,10 +387,8 @@ def main() -> None:
         ),
         x_bounds=(0.05, 0.15),
         y_bounds=(2.1, 2.325),
-        color="lightgrey",
     )
-    add_emf_compute_scheme_legend(panel=panel_grid[0, 0])
-    add_emf_averaging_scheme_legend(panel=panel_grid[0, 1])
+    add_emf_scheme_legend(panel=panel_grid[0, 0])
     annotate_panel.add_text(
         panel=panel_grid[0, 0],
         x_pos_fraction=0.95,

@@ -10,6 +10,7 @@ from enum import Enum
 from pathlib import Path
 
 ## third-party
+from matplotlib import colors as mpl_colors
 from matplotlib import lines as mpl_lines
 
 ## personal
@@ -83,6 +84,13 @@ class EMFAveragingScheme(Enum):
 
 
 ##
+## === CONSTANTS
+##
+
+## hue, saturation, and value of the inset outline and zoom indicator, each in [0, 1]
+INSET_OUTLINE_HSV: tuple[float, float, float] = (0.0, 0.0, 0.75)
+
+##
 ## === FUNCTIONS
 ##
 
@@ -129,8 +137,8 @@ def add_zoom_inset(
     bounds: manage_figure.PanelBounds,
     x_bounds: tuple[float, float],
     y_bounds: tuple[float, float],
-    color: str,
 ) -> None:
+    outline_color = tuple(mpl_colors.hsv_to_rgb(INSET_OUTLINE_HSV))
     inset_ax = panel.inset_axes(
         (
             bounds.x_min_fraction,
@@ -157,9 +165,11 @@ def add_zoom_inset(
     inset_ax.set_ylim(y_bounds)
     inset_ax.set_xticks([])
     inset_ax.set_yticks([])
+    inset_indicator = panel.indicate_inset_zoom(inset_ax, edgecolor=outline_color)
+    indicator_line_width = inset_indicator.rectangle.get_linewidth()
     for spine in inset_ax.spines.values():
-        spine.set_edgecolor(color)
-    panel.indicate_inset_zoom(inset_ax, edgecolor=color)
+        spine.set_edgecolor(outline_color)
+        spine.set_linewidth(indicator_line_width)
 
 
 def add_reference_scheme_legend(

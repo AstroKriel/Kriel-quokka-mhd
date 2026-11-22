@@ -19,7 +19,6 @@ from matplotlib import ticker as mpl_ticker
 from numpy import typing as numpy_typing
 
 ## personal
-from jormi.ww_io import json_io
 from jormi.ww_io import manage_io
 from jormi.ww_plots import (
     add_color,
@@ -30,6 +29,8 @@ from jormi.ww_plots import (
     style_figure,
 )
 from jormi.ww_types import box_positions
+from ww_quokka_sims.sim_io.field_diagnostics import pdfs, slices
+from ww_quokka_sims.sim_io.snapshots import amr_box_layout
 
 ## local
 from local_helpers import paper_style
@@ -45,13 +46,6 @@ class ProblemSetup:
     direction: tuple[float, float]
     period: float
     radius: float
-
-
-@dataclass(frozen=True)
-class DataSlice:
-    divb_2d: numpy_typing.NDArray[numpy.floating]
-    sim_time: float
-    step_index: int
 
 
 @dataclass(frozen=True)
@@ -76,13 +70,6 @@ class MergedBoxEdge:
     along_axis: int
     fixed_index: int
     index_bounds: tuple[int, int]
-
-
-@dataclass(frozen=True)
-class PDFData:
-    sim_time: float
-    bin_centers: numpy_typing.NDArray[numpy.floating]
-    log10_densities: numpy_typing.NDArray[numpy.floating]
 
 
 ##
@@ -110,78 +97,30 @@ TAIL_Y_RANGE = (-46.0, -22.0)
 ##
 
 
-def load_data_slice(
-    file_path: Path,
-) -> DataSlice:
-    with numpy.load(file_path) as npz:
-        return DataSlice(
-            divb_2d=npz["sarray_2d"],
-            sim_time=float(npz["sim_time"]),
-            step_index=int(npz["step_index"]),
-        )
-
-
-def load_pdf_data(
-    file_path: Path,
-) -> PDFData:
-    """Load a single-component PDF JSON; the one non-metadata key holds the binned values."""
-    pdf_dict = json_io.read_json_file_into_dict(
-        file_path=file_path,
-        verbose=False,
-    )
-    metadata_keys = {"sim_time", "step_index", "use_log10_bins"}
-    component_keys = [_key for _key in pdf_dict if _key not in metadata_keys]
-    if len(component_keys) != 1:
-        raise ValueError(f"expected one PDF component in {file_path}; got {component_keys}.")
-    component_dict = pdf_dict[component_keys[0]]
-    if pdf_dict["use_log10_bins"]:
-        bin_centers_key = "log10_bin_centers"
-    else:
-        bin_centers_key = "bin_centers"
-    return PDFData(
-        sim_time=float(pdf_dict["sim_time"]),
-        bin_centers=numpy.array(component_dict[bin_centers_key], dtype=float),
-        log10_densities=numpy.array(component_dict["log10_density"], dtype=float),
-    )
-
-
-def load_sliced_box_layout(
-    file_path: Path,
+def slice_box_layout(
+    *,
+    box_layout: amr_box_layout.AMRBoxLayout,
 ) -> SlicedBoxLayout:
     """Return every refined box that crosses the x_2 = 0 slice plane, indexed on the finest-level grid."""
-    layout_dict = json_io.read_json_file_into_dict(
-        file_path=file_path,
-        verbose=False,
-    )
-    refinement_ratio = layout_dict["refinement_ratio"]
-    base_resolution = layout_dict["base_resolution"]
-    x2_min, x2_max = layout_dict["domain_bounds"][2]
-    finest_level = max(_box_dict["amr_level"] for _box_dict in layout_dict["boxes"])
+    finest_level = box_layout.max_amr_level
     refined_boxes = []
-    for box_dict in layout_dict["boxes"]:
-        amr_level = box_dict["amr_level"]
-        if amr_level == 0:
+    for box in box_layout.get_boxes_crossing_plane(
+            axis_index=2,
+            coordinate=0.0,
+    ):
+        if box.amr_level == 0:
             continue
-        start_index = box_dict["start_index"]
-        end_index = box_dict["end_index"]
-        x2_cell_width = (x2_max - x2_min) / (base_resolution[2] * refinement_ratio**amr_level)
-        x2_bounds = (x2_min + start_index[2] * x2_cell_width, x2_min + end_index[2] * x2_cell_width)
-        midplane_is_inside_box = (x2_bounds[0] <= 0.0) and (0.0 < x2_bounds[1])
-        if midplane_is_inside_box:
-            scale_to_finest = refinement_ratio**(finest_level - amr_level)
-            refined_box = RefinedBox(
-                amr_level=amr_level,
-                x0_index_bounds=(start_index[0] * scale_to_finest, end_index[0] * scale_to_finest),
-                x1_index_bounds=(start_index[1] * scale_to_finest, end_index[1] * scale_to_finest),
-            )
-            refined_boxes.append(refined_box)
-    fine_grid_resolution = (
-        base_resolution[0] * refinement_ratio**finest_level,
-        base_resolution[1] * refinement_ratio**finest_level,
-    )
+        scale_to_finest = box_layout.refinement_ratio**(finest_level - box.amr_level)
+        refined_box = RefinedBox(
+            amr_level=box.amr_level,
+            x0_index_bounds=(box.start_index[0] * scale_to_finest, box.end_index[0] * scale_to_finest),
+            x1_index_bounds=(box.start_index[1] * scale_to_finest, box.end_index[1] * scale_to_finest),
+        )
+        refined_boxes.append(refined_box)
+    finest_level_resolution = box_layout.get_level_resolution(amr_level=finest_level)
     return SlicedBoxLayout(
         finest_level=finest_level,
-        fine_grid_resolution=fine_grid_resolution,
+        fine_grid_resolution=(finest_level_resolution[0], finest_level_resolution[1]),
         refined_boxes=refined_boxes,
     )
 
@@ -193,7 +132,7 @@ def load_sliced_box_layout(
 
 def compute_symmetric_bounds(
     *,
-    fields: list[numpy_typing.NDArray[numpy.floating]],
+    fields: list[numpy_typing.NDArray[numpy.float64]],
 ) -> tuple[float, float]:
     """Return symmetric bounds set by a percentile of the magnitude pooled over every field."""
     pooled_values = numpy.concatenate([numpy.ravel(_field) for _field in fields])
@@ -251,24 +190,24 @@ def compute_periodic_image_centers(
 
 
 def select_plotted_pdfs(
-    pdf_data_series: list[PDFData],
-) -> list[PDFData]:
+    field_pdf_series: list[pdfs.FieldPDF],
+) -> list[pdfs.FieldPDF]:
     """Return evenly spaced PDFs through the run, skipping the initial one."""
     num_pdf_times = 10
     sampled_indices = numpy.linspace(
         start=0,
-        stop=len(pdf_data_series) - 1,
+        stop=len(field_pdf_series) - 1,
         num=num_pdf_times,
         dtype=int,
     )
-    sampled_pdfs = [pdf_data_series[_index] for _index in sampled_indices]
+    sampled_pdfs = [field_pdf_series[_index] for _index in sampled_indices]
     return sampled_pdfs[1:]
 
 
 def make_time_palette(
     *,
     problem_setup: ProblemSetup,
-    plotted_pdfs: list[PDFData],
+    plotted_pdfs: list[pdfs.FieldPDF],
 ) -> color_palettes.ColorPalette:
     return add_color.make_palette(
         config=add_color.SequentialPaletteConfig(
@@ -428,7 +367,7 @@ def plot_slice_panel(
     *,
     panel: manage_figure.Panel,
     problem_setup: ProblemSetup,
-    data_slice: DataSlice,
+    field_slice: slices.FieldSlice,
     scaled_divb_2d: numpy_typing.NDArray[numpy.floating],
     box_layout: SlicedBoxLayout,
     time_label_x_pos_fraction: float,
@@ -456,7 +395,7 @@ def plot_slice_panel(
     )
     loop_center = compute_loop_center_at_time(
         problem_setup=problem_setup,
-        sim_time=data_slice.sim_time,
+        sim_time=field_slice.sim_time,
     )
     for loop_image_center in compute_periodic_image_centers(center=loop_center):
         loop_outline = mpl_patches.Circle(
@@ -468,7 +407,7 @@ def plot_slice_panel(
             linewidth=artist_params.line_width_pt,
         )
         panel.add_patch(loop_outline)
-    time_fraction = data_slice.sim_time / problem_setup.period
+    time_fraction = field_slice.sim_time / problem_setup.period
     annotate_panel.add_text(
         panel=panel,
         x_pos_fraction=time_label_x_pos_fraction,
@@ -488,16 +427,17 @@ def plot_pdf_panel(
     *,
     panel: manage_figure.Panel,
     problem_setup: ProblemSetup,
-    plotted_pdfs: list[PDFData],
+    plotted_pdfs: list[pdfs.FieldPDF],
     time_palette: color_palettes.ColorPalette,
 ) -> None:
-    for pdf_data in plotted_pdfs:
-        pdf_is_finite = numpy.isfinite(pdf_data.log10_densities)
-        time_fraction = pdf_data.sim_time / problem_setup.period
+    for field_pdf in plotted_pdfs:
+        bin_centers, log10_densities = field_pdf.get_pdf(comp_index=0)
+        pdf_is_finite = numpy.isfinite(log10_densities)
+        time_fraction = field_pdf.sim_time / problem_setup.period
         curve_color = time_palette.get_color(time_fraction)
         panel.step(
-            pdf_data.bin_centers[pdf_is_finite],
-            pdf_data.log10_densities[pdf_is_finite],
+            bin_centers[pdf_is_finite],
+            log10_densities[pdf_is_finite],
             where="mid",
             color=curve_color,
         )
@@ -617,13 +557,13 @@ def add_level_legend(
 def plot_slices_figure(
     *,
     problem_setup: ProblemSetup,
-    data_slices: list[DataSlice],
+    field_slices: list[slices.FieldSlice],
     box_layouts: list[SlicedBoxLayout],
     time_palette: color_palettes.ColorPalette,
 ) -> mpl_figure.Figure:
     figure_params = style_figure.get_figure_params()
     figure, panel_grid = manage_figure.create_figure_grid(
-        num_panel_rows=len(data_slices),
+        num_panel_rows=len(field_slices),
         num_panel_cols=1,
         panel_aspect_ratio=3.0 / 2.0,
         figure_layout=style_figure.FigureLayout(
@@ -635,7 +575,7 @@ def plot_slices_figure(
         palette_name="cmr.prinsenvlag",
         palette_range=(0.15, 0.85),
     )
-    scaled_divb_fields = [_data_slice.divb_2d / 1.0e-16 for _data_slice in data_slices]
+    scaled_divb_fields = [_field_slice.sarray_2d / 1.0e-16 for _field_slice in field_slices]
     colorbar_bounds = compute_symmetric_bounds(fields=scaled_divb_fields)
     finest_level = max(_box_layout.finest_level for _box_layout in box_layouts)
     refined_levels = list(
@@ -651,11 +591,11 @@ def plot_slices_figure(
         ),
         value_range=(refined_levels[0], refined_levels[-1]),
     )
-    for row_index, data_slice in enumerate(data_slices):
+    for row_index, field_slice in enumerate(field_slices):
         plot_slice_panel(
             panel=panel_grid[row_index, 0],
             problem_setup=problem_setup,
-            data_slice=data_slice,
+            field_slice=field_slice,
             scaled_divb_2d=scaled_divb_fields[row_index],
             box_layout=box_layouts[row_index],
             time_label_x_pos_fraction=TIME_LABEL_X_POS_FRACTIONS[row_index],
@@ -689,7 +629,7 @@ def plot_slices_figure(
 def plot_pdf_figure(
     *,
     problem_setup: ProblemSetup,
-    plotted_pdfs: list[PDFData],
+    plotted_pdfs: list[pdfs.FieldPDF],
     time_palette: color_palettes.ColorPalette,
 ) -> mpl_figure.Figure:
     figure, panel_grid = manage_figure.create_figure_grid(
@@ -731,8 +671,8 @@ def main() -> None:
     pdf_paths = sorted(DATASET_DIR.glob(pdf_glob))
     if not pdf_paths:
         raise FileNotFoundError(f"no PDF matching `{pdf_glob}` found in: {DATASET_DIR}.")
-    pdf_data_series = [load_pdf_data(_path) for _path in pdf_paths]
-    plotted_pdfs = select_plotted_pdfs(pdf_data_series)
+    field_pdf_series = [pdfs.FieldPDF.load_from_file(file_path=_path) for _path in pdf_paths]
+    plotted_pdfs = select_plotted_pdfs(field_pdf_series)
     time_palette = make_time_palette(
         problem_setup=problem_setup,
         plotted_pdfs=plotted_pdfs,
@@ -741,20 +681,23 @@ def main() -> None:
     slice_paths = sorted(DATASET_DIR.glob(slice_glob))
     if not slice_paths:
         raise FileNotFoundError(f"no slice matching `{slice_glob}` found in: {DATASET_DIR}.")
-    data_slice_series = [load_data_slice(_path) for _path in slice_paths]
-    data_slices = [
+    field_slice_series = [slices.FieldSlice.load_from_file(file_path=_path) for _path in slice_paths]
+    field_slices = [
         min(
-            data_slice_series,
+            field_slice_series,
             key=lambda _slice: abs(_slice.sim_time - _fraction * problem_setup.period),
         ) for _fraction in TARGET_TIME_FRACTIONS
     ]
     box_layouts = [
-        load_sliced_box_layout(DATASET_DIR / f"amr_boxes-index={_data_slice.step_index:07d}.json")
-        for _data_slice in data_slices
+        slice_box_layout(
+            box_layout=amr_box_layout.AMRBoxLayout.load_from_file(
+                file_path=DATASET_DIR / f"amr_boxes-index={_field_slice.step_index.get_padded_string(index_width=7)}.json",
+            ),
+        ) for _field_slice in field_slices
     ]
     slices_figure = plot_slices_figure(
         problem_setup=problem_setup,
-        data_slices=data_slices,
+        field_slices=field_slices,
         box_layouts=box_layouts,
         time_palette=time_palette,
     )

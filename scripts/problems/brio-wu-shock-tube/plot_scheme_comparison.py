@@ -232,7 +232,7 @@ def add_emf_scheme_legend(
     averaging_artists: list[str | None] = [_scheme.value.marker for _scheme in shock_tubes.EMFAveragingScheme]
     averaging_labels = [_scheme.value.label for _scheme in shock_tubes.EMFAveragingScheme]
     averaging_colors = ["black" for _ in shock_tubes.EMFAveragingScheme]
-    annotate_panel.add_custom_legend(
+    legend = annotate_panel.add_custom_legend(
         panel=panel,
         artists=compute_artists + [None] + averaging_artists,
         labels=compute_labels + [""] + averaging_labels,
@@ -241,7 +241,6 @@ def add_emf_scheme_legend(
         anchor_point_fraction=(0.0, 0.0),
         anchor_at_corner=box_positions.Positions.Corner.BottomLeft,
     )
-    legend = panel.artists[-1]
     gap_text = legend.get_texts()[len(compute_labels)]
     gap_text.set_fontsize(EMF_LEGEND_GAP_TEXT_SCALE * gap_text.get_fontsize())
 

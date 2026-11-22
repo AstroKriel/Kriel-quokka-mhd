@@ -326,7 +326,7 @@ wheels = [
 [[package]]
 name = "jormi"
 version = "0.1.0"
-source = { git = "https://github.com/AstroKriel/PythonHelpers.git?rev=ced2615dd232ee370c60267f355774a2804d15a1#ced2615dd232ee370c60267f355774a2804d15a1" }
+source = { git = "https://github.com/AstroKriel/PythonHelpers.git?rev=b9e43b16c35220bdd7656e377eb40243d36c5e32#b9e43b16c35220bdd7656e377eb40243d36c5e32" }
 dependencies = [
     { name = "cmasher" },
     { name = "h5py" },
@@ -473,11 +473,11 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aegir", git = "https://github.com/AstroKriel/MHDRiemannSolver.git?rev=975cc7ed18dfba9dc9e7967ff721d2ccdf6dea1d" },
-    { name = "jormi", git = "https://github.com/AstroKriel/PythonHelpers.git?rev=ced2615dd232ee370c60267f355774a2804d15a1" },
+    { name = "jormi", git = "https://github.com/AstroKriel/PythonHelpers.git?rev=b9e43b16c35220bdd7656e377eb40243d36c5e32" },
     { name = "numpy", specifier = ">=2.3.2" },
     { name = "pandas", specifier = ">=3.0.0" },
     { name = "scipy", specifier = ">=1.15.2" },
-    { name = "ww-quokka-sims", git = "https://github.com/AstroKriel/WWQuokkaSims.git?rev=d05d2ea11291292a0102213041ff4c7528178d1c" },
+    { name = "ww-quokka-sims", git = "https://github.com/AstroKriel/WWQuokkaSims.git?rev=9ff02d4a4f58926e6d75975d4c7053c0f450ef64" },
     { name = "yt", specifier = ">=4.4.1" },
 ]
 
@@ -1277,7 +1277,7 @@ wheels = [
 [[package]]
 name = "ww-quokka-sims"
 version = "0.1.0"
-source = { git = "https://github.com/AstroKriel/WWQuokkaSims.git?rev=d05d2ea11291292a0102213041ff4c7528178d1c#d05d2ea11291292a0102213041ff4c7528178d1c" }
+source = { git = "https://github.com/AstroKriel/WWQuokkaSims.git?rev=9ff02d4a4f58926e6d75975d4c7053c0f450ef64#9ff02d4a4f58926e6d75975d4c7053c0f450ef64" }
 dependencies = [
     { name = "imageio" },
     { name = "jormi" },

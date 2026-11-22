@@ -23,7 +23,6 @@ from jormi.ww_plots import (
     style_figure,
 )
 from jormi.ww_types import box_positions
-from ww_quokka_sims.sim_io.field_diagnostics import profiles as profile_models
 
 ## local
 from local_helpers import paper_style, shock_tubes
@@ -35,8 +34,8 @@ from local_helpers import paper_style, shock_tubes
 
 @dataclass(frozen=True)
 class ThermalProfiles:
-    pressure_ratio: profile_models.ComponentArrays
-    pseudo_entropy: profile_models.ComponentArrays
+    pressure_ratio: shock_tubes.ProfileArrays
+    pseudo_entropy: shock_tubes.ProfileArrays
 
 
 ##
@@ -67,22 +66,20 @@ def load_sim_profiles(
         raise FileNotFoundError(f"no density profile matching `{density_glob}` found in: {extracted_dir}.")
     density_path = density_paths[0]
     index = density_path.stem.split("index=")[-1]
-    density_profile = profile_models.ScalarProfile.load_from_file(
+    density_profile = shock_tubes.load_scalar_profile(
         file_path=extracted_dir / f"density-axis=x_0-index={index}.json",
     )
-    pressure_profile = profile_models.ScalarProfile.load_from_file(
+    pressure_profile = shock_tubes.load_scalar_profile(
         file_path=extracted_dir / f"pressure-axis=x_0-index={index}.json",
     )
     return ThermalProfiles(
-        pressure_ratio=profile_models.ComponentArrays(
+        pressure_ratio=shock_tubes.ProfileArrays(
             position=pressure_profile.position,
             field_value=pressure_profile.field_value / density_profile.field_value,
-            label=r"$p / \rho$",
         ),
-        pseudo_entropy=profile_models.ComponentArrays(
+        pseudo_entropy=shock_tubes.ProfileArrays(
             position=pressure_profile.position,
             field_value=pressure_profile.field_value / density_profile.field_value**ADIABATIC_INDEX,
-            label=r"$p / \rho^\gamma$",
         ),
     )
 
@@ -112,15 +109,13 @@ def compute_smoothed_profiles(
     profiles: ThermalProfiles,
 ) -> ThermalProfiles:
     return ThermalProfiles(
-        pressure_ratio=profile_models.ComponentArrays(
+        pressure_ratio=shock_tubes.ProfileArrays(
             position=profiles.pressure_ratio.position,
             field_value=compute_moving_average(profiles.pressure_ratio.field_value),
-            label=r"$p / \rho$",
         ),
-        pseudo_entropy=profile_models.ComponentArrays(
+        pseudo_entropy=shock_tubes.ProfileArrays(
             position=profiles.pseudo_entropy.position,
             field_value=compute_moving_average(profiles.pseudo_entropy.field_value),
-            label=r"$p / \rho^\gamma$",
         ),
     )
 
@@ -132,12 +127,11 @@ def shift_profiles(
 ) -> ThermalProfiles:
 
     def _shifted(
-        component: profile_models.ComponentArrays,
-    ) -> profile_models.ComponentArrays:
-        return profile_models.ComponentArrays(
+        component: shock_tubes.ProfileArrays,
+    ) -> shock_tubes.ProfileArrays:
+        return shock_tubes.ProfileArrays(
             position=component.position - shift,
             field_value=component.field_value,
-            label=component.label,
         )
 
     return ThermalProfiles(

@@ -58,11 +58,11 @@ def load_energy_time_series(
     energies = []
     for file_path in file_paths[1:]:
         data = json_io.read_json_file_into_dict(file_path, verbose=False)
-        position = numpy.asarray(data["field_comps"][component]["position"])
+        position = numpy.asarray(data["position"])
         field_value = numpy.asarray(data["field_comps"][component]["field_value"])
         deviation_squared = (field_value - field_value.mean())**2
         cell_size = position[1] - position[0]
-        times.append(data["step_time"])
+        times.append(data["sim_time"])
         energies.append(deviation_squared.sum() * cell_size)
     return numpy.asarray(times), numpy.asarray(energies)
 

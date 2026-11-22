@@ -17,6 +17,7 @@ from numpy import typing as numpy_typing
 
 ## personal
 from aegir import exact_solution, mhd_state
+from jormi.ww_fields import cartesian_axes
 from jormi.ww_io import manage_io
 from jormi.ww_plots import (
     annotate_panel,
@@ -25,7 +26,6 @@ from jormi.ww_plots import (
 )
 from jormi.ww_types import box_positions
 from jormi.ww_validation import validate_types
-from ww_quokka_sims.sim_io.field_diagnostics import profiles as profile_models
 
 ## local
 from local_helpers import paper_style, shock_tubes
@@ -37,14 +37,14 @@ from local_helpers import paper_style, shock_tubes
 
 @dataclass(frozen=True)
 class ShockTubeProfiles:
-    density: profile_models.ComponentArrays
-    pressure: profile_models.ComponentArrays
-    velocity_x0: profile_models.ComponentArrays
-    velocity_x1: profile_models.ComponentArrays
-    velocity_x2: profile_models.ComponentArrays
-    magnetic_x1: profile_models.ComponentArrays
-    magnetic_x2: profile_models.ComponentArrays
-    total_energy: profile_models.ComponentArrays
+    density: shock_tubes.ProfileArrays
+    pressure: shock_tubes.ProfileArrays
+    velocity_x0: shock_tubes.ProfileArrays
+    velocity_x1: shock_tubes.ProfileArrays
+    velocity_x2: shock_tubes.ProfileArrays
+    magnetic_x1: shock_tubes.ProfileArrays
+    magnetic_x2: shock_tubes.ProfileArrays
+    total_energy: shock_tubes.ProfileArrays
 
 
 @dataclass(frozen=True)
@@ -109,41 +109,37 @@ def load_sim_profiles(
         raise FileNotFoundError(f"no density profile matching `{density_glob}` found in: {extracted_dir}.")
     density_path = density_paths[0]
     index = density_path.stem.split("index=")[-1]
-    density_profile = profile_models.ScalarProfile.load_from_file(
-        file_path=extracted_dir / f"density-axis=x_0-index={index}.json",
-    )
-    pressure_profile = profile_models.ScalarProfile.load_from_file(
-        file_path=extracted_dir / f"pressure-axis=x_0-index={index}.json",
-    )
-    velocity_profile = profile_models.VectorProfile.load_from_file(
-        file_path=extracted_dir / f"velocity-axis=x_0-index={index}.json",
-    )
-    magnetic_profile = profile_models.VectorProfile.load_from_file(
-        file_path=extracted_dir / f"magnetic-axis=x_0-index={index}.json",
-    )
-    total_energy_profile = profile_models.ScalarProfile.load_from_file(
-        file_path=extracted_dir / f"total_energy-axis=x_0-index={index}.json",
-    )
+    velocity_path = extracted_dir / f"velocity-axis=x_0-index={index}.json"
+    magnetic_path = extracted_dir / f"magnetic-axis=x_0-index={index}.json"
     return ShockTubeProfiles(
-        density=profile_models.ComponentArrays(
-            position=density_profile.position,
-            field_value=density_profile.field_value,
-            label=r"$\rho$",
+        density=shock_tubes.load_scalar_profile(
+            file_path=extracted_dir / f"density-axis=x_0-index={index}.json",
         ),
-        pressure=profile_models.ComponentArrays(
-            position=pressure_profile.position,
-            field_value=pressure_profile.field_value,
-            label=r"$p$",
+        pressure=shock_tubes.load_scalar_profile(
+            file_path=extracted_dir / f"pressure-axis=x_0-index={index}.json",
         ),
-        velocity_x0=velocity_profile.components["x_0"],
-        velocity_x1=velocity_profile.components["x_1"],
-        velocity_x2=velocity_profile.components["x_2"],
-        magnetic_x1=magnetic_profile.components["x_1"],
-        magnetic_x2=magnetic_profile.components["x_2"],
-        total_energy=profile_models.ComponentArrays(
-            position=total_energy_profile.position,
-            field_value=total_energy_profile.field_value,
-            label=r"$E_\mathrm{tot}$",
+        velocity_x0=shock_tubes.load_vector_profile_component(
+            file_path=velocity_path,
+            comp_axis=cartesian_axes.CartesianAxis_3D.X0,
+        ),
+        velocity_x1=shock_tubes.load_vector_profile_component(
+            file_path=velocity_path,
+            comp_axis=cartesian_axes.CartesianAxis_3D.X1,
+        ),
+        velocity_x2=shock_tubes.load_vector_profile_component(
+            file_path=velocity_path,
+            comp_axis=cartesian_axes.CartesianAxis_3D.X2,
+        ),
+        magnetic_x1=shock_tubes.load_vector_profile_component(
+            file_path=magnetic_path,
+            comp_axis=cartesian_axes.CartesianAxis_3D.X1,
+        ),
+        magnetic_x2=shock_tubes.load_vector_profile_component(
+            file_path=magnetic_path,
+            comp_axis=cartesian_axes.CartesianAxis_3D.X2,
+        ),
+        total_energy=shock_tubes.load_scalar_profile(
+            file_path=extracted_dir / f"total_energy-axis=x_0-index={index}.json",
         ),
     )
 
@@ -186,22 +182,19 @@ def compute_exact_profiles() -> ShockTubeProfiles:
         discontinuity_position=PROBLEM_SETUP.discontinuity_position,
     )
     return ShockTubeProfiles(
-        density=profile_models.ComponentArrays(
+        density=shock_tubes.ProfileArrays(
             position=sampled_domain,
             field_value=numpy.array([_solution.density for _solution in sampled_solution]),
-            label=r"$\rho$",
         ),
-        pressure=profile_models.ComponentArrays(
+        pressure=shock_tubes.ProfileArrays(
             position=sampled_domain,
             field_value=numpy.array([_solution.pressure for _solution in sampled_solution]),
-            label=r"$p$",
         ),
-        velocity_x0=profile_models.ComponentArrays(
+        velocity_x0=shock_tubes.ProfileArrays(
             position=sampled_domain,
             field_value=numpy.array([_solution.velocity_normal for _solution in sampled_solution]),
-            label=r"$\left[\vec{v}\right]_0$",
         ),
-        total_energy=profile_models.ComponentArrays(
+        total_energy=shock_tubes.ProfileArrays(
             position=sampled_domain,
             field_value=numpy.array(
                 [
@@ -212,31 +205,26 @@ def compute_exact_profiles() -> ShockTubeProfiles:
                     ) for _solution in sampled_solution
                 ],
             ),
-            label=r"$E_\mathrm{tot}$",
         ),
-        velocity_x1=profile_models.ComponentArrays(
+        velocity_x1=shock_tubes.ProfileArrays(
             position=sampled_domain,
             field_value=numpy.array([_solution.velocity_transverse_1 for _solution in sampled_solution]),
-            label=r"$\left[\vec{v}\right]_1$",
         ),
-        magnetic_x1=profile_models.ComponentArrays(
+        magnetic_x1=shock_tubes.ProfileArrays(
             position=sampled_domain,
             field_value=numpy.array(
                 [_solution.magnetic_field_transverse_1 for _solution in sampled_solution],
             ),
-            label=r"$\left[\vec{b}\right]_1$",
         ),
-        velocity_x2=profile_models.ComponentArrays(
+        velocity_x2=shock_tubes.ProfileArrays(
             position=sampled_domain,
             field_value=numpy.array([_solution.velocity_transverse_2 for _solution in sampled_solution]),
-            label=r"$\left[\vec{v}\right]_2$",
         ),
-        magnetic_x2=profile_models.ComponentArrays(
+        magnetic_x2=shock_tubes.ProfileArrays(
             position=sampled_domain,
             field_value=numpy.array(
                 [_solution.magnetic_field_transverse_2 for _solution in sampled_solution],
             ),
-            label=r"$\left[\vec{b}\right]_2$",
         ),
     )
 
@@ -296,12 +284,11 @@ def shift_profiles(
 ) -> ShockTubeProfiles:
 
     def _shifted(
-        component: profile_models.ComponentArrays,
-    ) -> profile_models.ComponentArrays:
-        return profile_models.ComponentArrays(
+        component: shock_tubes.ProfileArrays,
+    ) -> shock_tubes.ProfileArrays:
+        return shock_tubes.ProfileArrays(
             position=component.position - shift,
             field_value=component.field_value,
-            label=component.label,
         )
 
     return ShockTubeProfiles(

@@ -33,7 +33,7 @@ from local_helpers import paper_style
 
 @dataclass(frozen=True)
 class PressureSnapshot:
-    step_time: float
+    sim_time: float
     pressure: numpy_typing.NDArray[numpy.floating]
 
 
@@ -83,7 +83,7 @@ def load_pressure_snapshot(
     )
     with numpy.load(slice_path) as data:
         return PressureSnapshot(
-            step_time=float(data["step_time"]),
+            sim_time=float(data["sim_time"]),
             pressure=data["sarray_2d"],
         )
 
@@ -209,7 +209,7 @@ def plot_odd_even_split(
         panel=panel,
         x_pos_fraction=0.085,
         y_pos_fraction=0.35,
-        label=rf"$t = {uncorrected_snapshot.step_time:.2f}$",
+        label=rf"$t = {uncorrected_snapshot.sim_time:.2f}$",
         x_alignment=box_positions.Positions.Side.Left,
         y_alignment=box_positions.Positions.Side.Top,
         text_size_pt=style_figure.get_figure_params().text_size_params.axis_label_size_pt,

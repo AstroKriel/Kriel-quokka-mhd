@@ -82,9 +82,9 @@ def compute_symmetric_bounds(
 def compute_loop_center_at_time(
     *,
     problem_setup: ProblemSetup,
-    step_time: float,
+    sim_time: float,
 ) -> tuple[float, float]:
-    """Return the true advected centre of the loop at `step_time`, wrapped into the periodic domain."""
+    """Return the true advected centre of the loop at `sim_time`, wrapped into the periodic domain."""
 
     def wrap_into_periodic_domain(
         *,
@@ -94,8 +94,8 @@ def compute_loop_center_at_time(
         span = bounds[1] - bounds[0]
         return (value - bounds[0]) % span + bounds[0]
 
-    unwrapped_x0 = problem_setup.initial_position[0] + problem_setup.direction[0] * step_time
-    unwrapped_x1 = problem_setup.initial_position[1] + problem_setup.direction[1] * step_time
+    unwrapped_x0 = problem_setup.initial_position[0] + problem_setup.direction[0] * sim_time
+    unwrapped_x1 = problem_setup.initial_position[1] + problem_setup.direction[1] * sim_time
     return (
         wrap_into_periodic_domain(
             value=unwrapped_x0,
@@ -210,7 +210,7 @@ def plot_pdf_panel(
     *,
     panel: manage_figure.Panel,
     problem_setup: ProblemSetup,
-    divb_pdf_series: tuple[pdfs.PDFData, ...],
+    divb_pdf_series: tuple[pdfs.FieldPDF, ...],
 ) -> None:
     num_pdf_times = 10
     figure_params = style_figure.get_figure_params()
@@ -227,14 +227,14 @@ def plot_pdf_panel(
             palette_range=(0.05, 0.85),
         ),
         value_range=(
-            sampled_pdfs[1].step_time / problem_setup.period,
-            sampled_pdfs[-1].step_time / problem_setup.period,
+            sampled_pdfs[1].sim_time / problem_setup.period,
+            sampled_pdfs[-1].sim_time / problem_setup.period,
         ),
     )
     for pdf_data in sampled_pdfs[1:]:
-        bin_centers, log10_pdf = pdf_data.get_pdf(0)
+        bin_centers, log10_pdf = pdf_data.get_pdf(comp_index=0)
         finite_pdf = numpy.isfinite(log10_pdf)
-        curve_color = time_palette.mpl_cmap(time_palette.mpl_norm(pdf_data.step_time / problem_setup.period))
+        curve_color = time_palette.mpl_cmap(time_palette.mpl_norm(pdf_data.sim_time / problem_setup.period))
         panel.step(
             bin_centers[finite_pdf],
             log10_pdf[finite_pdf],
@@ -282,7 +282,7 @@ def plot_slice_panel(
     *,
     panel: manage_figure.Panel,
     problem_setup: ProblemSetup,
-    divb_slice: slices.SlicedField,
+    divb_slice: slices.FieldSlice,
 ) -> None:
     """Plot the div-b slice nearest the chosen target time, with a colorbar and a time label."""
     figure_params = style_figure.get_figure_params()
@@ -319,7 +319,7 @@ def plot_slice_panel(
     )
     loop_center = compute_loop_center_at_time(
         problem_setup=problem_setup,
-        step_time=divb_slice.step_time,
+        sim_time=divb_slice.sim_time,
     )
     for loop_image_center in compute_periodic_image_centers(center=loop_center):
         loop_outline = mpl_patches.Circle(
@@ -364,7 +364,7 @@ def plot_slice_panel(
         panel=panel,
         x_pos_fraction=0.55,
         y_pos_fraction=0.05,
-        label=rf"$t / T = {divb_slice.step_time / problem_setup.period:.2f}$",
+        label=rf"$t / T = {divb_slice.sim_time / problem_setup.period:.2f}$",
         x_alignment=box_positions.Positions.Center.Center,
         y_alignment=box_positions.Positions.Side.Bottom,
     )
@@ -373,8 +373,8 @@ def plot_slice_panel(
 def plot_field_loop_divb(
     *,
     problem_setup: ProblemSetup,
-    divb_pdf_series: tuple[pdfs.PDFData, ...],
-    divb_slice: slices.SlicedField,
+    divb_pdf_series: tuple[pdfs.FieldPDF, ...],
+    divb_slice: slices.FieldSlice,
 ) -> mpl_figure.Figure:
     figure, panel_grid = manage_figure.create_figure_grid(
         num_panel_rows=1,
@@ -413,7 +413,7 @@ def main() -> None:
     divb_pdf_paths = sorted(DATASET_DIR.glob(divb_pdf_glob))
     if not divb_pdf_paths:
         raise FileNotFoundError(f"no PDF matching `{divb_pdf_glob}` found in: {DATASET_DIR}.")
-    divb_pdf_series = tuple(pdfs.PDFData.load_from_file(_divb_pdf_path) for _divb_pdf_path in divb_pdf_paths)
+    divb_pdf_series = tuple(pdfs.FieldPDF.load_from_file(file_path=_divb_pdf_path) for _divb_pdf_path in divb_pdf_paths)
     advection_angle = numpy.arctan2(3.0, 2.0)
     problem_setup = ProblemSetup(
         initial_position=(0.0, 0.0),
@@ -421,13 +421,12 @@ def main() -> None:
         period=(AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]) / numpy.sin(advection_angle),
         radius=0.5,
     )
-    divb_slice = slices.SlicedField.load_from_file(
-        find_snapshots.find_npz_near_time(
-            extracted_dir=DATASET_DIR,
-            glob_pattern=divb_slice_glob,
-            target_time=TARGET_TIME_FRACTION * problem_setup.period,
-        ),
+    divb_slice_path = find_snapshots.find_npz_near_time(
+        extracted_dir=DATASET_DIR,
+        glob_pattern=divb_slice_glob,
+        target_time=TARGET_TIME_FRACTION * problem_setup.period,
     )
+    divb_slice = slices.FieldSlice.load_from_file(file_path=divb_slice_path)
     figure = plot_field_loop_divb(
         problem_setup=problem_setup,
         divb_pdf_series=divb_pdf_series,

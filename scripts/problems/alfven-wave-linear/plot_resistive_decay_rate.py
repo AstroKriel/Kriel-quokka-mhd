@@ -75,8 +75,8 @@ def load_perturbed_component_snapshots(
         perturbed_field_comp = dataset["field_comps"]["x_2"]
         snapshots.append(
             Snapshot(
-                time=dataset["step_time"],
-                position=numpy.asarray(perturbed_field_comp["position"]),
+                time=dataset["sim_time"],
+                position=numpy.asarray(dataset["position"]),
                 field_value=numpy.asarray(perturbed_field_comp["field_value"]),
             ),
         )

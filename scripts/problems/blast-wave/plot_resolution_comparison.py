@@ -39,7 +39,7 @@ from local_helpers import paper_style, plot_slices
 
 @dataclass(frozen=True)
 class DensitySlice:
-    step_time: float
+    sim_time: float
     log10_density: numpy_typing.NDArray[numpy.floating]
 
 
@@ -80,7 +80,7 @@ def load_density_slice(
     )
     with numpy.load(slice_path) as data:
         return DensitySlice(
-            step_time=float(data["step_time"]),
+            sim_time=float(data["sim_time"]),
             log10_density=numpy.log10(data["sarray_2d"]),
         )
 

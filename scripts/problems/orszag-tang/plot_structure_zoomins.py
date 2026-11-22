@@ -368,7 +368,7 @@ def configure_zoomin_ticks(
 def add_time_label(
     *,
     panel: manage_figure.Panel,
-    step_time: float,
+    sim_time: float,
 ) -> None:
     figure_params = style_figure.get_figure_params()
     text_size_params = figure_params.text_size_params
@@ -376,7 +376,7 @@ def add_time_label(
         panel=panel,
         x_pos_fraction=0.5,
         y_pos_fraction=0.875,
-        label=rf"$t = {step_time:.2f}$",
+        label=rf"$t = {sim_time:.2f}$",
         x_alignment=box_positions.Positions.Center.Center,
         y_alignment=box_positions.Positions.Side.Top,
         text_color="white",
@@ -387,7 +387,7 @@ def add_time_label(
 def plot_structures(
     *,
     bounded_slice: BoundedSlice,
-    step_time: float,
+    sim_time: float,
 ) -> mpl_figure.Figure:
     num_zoomin_rows = len(ZOOM_REGIONS)
     num_zoomin_cols = 1
@@ -421,7 +421,7 @@ def plot_structures(
     configure_main_ticks(panel=main_ax)
     add_time_label(
         panel=main_ax,
-        step_time=step_time,
+        sim_time=sim_time,
     )
     for region_index, zoom_region in enumerate(ZOOM_REGIONS):
         grid_row_start = region_index
@@ -472,7 +472,7 @@ def main() -> None:
     )
     with numpy.load(data_path) as data:
         sarray_2d = data["sarray_2d"]
-        step_time = float(data["step_time"])
+        sim_time = float(data["sim_time"])
     cell_size = (AXIS_BOUNDS[0][1] - AXIS_BOUNDS[0][0]) / sarray_2d.shape[0]
     log10_scaled_sarray_2d = compute_array_stats.compute_safe_log10(cell_size * numpy.abs(sarray_2d))
     bounded_slice = BoundedSlice(
@@ -481,7 +481,7 @@ def main() -> None:
     )
     figure = plot_structures(
         bounded_slice=bounded_slice,
-        step_time=step_time,
+        sim_time=sim_time,
     )
     manage_figure.save_figure(
         figure=figure,

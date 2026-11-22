@@ -10,10 +10,14 @@ from enum import Enum
 from pathlib import Path
 
 ## third-party
+import numpy
+
 from matplotlib import colors as mpl_colors
 from matplotlib import lines as mpl_lines
+from numpy import typing as numpy_typing
 
 ## personal
+from jormi.ww_fields import cartesian_axes
 from jormi.ww_plots import manage_figure
 from jormi.ww_types import box_positions
 from ww_quokka_sims.sim_io.field_diagnostics import profiles as profile_models
@@ -21,6 +25,12 @@ from ww_quokka_sims.sim_io.field_diagnostics import profiles as profile_models
 ##
 ## === DATA STRUCTURES
 ##
+
+
+@dataclass(frozen=True)
+class ProfileArrays:
+    position: numpy_typing.NDArray[numpy.floating]
+    field_value: numpy_typing.NDArray[numpy.floating]
 
 
 @dataclass(frozen=True)
@@ -128,7 +138,30 @@ def load_solution_time(
     density_paths = sorted(extracted_dir.glob(density_glob))
     if not density_paths:
         raise FileNotFoundError(f"no density profile matching `{density_glob}` found in: {extracted_dir}.")
-    return profile_models.ScalarProfile.load_from_file(file_path=density_paths[0]).step_time
+    return profile_models.ScalarFieldProfile.load_from_file(file_path=density_paths[0]).sim_time
+
+
+def load_scalar_profile(
+    *,
+    file_path: Path,
+) -> ProfileArrays:
+    scalar_profile = profile_models.ScalarFieldProfile.load_from_file(file_path=file_path)
+    return ProfileArrays(
+        position=scalar_profile.position,
+        field_value=scalar_profile.field_value,
+    )
+
+
+def load_vector_profile_component(
+    *,
+    file_path: Path,
+    comp_axis: cartesian_axes.CartesianAxis_3D,
+) -> ProfileArrays:
+    vector_profile = profile_models.VectorFieldProfile.load_from_file(file_path=file_path)
+    return ProfileArrays(
+        position=vector_profile.position,
+        field_value=vector_profile.components[comp_axis].field_value,
+    )
 
 
 def add_zoom_inset(

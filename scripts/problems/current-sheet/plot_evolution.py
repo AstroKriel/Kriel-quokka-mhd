@@ -36,7 +36,7 @@ from local_helpers import paper_style, plot_slices
 
 @dataclass(frozen=True)
 class DataSlice:
-    step_time: float
+    sim_time: float
     current_density: numpy_typing.NDArray[numpy.floating]
 
 
@@ -76,7 +76,7 @@ def load_data_slices() -> list[DataSlice]:
         with numpy.load(data_path) as dataset:
             data_slices.append(
                 DataSlice(
-                    step_time=float(dataset["step_time"]),
+                    sim_time=float(dataset["sim_time"]),
                     current_density=dataset["sarray_2d"],
                 ),
             )
@@ -172,7 +172,7 @@ def main() -> None:
             panel=panel,
             x_pos_fraction=0.5,
             y_pos_fraction=0.95,
-            label=rf"$t = {data_panel.data_slice.step_time:.1f}$",
+            label=rf"$t = {data_panel.data_slice.sim_time:.1f}$",
             x_alignment=box_positions.Positions.Center.Center,
             y_alignment=box_positions.Positions.Side.Top,
         )

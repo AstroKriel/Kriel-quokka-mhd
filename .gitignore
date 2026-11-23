@@ -13,7 +13,8 @@ __pycache__/
 ## ignore sim outputs
 snapshots/
 checkpoints/
-extracted/
+## no trailing slash: git treats a symlink like a file; some `extracted` datasets are symlinked from elsewhere
+extracted
 
 ## tag to indicate a directory should be ignored; leave this last so it always wins
 *.gitignored/
